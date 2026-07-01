@@ -120,6 +120,12 @@ output/                  generated report.html lands here
 
 ## Documentation
 
+- **[docs/PLAN.md](docs/PLAN.md)** — the flagship implementation plan: async typed
+  kernel, three engines (orchestrator/blackboard/hybrid), real streaming Anthropic
+  calls with cache‑aware cost accounting, a record/replay cassette layer, one
+  canonical event contract driving a live side‑by‑side dashboard, a fair 5‑scenario
+  benchmark, guardrails/security, and a self‑syncing docs pipeline — phased, with a
+  risk register. Built for expert agentic engineers.
 - **[docs/WHEN-TO-USE.md](docs/WHEN-TO-USE.md)** — a decision guide + checklist:
   when each model wins, with worked examples.
 - **[docs/architecture.md](docs/architecture.md)** — how the code maps to the
