@@ -50,7 +50,7 @@ def bench(
     features: int = typer.Option(8, help="requested features (the shared 'prompt')"),
     budget: int = typer.Option(90, help="budget cap $k"),
     real: bool = typer.Option(False, help="live Anthropic calls"),
-    model: str = typer.Option("claude-sonnet-5"),
+    model: str = typer.Option("claude-haiku-4-5-20251001"),
     cassette: str = typer.Option(None, help="record/replay path"),
     orch_early_exit: bool = typer.Option(False, help="give orchestrator the same gate early-exit"),
     html: str = typer.Option("output/report.html", help="animated report path ('' to skip)"),
@@ -82,7 +82,7 @@ def bench(
 @app.command()
 def run(engine: str = typer.Argument(..., help="orchestrator|blackboard|hybrid"),
         features: int = typer.Option(8), budget: int = typer.Option(90),
-        real: bool = typer.Option(False), model: str = typer.Option("claude-sonnet-5"),
+        real: bool = typer.Option(False), model: str = typer.Option("claude-haiku-4-5-20251001"),
         cassette: str = typer.Option(None)):
     """Run a single harness and print its trace."""
     config = RunConfig(real=real, model=model, cassette=cassette)
@@ -90,6 +90,76 @@ def run(engine: str = typer.Argument(..., help="orchestrator|blackboard|hybrid")
     result = asyncio.run(run_engine(engine, config, params))
     typer.echo(task.scenario_text(params) + "\n")
     typer.echo(_trace(result))
+
+
+@app.command()
+def models(
+    features: int = typer.Option(8), budget: int = typer.Option(90),
+    real: bool = typer.Option(False, help="live calls (else replay from cassette)"),
+    cassette: str = typer.Option("cassettes/demo.json"),
+    models: str = typer.Option(
+        "claude-haiku-4-5-20251001,claude-sonnet-5,claude-opus-4-8,claude-fable-5",
+        help="comma-separated model ids to compare"),
+):
+    """Compare models on the SAME task and flag what actually differs.
+
+    Because agent decisions are rule-based, the plan and call counts are identical
+    across models — only narration tokens and cost differ. This makes the cost of
+    each model explicit so you can pick the cheapest that fits.
+    """
+    from .pricing import get_price, is_known
+    model_ids = [m.strip() for m in models.split(",") if m.strip()]
+    params = _params(features, budget)
+    rows = []
+    for m in model_ids:
+        cfg = RunConfig(real=real, model=m, cassette=(None if real else cassette))
+        try:
+            res = asyncio.run(run_all(cfg, params))
+        except Exception as exc:  # e.g. cassette miss for a model not recorded
+            rows.append((m, None, str(exc)))
+            continue
+        rows.append((m, res, None))
+
+    def _total_cost(res):
+        return sum(res[e].recorder.total_cost_usd for e in ("orchestrator", "blackboard", "hybrid"))
+
+    ok = [(m, res) for m, res, err in rows if err is None]
+    cheapest = min(ok, key=lambda mr: _total_cost(mr[1]))[0] if ok else None
+
+    typer.echo(task.scenario_text(params) + "\n")
+    hdr = f"  {'MODEL':<30}{'$/Mtok in/out':>14}{'calls o/b/h':>13}{'tokens o/b/h':>20}{'cost o/b/h (USD)':>28}"
+    typer.echo(hdr)
+    typer.echo("  " + "-" * (len(hdr) - 2))
+    plans = set()
+    calls_sets = set()
+    for m, res, err in rows:
+        price = get_price(m)
+        pr = f"{price.input_per_mtok:g}/{price.output_per_mtok:g}" if is_known(m) else "n/a"
+        if err:
+            typer.echo(f"  {m:<30}{pr:>14}   (not in cassette — record with --real)")
+            continue
+        o, b, h = res["orchestrator"].recorder, res["blackboard"].recorder, res["hybrid"].recorder
+        calls = f"{o.n_calls}/{b.n_calls}/{h.n_calls}"
+        toks = f"{o.total_usage.total}/{b.total_usage.total}/{h.total_usage.total}"
+        cost = f"${o.total_cost_usd:.4f}/${b.total_cost_usd:.4f}/${h.total_cost_usd:.4f}"
+        st = res["blackboard"].state
+        plan = f"{st['scope']}f·${st['budget_k']}k·{st['timeline_weeks']}w·{st['risk']}"
+        plans.add(plan)
+        calls_sets.add(calls)
+        flag = " ★ cheapest" if m == cheapest else ""
+        typer.echo(f"  {m:<30}{pr:>14}{calls:>13}{toks:>20}{cost:>28}{flag}")
+        typer.echo(f"  {'':<30}{'':<14}→ plan: {plan}")
+
+    typer.echo("")
+    n_ok = len(ok)
+    identical = n_ok >= 2 and len(plans) == 1 and len(calls_sets) == 1
+    typer.echo(f"  → calls + final plan identical across {n_ok} model(s): {identical}"
+               + ("  (decisions are rule-based)" if identical else "  (need ≥2 models to compare)"))
+    if cheapest:
+        cp = get_price(cheapest)
+        typer.echo(f"  → only narration tokens/cost differ → cheapest here: {cheapest} "
+                   f"(${cp.input_per_mtok:g}/${cp.output_per_mtok:g} per Mtok).")
+    typer.echo("  → streaming Messages API (real-time), NOT the Batch API.")
 
 
 @app.command()

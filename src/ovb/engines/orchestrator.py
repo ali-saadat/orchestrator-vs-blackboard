@@ -1,10 +1,13 @@
 """ORCHESTRATOR harness — hub-and-spoke, supervisor-routed.
 
-Scheduling discipline: a central supervisor invokes each agent in a FIXED order.
-Agents are isolated (each `invoke` gets a fresh view; they never see each other).
-With no shared state and no mid-task reaction, the only way to resolve an
-interdependency is to sweep the whole roster again — and to confirm convergence
-you pay one final no-op sweep. That confirming sweep is the hub tax.
+Scheduling discipline: a central supervisor invokes each agent in a FIXED order
+over its accumulated plan state. There is no shared *board* the agents write to
+directly and no reactive re-triggering — an agent never wakes because another
+agent wrote a field; coordination happens only when the supervisor re-invokes on
+the next sweep. Each `invoke` is a fresh model call (the agent sees the
+supervisor's current state, not the other agents' context or reasoning). To
+resolve an interdependency the supervisor must sweep the whole roster again, and
+to confirm convergence it pays one final no-op sweep — the hub tax.
 
 `orch_early_exit` optionally gives the orchestrator the SAME deterministic gate
 the blackboard uses, so you can report both variants and never be accused of

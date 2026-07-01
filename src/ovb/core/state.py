@@ -1,4 +1,4 @@
-"""Shared typed state + the reducer.
+"""Typed plan state + the reducer.
 
 Every state transition goes through `apply_patch`, never attribute assignment,
 so each mutation is (a) ownership-checked, (b) diffed, (c) emitted as a discrete
@@ -19,10 +19,14 @@ from pydantic import BaseModel, ConfigDict
 
 
 class PlanState(BaseModel):
-    """The shared blackboard/plan for the reconciliation scenario.
+    """The typed plan state for the reconciliation scenario.
 
-    Domain-specific by design — a new scenario ships a new state model. The
-    kernel only relies on it being a frozen pydantic model with a `fingerprint`.
+    In the blackboard and hybrid core this is the SHARED board all agents read and
+    write (and re-trigger on); in the orchestrator it is the supervisor's
+    accumulated state, updated only by fixed-order sweeps (no shared board, no
+    re-triggering). Domain-specific by design — a new scenario ships a new state
+    model. The kernel only relies on it being a frozen pydantic model with a
+    `fingerprint`.
     """
 
     model_config = ConfigDict(frozen=True)

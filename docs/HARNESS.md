@@ -243,7 +243,7 @@ PRICING = {
     "claude-sonnet-5":   (2.0, 10.0),   # intro rate thru 2026-08-31; 3.0/15.0 from 2026-09-01
     "claude-sonnet-4-6": (3.0, 15.0),
     "claude-sonnet-4-5": (3.0, 15.0),
-    "claude-haiku-4-5":  (1.0, 5.0),    # latest Haiku
+    "claude-haiku-4-5-20251001": (1.0, 5.0),   # latest Haiku (cheapest)
 }
 
 

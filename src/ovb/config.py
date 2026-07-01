@@ -14,8 +14,10 @@ from pydantic import BaseModel, ConfigDict
 class RunConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
-    # provider / sampling (fairness-critical: identical across all engines)
-    model: str = "claude-sonnet-5"
+    # provider / sampling (fairness-critical: identical across all engines).
+    # Default to the CHEAPEST model: since agent decisions are rule-based, the model
+    # only narrates — model choice changes tokens/cost, never the plan or call counts.
+    model: str = "claude-haiku-4-5-20251001"
     temperature: float = 0.0
     max_tokens: int = 256
 

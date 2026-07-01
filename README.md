@@ -20,8 +20,9 @@ audit log so the difference is a number, not an opinion.
 
 ```bash
 pip install -e ".[dev]"          # or: export PYTHONPATH=src
-ovb serve                        # ⭐ LIVE side-by-side dashboard in your browser
+ovb serve                        # ⭐ LIVE dashboard: animated flow diagrams, light/dark, glossary
 ovb bench                        # all 3 harnesses + comparison + output/report.html
+ovb models                       # compare Haiku/Sonnet/Opus/Fable — same result, different cost
 ovb run blackboard               # one harness, print its trace
 make test                        # deterministic checks
 ovb doctor                       # what mode am I in?
@@ -79,20 +80,33 @@ ovb serve            # opens http://127.0.0.1:8000
 Give the **same prompt** (requested features + budget cap) to all three harnesses and
 watch them run **concurrently, in real time**:
 
-- **Compare view** — orchestrator · blackboard · hybrid side by side, or **focus** any
-  one (or the hybrid) independently via the tabs.
-- **Shared-memory board** — the live plan state per harness, each field flashing as it's
-  written. You literally see the blackboard fill in and re-settle.
-- **Agent talk** — a chat feed of what each agent "says" each turn (its narration; the
-  real model's words in `--real` mode).
-- **Activity · shared memory** — every activation, `✎` write, `↻` re-trigger (the reactive
-  shared-memory signal), and `⏛` gate check, streamed as it happens.
-- **Live meters** — calls, wasted calls, tokens, $ cost, gate status, updating per event.
+- **Animated flow diagram** per harness — a mermaid-style topology with arrows that light
+  up as each step streams: the orchestrator's supervisor→agent message passing (**no board
+  node — it has no shared memory**), the blackboard's agent↔**BOARD** reads/writes and `↻`
+  re-triggers, the hybrid's bounded core + supervisor tail. Colored: message (blue), write
+  (teal), re-trigger (purple).
+- **Compare view** — all three side by side, or **focus** any one independently via the tabs.
+- **State panel** — the live plan state per harness. For the blackboard/hybrid it's the
+  **shared board** (fields flash as they're written); for the orchestrator it's the
+  **supervisor's state, handed out as isolated views — not shared memory**.
+- **Agent talk** — what each agent "says" each turn (its narration; the real model's words,
+  markdown-rendered, in `--real`/cassette mode).
+- **Activity log** — every activation, `✎` write, `↻` re-trigger, and `⏛` gate check, streamed.
+- **Live meters** — calls, wasted calls, tokens, $ cost, gate. Plus a **Glossary** tab,
+  **light/dark** toggle, and a **model picker** (defaults to the cheapest, Haiku 4.5).
 
-It's a standard-library SSE server (no uvicorn/React/build step) streaming the same WORM
-event contract the CLI and static report use — so the live view and the offline artifact
-are the same data. The speed slider paces mock runs so you can watch; `--real` is paced by
-real model latency. Production swaps in FastAPI + SSE + React/D3 (see [docs/PLAN.md](docs/PLAN.md)).
+It's a standard-library **streaming** SSE server (no uvicorn/React/build step, and never the
+Batch API) streaming the same WORM event contract the CLI and static report use. The speed
+slider paces mock runs; `--real` is paced by real model latency. (Not Streamlit — Streamlit
+re-runs the whole script and can't stream frame-by-frame like this; production could swap in
+FastAPI + React/D3, see [docs/PLAN.md](docs/PLAN.md).)
+
+### Cheapest model — same result, different cost
+
+Because the agents' decisions are **rule-based, the model only narrates** — so the model
+choice never changes the plan or call counts, **only tokens/cost**. `ovb models` makes this
+explicit and flags it; default is the cheapest (**Haiku 4.5, $1/$5**). See
+[docs/EXAMPLE.md](docs/EXAMPLE.md) for the real 4-model table (identical plan, ~20× cost spread).
 
 > ⚠️ **Honesty about the numbers.** In mock mode, tokens are *synthetic* (derived from
 > real prompt lengths) so the run is reproducible offline; cost applies **real** Claude
