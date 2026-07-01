@@ -1,8 +1,9 @@
 """Run harness: build the shared world once, run each topology over it.
 
-The world (registry, gate, initial state, LLM, config) is constructed ONCE and
-handed identically to every engine — that is the fairness guarantee in code. Each
-engine gets its own `Sequencer`-backed recorder but the same everything-else.
+The world (registry, gate, initial state, LLM, config, scenario params) is
+constructed ONCE and handed identically to every engine — the fairness guarantee
+in code. `event_sink`, when supplied, receives every event as it is emitted (used
+by the live server to stream in real time).
 """
 from __future__ import annotations
 
@@ -11,6 +12,7 @@ from ..contracts import EngineResult, Sequencer
 from ..core.gate import PredicateGate
 from ..core.llm import CassetteLLM, ClaudeLLM, MockLLM
 from ..domain import agents, task
+from ..domain.task import ScenarioParams
 from ..engines import ENGINES
 
 
@@ -27,21 +29,27 @@ def _make_llm(config: RunConfig):
     return base
 
 
-async def run_engine(name: str, config: RunConfig) -> EngineResult:
-    registry = agents.build_registry()
-    gate = PredicateGate(task.is_consistent, spec="reconcile.is_consistent/v1")
-    llm = _make_llm(config)
+def build_gate(params: ScenarioParams) -> PredicateGate:
+    return PredicateGate(
+        lambda s: task.is_consistent(s, params),
+        spec=f"reconcile/v1/cap={params.budget_cap_k}/cost={params.cost_per_feature_k}",
+    )
+
+
+async def run_engine(name: str, config: RunConfig,
+                     params: "ScenarioParams | None" = None,
+                     event_sink=None) -> EngineResult:
+    p = params or ScenarioParams()
     engine = ENGINES[name](
-        registry=registry, gate=gate, initial_state=task.initial_state(),
-        llm=llm, config=config, run_id=f"{name}", sequencer=Sequencer(),
-        scenario=task.SCENARIO,
+        registry=agents.build_registry(p), gate=build_gate(p),
+        initial_state=task.initial_state(p), llm=_make_llm(config), config=config,
+        run_id=name, sequencer=Sequencer(), scenario=task.scenario_text(p),
+        event_sink=event_sink,
     )
     return await engine.run()
 
 
-async def run_all(config: RunConfig) -> dict[str, EngineResult]:
+async def run_all(config: RunConfig,
+                  params: "ScenarioParams | None" = None) -> dict[str, EngineResult]:
     """Run all three topologies over the identical world."""
-    results: dict[str, EngineResult] = {}
-    for name in ENGINES:
-        results[name] = await run_engine(name, config)
-    return results
+    return {name: await run_engine(name, config, params) for name in ENGINES}

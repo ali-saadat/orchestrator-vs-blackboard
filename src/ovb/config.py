@@ -32,6 +32,10 @@ class RunConfig(BaseModel):
     orch_early_exit: bool = False   # give the orchestrator the SAME gate early-exit (reported as a variant)
     n_runs: int = 1                 # >1 => variance over repeated real runs (temp=0)
 
+    # live-view pacing: seconds to pause per harness step so a human can watch the
+    # control loop unfold. 0 in mock/CI (instant); real mode is paced by LLM latency.
+    step_delay: float = 0.0
+
     @classmethod
     def from_env(cls, **overrides) -> "RunConfig":
         env = {}

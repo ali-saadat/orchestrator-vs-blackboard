@@ -31,7 +31,7 @@ class Call:
 
 class Recorder:
     def __init__(self, control_model: str, run_id: str, sequencer: Sequencer,
-                 model: str):
+                 model: str, on_event=None):
         self.control_model = control_model
         self.run_id = run_id
         self.seq = sequencer
@@ -39,6 +39,9 @@ class Recorder:
         self._price = get_price(model)
         self.calls: list[Call] = []
         self.events: list[Event] = []
+        # optional live sink: called synchronously as each event is emitted, so a
+        # streaming server can forward it to the browser in real time.
+        self.on_event = on_event
 
     # ---- event emission (OTel-aligned kinds) --------------------------------
     def _emit(self, kind: str, agent: str | None = None, **attrs) -> Event:
@@ -46,6 +49,8 @@ class Recorder:
                    control_model=self.control_model, kind=kind, agent=agent,
                    attrs=attrs)
         self.events.append(ev)
+        if self.on_event is not None:
+            self.on_event(ev)
         return ev
 
     def run_started(self, scenario: str) -> None:
@@ -58,7 +63,8 @@ class Recorder:
         self._emit("gen_ai.client.call.started", agent=agent)
 
     def call_finished(self, agent: str, usage: Usage, cost: float,
-                      latency_ms: float, writes: dict, trigger: str) -> None:
+                      latency_ms: float, writes: dict, trigger: str,
+                      message: str = "") -> None:
         self.calls.append(Call(len(self.calls) + 1, self.control_model,
                                agent, usage, cost, latency_ms, bool(writes),
                                dict(writes), trigger))
@@ -68,7 +74,7 @@ class Recorder:
                       "cache_read_input_tokens": usage.cache_read_input_tokens,
                       "cache_creation_input_tokens": usage.cache_creation_input_tokens,
                       "cost_usd": round(cost, 6), "latency_ms": round(latency_ms, 3),
-                      "changed": bool(writes)})
+                      "changed": bool(writes), "message": message})
 
     def state_write(self, agent: str, fieldname: str, old, new) -> None:
         self._emit("state_write", agent=agent, field=fieldname, old=old, new=new)

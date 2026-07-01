@@ -1,10 +1,11 @@
 PY ?= python3
 export PYTHONPATH := $(CURDIR)/src
 
-.PHONY: help install test bench orchestrator blackboard hybrid real doctor lint clean
+.PHONY: help install test serve bench orchestrator blackboard hybrid real doctor lint clean
 
 help:
 	@echo "make install     editable install (pip install -e '.[dev,real,web]')"
+	@echo "make serve       LIVE side-by-side dashboard (real-time, full visibility)"
 	@echo "make test        deterministic smoke tests (no network)"
 	@echo "make bench       run all 3 harnesses (mock) + comparison + output/report.html"
 	@echo "make orchestrator|blackboard|hybrid   run one harness, print its trace"
@@ -17,6 +18,9 @@ install:
 
 test:
 	$(PY) -m pytest -q
+
+serve:
+	$(PY) -m ovb serve
 
 bench:
 	$(PY) -m ovb bench

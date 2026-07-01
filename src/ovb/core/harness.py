@@ -18,6 +18,7 @@ harness topologies over identical agents."
 """
 from __future__ import annotations
 
+import asyncio
 import time
 
 from ..contracts import EngineResult, Sequencer
@@ -33,7 +34,7 @@ class Harness:
 
     def __init__(self, *, registry: AgentRegistry, gate: Gate, initial_state,
                  llm, config, run_id: str, sequencer: Sequencer, scenario: str,
-                 tools_exec=None):
+                 tools_exec=None, event_sink=None):
         self.registry = registry
         self.gate = gate
         self.state = initial_state
@@ -43,7 +44,8 @@ class Harness:
         self.scenario = scenario
         self.tools_exec = tools_exec
         self._price = get_price(config.model)
-        self.rec = Recorder(self.control_model, run_id, sequencer, config.model)
+        self.rec = Recorder(self.control_model, run_id, sequencer, config.model,
+                            on_event=event_sink)
 
     # ---- shared harness primitives -----------------------------------------
     async def invoke(self, source: KnowledgeSource, *, trigger: str) -> dict:
@@ -51,6 +53,8 @@ class Harness:
         self.rec.agent_activated(source.name, trigger)
         view = self.state
         self.rec.llm_call_started(source.name)
+        if self.config.step_delay:      # pacing so a human can watch it think
+            await asyncio.sleep(self.config.step_delay)
         t0 = time.perf_counter()
         result = await source.act(view, self.llm, self.tools_exec)
         measured_ms = (time.perf_counter() - t0) * 1000.0
@@ -65,7 +69,7 @@ class Harness:
         cost = result.usage.cost_usd(self._price)
         latency = measured_ms if self.config.real else result.usage.total / 10.0
         self.rec.call_finished(source.name, result.usage, cost, latency,
-                               changes, trigger)
+                               changes, trigger, message=result.rationale)
         return changes
 
     def gate_passed(self) -> bool:

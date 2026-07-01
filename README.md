@@ -20,6 +20,7 @@ audit log so the difference is a number, not an opinion.
 
 ```bash
 pip install -e ".[dev]"          # or: export PYTHONPATH=src
+ovb serve                        # ⭐ LIVE side-by-side dashboard in your browser
 ovb bench                        # all 3 harnesses + comparison + output/report.html
 ovb run blackboard               # one harness, print its trace
 make test                        # deterministic checks
@@ -62,6 +63,30 @@ the cost to get there is what differs:
 
 `output/report.html` is a self-contained animated report — press **play** to watch each
 harness's control loop converge, meters updating live from the WORM event stream.
+
+## Live dashboard — full visibility, side by side (`ovb serve`)
+
+```bash
+ovb serve            # opens http://127.0.0.1:8000
+```
+
+Give the **same prompt** (requested features + budget cap) to all three harnesses and
+watch them run **concurrently, in real time**:
+
+- **Compare view** — orchestrator · blackboard · hybrid side by side, or **focus** any
+  one (or the hybrid) independently via the tabs.
+- **Shared-memory board** — the live plan state per harness, each field flashing as it's
+  written. You literally see the blackboard fill in and re-settle.
+- **Agent talk** — a chat feed of what each agent "says" each turn (its narration; the
+  real model's words in `--real` mode).
+- **Activity · shared memory** — every activation, `✎` write, `↻` re-trigger (the reactive
+  shared-memory signal), and `⏛` gate check, streamed as it happens.
+- **Live meters** — calls, wasted calls, tokens, $ cost, gate status, updating per event.
+
+It's a standard-library SSE server (no uvicorn/React/build step) streaming the same WORM
+event contract the CLI and static report use — so the live view and the offline artifact
+are the same data. The speed slider paces mock runs so you can watch; `--real` is paced by
+real model latency. Production swaps in FastAPI + SSE + React/D3 (see [docs/PLAN.md](docs/PLAN.md)).
 
 > ⚠️ **Honesty about the numbers.** In mock mode, tokens are *synthetic* (derived from
 > real prompt lengths) so the run is reproducible offline; cost applies **real** Claude
@@ -108,8 +133,8 @@ src/ovb/
   engines/             orchestrator.py · blackboard.py · hybrid.py   (scheduling ONLY)
   domain/              task.py (scenario + gate) · agents.py (the 4 specialists)
   eval/                runner.py (build world once) · compare.py (fairness + table)
-  viz/                 report.py (self-contained animated HTML)
-  cli.py               `ovb bench | run | doctor`
+  viz/                 report.py (animated HTML) · live.py (stdlib SSE dashboard)
+  cli.py               `ovb serve | bench | run | doctor`
 tests/                 deterministic smoke + fairness tests (no network)
 docs/                  HARNESS.md · WHEN-TO-USE.md · PLAN.md · RESEARCH.md · architecture.md
 output/                generated report.html + per-engine *.jsonl event logs
