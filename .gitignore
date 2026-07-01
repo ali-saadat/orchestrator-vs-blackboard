@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# Tooling
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.DS_Store
+
+# Secrets
+.env
+
+# Local Claude Code settings
+.claude/settings.local.json
+
+# Generated reports (keep the directory, ignore the output)
+output/*.html
+!output/.gitkeep

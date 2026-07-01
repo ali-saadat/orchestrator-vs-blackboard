@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ovb"
+version = "0.1.0"
+description = "Orchestrator vs Blackboard — a runnable, instrumented comparison of two multi-agent control models"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Ali Saadat" }]
+keywords = ["multi-agent", "llm", "orchestrator", "blackboard", "agentic", "control-model"]
+dependencies = []  # mock mode is stdlib-only
+
+[project.optional-dependencies]
+real = ["anthropic>=0.40"]     # only needed for --real (live Claude calls)
+dev = ["pytest>=8"]
+
+[tool.setuptools]
+packages = ["ovb"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

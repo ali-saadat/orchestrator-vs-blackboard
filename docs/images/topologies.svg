@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 470" font-family="ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#8a94a6"/>
+    </marker>
+    <marker id="ahg" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#5fae2f"/>
+    </marker>
+  </defs>
+
+  <text x="500" y="34" text-anchor="middle" font-size="21" font-weight="700" fill="#1c2230">Orchestrator vs Blackboard — same agents, a different control model</text>
+
+  <!-- ORCHESTRATOR PANEL -->
+  <rect x="24" y="60" width="460" height="380" rx="14" fill="#f6f7f9" stroke="#d7dce4"/>
+  <rect x="24" y="60" width="460" height="40" rx="14" fill="#5b6472"/>
+  <text x="254" y="86" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">ORCHESTRATOR · hub-and-spoke, supervisor-routed</text>
+
+  <!-- supervisor -->
+  <rect x="196" y="220" width="116" height="58" rx="10" fill="#465061"/>
+  <text x="254" y="245" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">SUPERVISOR</text>
+  <text x="254" y="263" text-anchor="middle" font-size="10.5" fill="#c8cede">routes · aggregates</text>
+
+  <!-- sub-agents -->
+  <g font-size="12" font-weight="600" fill="#26303f">
+    <rect x="66" y="128" width="120" height="44" rx="9" fill="#fff" stroke="#9aa4b2"/>
+    <text x="126" y="155" text-anchor="middle">Agent 1</text>
+    <rect x="322" y="128" width="120" height="44" rx="9" fill="#fff" stroke="#9aa4b2"/>
+    <text x="382" y="155" text-anchor="middle">Agent 2</text>
+    <rect x="66" y="326" width="120" height="44" rx="9" fill="#fff" stroke="#9aa4b2"/>
+    <text x="126" y="353" text-anchor="middle">Agent 3</text>
+    <rect x="322" y="326" width="120" height="44" rx="9" fill="#fff" stroke="#9aa4b2"/>
+    <text x="382" y="353" text-anchor="middle">Agent 4</text>
+  </g>
+  <g stroke="#8a94a6" stroke-width="1.6" fill="none" marker-end="url(#ah)">
+    <path d="M196,238 L188,160"/>
+    <path d="M312,238 L320,160"/>
+    <path d="M196,262 L188,340"/>
+    <path d="M312,262 L320,340"/>
+  </g>
+  <text x="254" y="404" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7484">sub-agents isolated — fresh context each call, fixed hand-off order</text>
+
+  <!-- BLACKBOARD PANEL -->
+  <rect x="516" y="60" width="460" height="380" rx="14" fill="#f3f8ee" stroke="#cfe3bd"/>
+  <rect x="516" y="60" width="460" height="40" rx="14" fill="#2f5e1f"/>
+  <text x="746" y="86" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">BLACKBOARD · shared-state, event-driven</text>
+
+  <!-- shared state -->
+  <rect x="676" y="214" width="140" height="60" rx="10" fill="#12160f" stroke="#2f5e1f"/>
+  <text x="746" y="238" text-anchor="middle" font-size="12.5" font-weight="700" fill="#fff">SHARED STATE</text>
+  <text x="746" y="256" text-anchor="middle" font-size="10" fill="#a9c78f">one state · every write logged (WORM)</text>
+
+  <!-- agents -->
+  <g font-size="12" font-weight="600" fill="#1f3312">
+    <rect x="558" y="128" width="120" height="44" rx="9" fill="#fff" stroke="#4f9a2f"/>
+    <text x="618" y="155" text-anchor="middle">Agent 1</text>
+    <rect x="814" y="128" width="120" height="44" rx="9" fill="#fff" stroke="#4f9a2f"/>
+    <text x="874" y="155" text-anchor="middle">Agent 2</text>
+    <rect x="558" y="326" width="120" height="44" rx="9" fill="#fff" stroke="#4f9a2f"/>
+    <text x="618" y="353" text-anchor="middle">Agent 3</text>
+    <rect x="814" y="326" width="120" height="44" rx="9" fill="#fff" stroke="#4f9a2f"/>
+    <text x="874" y="353" text-anchor="middle">Agent 4</text>
+  </g>
+  <g stroke="#5fae2f" stroke-width="1.6" fill="none">
+    <path d="M678,150 L742,214"/>
+    <path d="M814,150 L750,214"/>
+    <path d="M678,348 L742,274"/>
+    <path d="M814,348 L750,274"/>
+  </g>
+
+  <!-- control unit -->
+  <rect x="640" y="330" width="212" height="40" rx="9" fill="#eaf5e0" stroke="#5fae2f"/>
+  <text x="746" y="354" text-anchor="middle" font-size="11" font-weight="700" fill="#2f5e1f">CONTROL UNIT + GATE — re-triggers, caps, decides "done"</text>
+  <path d="M746,330 L746,278" stroke="#5fae2f" stroke-width="1.8" fill="none" marker-end="url(#ahg)"/>
+  <text x="746" y="404" text-anchor="middle" font-size="11" font-style="italic" fill="#4a6b38">a write re-triggers only dependent agents → reacts mid-flight</text>
+
+  <!-- bottom strip -->
+  <rect x="24" y="452" width="952" height="0.5" fill="none"/>
+  <text x="500" y="462" text-anchor="middle" font-size="11" fill="#6b7484">Honest caveat: on today's frameworks both are turn-based. The edge is shared state + reactive re-triggering + a deterministic gate — not literal simultaneity.</text>
+</svg>
