@@ -4,21 +4,33 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ovb"
-version = "0.1.0"
-description = "Orchestrator vs Blackboard — a runnable, instrumented comparison of two multi-agent control models"
+version = "0.2.0"
+description = "Orchestrator vs Blackboard vs Hybrid — three agent-harness topologies over identical agents, instrumented for real token/cost/latency"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "Ali Saadat" }]
-keywords = ["multi-agent", "llm", "orchestrator", "blackboard", "agentic", "control-model"]
-dependencies = []  # mock mode is stdlib-only
+keywords = ["multi-agent", "llm", "orchestrator", "blackboard", "harness", "agentic", "control-model"]
+dependencies = [
+  "pydantic>=2.6",   # typed shared state + reducers + validated events
+  "typer>=0.12",     # CLI
+]
 
 [project.optional-dependencies]
-real = ["anthropic>=0.40"]     # only needed for --real (live Claude calls)
-dev = ["pytest>=8"]
+real = ["anthropic>=0.42"]                 # --real: live streaming Claude calls
+web  = ["fastapi>=0.110", "sse-starlette>=2", "uvicorn>=0.29"]  # live dashboard backend
+otel = ["opentelemetry-sdk>=1.25"]         # OTLP export of the event stream
+dev  = ["pytest>=8", "pytest-asyncio>=0.23", "ruff>=0.4", "mypy>=1.10"]
+
+[project.scripts]
+ovb = "ovb.cli:app"
 
 [tool.setuptools]
-packages = ["ovb"]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]

@@ -1,139 +1,130 @@
-# Orchestrator vs Blackboard
+# ovb — Orchestrator vs Blackboard vs Hybrid
 
-**Same specialist agents. Same task. Two control models.** A small, dependency‑free
-lab that makes the difference between the two dominant multi‑agent topologies
-*measurable* — agent calls, tokens, latency, and a full audit log all come out of
-instrumentation, not hand‑waving.
+**Three agent-*harness* topologies over the same agents, the same task, and the same
+deterministic gate. Only the control loop differs — and it's all measured.**
+
+A multi-agent system is `agents + a harness`: the agents are *model + role + tools*;
+the **harness** is the deterministic program that owns the control loop, context
+assembly, tool dispatch, and the termination gate. Orchestrator, blackboard, and
+hybrid are three *harness topologies* — three answers to *how the harness schedules
+model calls and where shared state lives*. This repo holds the agents constant and
+swaps the harness, then instruments calls, tokens, cost, latency, and a full WORM
+audit log so the difference is a number, not an opinion.
 
 ![Orchestrator vs Blackboard](docs/images/topologies.svg)
 
-> The difference is not *which* agents you have — it's **how they share state and
-> react**. That single choice drives token cost, auditability, determinism, and
-> fit. This repo runs the exact same four agents through both models so you can
-> watch the difference fall out of the numbers.
+> New here? Read **[docs/HARNESS.md](docs/HARNESS.md)** for the organizing idea, then
+> **[docs/WHEN-TO-USE.md](docs/WHEN-TO-USE.md)** to choose one for your own problem.
 
----
-
-## The one‑paragraph version
-
-- **Orchestrator** (hub‑and‑spoke, supervisor‑routed): a central supervisor calls
-  isolated sub‑agents in a fixed order. Every call is a fresh context window
-  (message‑passing). To resolve interdependencies it has to *sweep the whole roster
-  again* — and pay for a final confirming sweep that changes nothing.
-- **Blackboard** (shared‑state, event‑driven): all agents read/write **one** shared
-  state; a write **re‑triggers only the agents that depend on it**, mid‑flight. A
-  deterministic **gate** ends the run and a **control unit** caps iterations, so the
-  cascade stays bounded and every write is logged (WORM) for audit.
-
-On an *interdependent* task, the blackboard reaches the same answer with less work.
-On a *linear routing* task, the orchestrator is simpler and wins. This repo lets you
-see both, and [docs/WHEN-TO-USE.md](docs/WHEN-TO-USE.md) tells you which to reach for.
-
-## Quickstart (zero dependencies)
+## Quickstart (mock mode — deterministic, offline, no API key)
 
 ```bash
-# Mock mode is the default — deterministic, offline, no API key, stdlib only.
-python demos/benchmark.py            # run BOTH, print the comparison, write output/report.html
-python demos/run_orchestrator.py     # just the orchestrator trace
-python demos/run_blackboard.py       # just the blackboard trace
-python tests/test_smoke.py           # deterministic checks
-
-# or via make
-make bench   # == demo
-make test
+pip install -e ".[dev]"          # or: export PYTHONPATH=src
+ovb bench                        # all 3 harnesses + comparison + output/report.html
+ovb run blackboard               # one harness, print its trace
+make test                        # deterministic checks
+ovb doctor                       # what mode am I in?
 ```
 
-Want real model behavior and real token counts?
+Real model behavior and real token/cost numbers:
 
 ```bash
-pip install anthropic
+pip install -e ".[real]"
 export ANTHROPIC_API_KEY=sk-ant-...
-python demos/benchmark.py --real
+ovb bench --real                             # live streaming Claude calls
+ovb bench --real --cassette cassettes/s1.json   # record; replay offline & keyless next time
 ```
 
 ## What you'll see
 
-The demo task is a **project‑plan reconciliation** with interdependent constraints
-(Scope ↔ Budget ↔ Timeline ↔ Risk). Both engines converge to the identical
-consistent plan; the cost to get there differs:
+The task is an **interdependent** project-plan reconciliation (Scope ↔ Budget ↔
+Timeline ↔ Risk). All three harnesses converge to the *identical* consistent plan;
+the cost to get there is what differs:
 
 ```
-  METRIC                    ORCHESTRATOR      BLACKBOARD   advantage
-  --------------------------------------------------------------------
-  agent calls                        12              7   blackboard
-    effective (changed)               7              7   tie
-    wasted (no-op)                    5              0   blackboard
-  total tokens                      908            511   blackboard
-  --------------------------------------------------------------------
-  → blackboard used 1.71x fewer calls and 1.78x fewer tokens
-  → both reached the SAME consistent plan: True
+  METRIC                  ORCHESTRATOR    BLACKBOARD        HYBRID
+  ------------------------------------------------------------------------
+  agent calls                       12             7             5   hybrid
+    wasted (no-op)                   5             0             0   blackboard/hybrid
+  total tokens                     898           515           373   hybrid
+  cost (USD)                  0.00xx…       0.00xx…       0.00xx…   hybrid
+  ------------------------------------------------------------------------
+  → all topologies reached the SAME consistent plan: True
+  → blackboard used 1.71× fewer calls than orchestrator
 ```
 
-The orchestrator's **5 wasted no‑op calls** are the "hub tax": with no shared state
-and a fixed hand‑off order, the only way to know it's done is to re‑run everyone.
-The blackboard re‑runs *only* the agents a write actually affects, and a
-deterministic gate stops it the moment the plan is consistent.
+- The orchestrator's **5 wasted no-op calls** are the "hub tax": with no shared state,
+  the only way to confirm convergence is a full re-sweep.
+- The blackboard re-triggers **only** the agents a write affects.
+- The hybrid does best here by *encoding the dependency structure* — it runs the tight
+  Scope↔Budget cycle as a bounded blackboard, then the independent Timeline/Risk once.
+  That edge is real but it costs architect insight; see [HARNESS.md](docs/HARNESS.md).
 
-`output/report.html` is a shareable, self‑contained visual: the two call traces
-side by side plus the blackboard's append‑only WORM log.
+`output/report.html` is a self-contained animated report — press **play** to watch each
+harness's control loop converge, meters updating live from the WORM event stream.
 
-> ⚠️ **Honest note on the numbers.** In mock mode, token counts are *synthetic*
-> estimates derived from real prompt lengths (≈4 chars/token) so the comparison is
-> reproducible and offline. Run `--real` for true token/latency numbers. The
-> *ratio* — fewer calls on interdependent work — is a property of the control model,
-> not of the mock.
+> ⚠️ **Honesty about the numbers.** In mock mode, tokens are *synthetic* (derived from
+> real prompt lengths) so the run is reproducible offline; cost applies **real** Claude
+> list prices to those tokens. Lead with **call-count** (7 vs 12) — the topology-pure
+> signal — over raw tokens. Run `--real` for true tokens/latency. And note: the agents'
+> numeric decisions come from deterministic rules (the LLM narrates), so this measures
+> the *control-model overhead* honestly; the real-tool-use path is exercised in the
+> heavier scenarios on the roadmap. Details in [docs/PLAN.md](docs/PLAN.md) §12.
 
-## Why the design is fair
+## Why it's a fair comparison (and where the harness lives)
 
-The whole point is an apples‑to‑apples comparison, so the parts that *aren't* the
-control model are shared, exactly once:
+Everything that *isn't* the control model is shared exactly once; only the scheduler
+differs. That's enforced in code, not by discipline:
 
-- **`ovb/agents.py`** — the four specialists. Identical for both engines. They don't
-  know or care who is scheduling them.
-- **`ovb/task.py`** — the shared problem, its constraints, and the consistency
-  **gate**.
-- **`ovb/llm.py`** — one LLM abstraction (`MockLLM` / `ClaudeLLM`).
-- **`ovb/instrumentation.py`** — one recorder + WORM log used by both.
+- [`core/harness.py`](src/ovb/core/harness.py) — the `Harness` base: `invoke()` (one
+  control-loop step) and `gate_passed()` (deterministic termination). **Shared.**
+- [`core/state.py`](src/ovb/core/state.py) — typed `PlanState` + an ownership-checking
+  reducer (every write is validated, diffed, and logged). **Shared.**
+- [`core/registry.py`](src/ovb/core/registry.py), [`core/gate.py`](src/ovb/core/gate.py),
+  [`core/llm.py`](src/ovb/core/llm.py), [`core/trace.py`](src/ovb/core/trace.py) — agents,
+  gate, LLM clients, WORM event log. **Shared.**
+- [`eval/compare.py`](src/ovb/eval/compare.py) — a `FairnessContract` that hard-fails if
+  the engines weren't judged on identical terms (same roster/gate/sampling/start).
 
-Only two files differ, and they *are* the difference:
-
-- **`ovb/orchestrator.py`** — fixed‑order sweeps until a sweep changes nothing.
-- **`ovb/blackboard.py`** — an event loop: writes ripple to subscribed agents; a
-  gate ends it; a control unit bounds it.
+The only per-engine code is `run()` — the scheduling:
+[`engines/orchestrator.py`](src/ovb/engines/orchestrator.py) ·
+[`engines/blackboard.py`](src/ovb/engines/blackboard.py) ·
+[`engines/hybrid.py`](src/ovb/engines/hybrid.py).
 
 ## Repo layout
 
 ```
-ovb/                     the library (stdlib-only for mock mode)
-  agents.py              the 4 specialists — SHARED by both engines
-  task.py                the interdependent problem + the consistency gate
-  llm.py                 MockLLM (default) and ClaudeLLM (--real)
-  instrumentation.py     per-call recorder + append-only WORM log
-  orchestrator.py        control model #1 — hub-and-spoke sweeps
-  blackboard.py          control model #2 — shared state + reactive re-triggering
-  viz.py                 console tables + self-contained HTML report
-demos/                   run_orchestrator.py · run_blackboard.py · benchmark.py
-tests/                   test_smoke.py (deterministic, no network)
-docs/                    RESEARCH.md · WHEN-TO-USE.md · architecture.md · images/
-output/                  generated report.html lands here
+src/ovb/
+  contracts.py         canonical Usage / Event / Engine / Sequencer — the one source of truth
+  config.py            RunConfig (model, temperature — fairness-critical, pinned)
+  pricing.py           dated Claude list prices → real $ cost
+  core/
+    harness.py         the Harness base — shared control-loop primitives (invoke, gate)
+    state.py           typed PlanState + ownership-enforcing reducer
+    registry.py        KnowledgeSource (agent) + tools + subscription index
+    gate.py            deterministic termination gate
+    llm.py             MockLLM · ClaudeLLM (streaming, cache-aware) · CassetteLLM (record/replay)
+    trace.py           Recorder + WORM event stream (OTel gen_ai.* aligned)
+  engines/             orchestrator.py · blackboard.py · hybrid.py   (scheduling ONLY)
+  domain/              task.py (scenario + gate) · agents.py (the 4 specialists)
+  eval/                runner.py (build world once) · compare.py (fairness + table)
+  viz/                 report.py (self-contained animated HTML)
+  cli.py               `ovb bench | run | doctor`
+tests/                 deterministic smoke + fairness tests (no network)
+docs/                  HARNESS.md · WHEN-TO-USE.md · PLAN.md · RESEARCH.md · architecture.md
+output/                generated report.html + per-engine *.jsonl event logs
 ```
 
 ## Documentation
 
-- **[docs/PLAN.md](docs/PLAN.md)** — the flagship implementation plan: async typed
-  kernel, three engines (orchestrator/blackboard/hybrid), real streaming Anthropic
-  calls with cache‑aware cost accounting, a record/replay cassette layer, one
-  canonical event contract driving a live side‑by‑side dashboard, a fair 5‑scenario
-  benchmark, guardrails/security, and a self‑syncing docs pipeline — phased, with a
-  risk register. Built for expert agentic engineers.
-- **[docs/WHEN-TO-USE.md](docs/WHEN-TO-USE.md)** — a decision guide + checklist:
-  when each model wins, with worked examples.
-- **[docs/architecture.md](docs/architecture.md)** — how the code maps to the
-  patterns, the event‑loop mechanics, and the "bounded blackboard" idea.
-- **[docs/RESEARCH.md](docs/RESEARCH.md)** — a deeper, cited survey of the SOTA and
-  best practices for both control models across today's frameworks (LangGraph,
-  AutoGen/Magentic‑One, OpenAI Agents SDK/Swarm, CrewAI, Anthropic's
-  orchestrator‑worker, and the classical blackboard lineage).
+- **[docs/HARNESS.md](docs/HARNESS.md)** — the harness concept, the anatomy, and the
+  per-responsibility mapping across the three topologies (grounded in current sources),
+  plus how the code makes it real. **Start here.**
+- **[docs/WHEN-TO-USE.md](docs/WHEN-TO-USE.md)** — decision guide + checklist + hybrids.
+- **[docs/PLAN.md](docs/PLAN.md)** — the full flagship implementation plan (phased, with
+  the event contract, cost accounting, live dashboard, security, and a risk register).
+- **[docs/RESEARCH.md](docs/RESEARCH.md)** — the cited SOTA survey.
+- **[docs/architecture.md](docs/architecture.md)** — the code map.
 
 ## License
 

@@ -1,7 +1,0 @@
-# Mock mode (the default) needs NOTHING beyond the Python standard library.
-#
-# Only install these if you want to run the demos against the real Claude API
-# (the --real flag) or run the test suite with pytest:
-#
-#   pip install anthropic     # for --real
-#   pip install pytest        # for `make test` via pytest (a plain runner also works)

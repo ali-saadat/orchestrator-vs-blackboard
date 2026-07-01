@@ -23,4 +23,5 @@ env/
 
 # Generated reports (keep the directory, ignore the output)
 output/*.html
+output/*.jsonl
 !output/.gitkeep

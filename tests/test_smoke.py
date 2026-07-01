@@ -1,49 +1,74 @@
-"""Smoke tests: both engines must reach the SAME consistent plan, and the
-blackboard must do it in fewer calls than the orchestrator on this
-interdependent task. Pure mock mode — deterministic, no network."""
+"""Deterministic smoke tests (mock mode, no network). Sync functions that drive
+the async engines via asyncio.run, so no pytest-asyncio dependency is required."""
+import asyncio
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
 
-from ovb import blackboard, orchestrator, task  # noqa: E402
-from ovb.llm import MockLLM  # noqa: E402
+from ovb.config import RunConfig  # noqa: E402
+from ovb.core.gate import PredicateGate  # noqa: E402
+from ovb.core.state import OwnershipError, PlanState, apply_patch  # noqa: E402
+from ovb.domain import agents, task  # noqa: E402
+from ovb.eval.compare import FairnessContract  # noqa: E402
+from ovb.eval.runner import run_all  # noqa: E402
 
-EXPECTED = {
-    "scope": 6,
-    "max_scope": 6,
-    "budget_k": 90,
-    "timeline_weeks": 12,
-    "risk": "medium",
-}
+EXPECTED = {"scope": 6, "max_scope": 6, "budget_k": 90, "timeline_weeks": 12, "risk": "medium"}
 
 
-def test_both_converge_to_same_state():
-    orch = orchestrator.run(MockLLM())
-    bb = blackboard.run(MockLLM())
-    assert orch["consistent"] and bb["consistent"]
-    assert orch["state"] == EXPECTED
-    assert bb["state"] == EXPECTED
-    assert orch["state"] == bb["state"]
+def _run():
+    return asyncio.run(run_all(RunConfig()))
 
 
-def test_blackboard_is_cheaper_on_interdependent_task():
-    orch = orchestrator.run(MockLLM())
-    bb = blackboard.run(MockLLM())
-    assert bb["recorder"].n_calls < orch["recorder"].n_calls
-    assert bb["recorder"].total_usage.total < orch["recorder"].total_usage.total
+def test_all_three_converge_to_same_state():
+    results = _run()
+    for name, r in results.items():
+        assert r.consistent, name
+        assert r.state == EXPECTED, name
 
 
-def test_orchestrator_has_wasted_calls():
-    # the confirming final sweep changes nothing — that's the hub tax
-    orch = orchestrator.run(MockLLM())
-    assert orch["recorder"].n_wasted > 0
+def test_headline_call_counts():
+    r = _run()
+    assert r["orchestrator"].recorder.n_calls == 12
+    assert r["blackboard"].recorder.n_calls == 7
+    assert r["hybrid"].recorder.n_calls == 5
+    assert r["blackboard"].recorder.n_calls < r["orchestrator"].recorder.n_calls
 
 
-def test_gate_holds():
-    assert task.is_consistent(EXPECTED)
-    bad = dict(EXPECTED, scope=8)
-    assert not task.is_consistent(bad)
+def test_orchestrator_pays_the_hub_tax():
+    r = _run()
+    assert r["orchestrator"].recorder.n_wasted > 0     # confirming no-op sweep
+    assert r["blackboard"].recorder.n_wasted == 0
+
+
+def test_blackboard_cheaper_tokens_and_cost():
+    r = _run()
+    o, b = r["orchestrator"].recorder, r["blackboard"].recorder
+    assert b.total_usage.total < o.total_usage.total
+    assert b.total_cost_usd < o.total_cost_usd
+
+
+def test_fairness_contract_holds():
+    r = _run()
+    FairnessContract.assert_comparable(
+        r, registry=agents.build_registry(),
+        gate=PredicateGate(task.is_consistent, spec="reconcile.is_consistent/v1"),
+        config=RunConfig(),
+    )
+
+
+def test_ownership_reducer_blocks_out_of_scope_writes():
+    st = PlanState(scope=8)
+    try:
+        apply_patch(st, {"risk": "high"}, owner="Budget", owns=("budget_k", "max_scope"))
+        assert False, "expected OwnershipError"
+    except OwnershipError:
+        pass
+
+
+def test_gate_predicate():
+    assert task.is_consistent(PlanState(**EXPECTED))
+    assert not task.is_consistent(PlanState(**{**EXPECTED, "scope": 8}))
 
 
 if __name__ == "__main__":

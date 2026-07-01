@@ -1,31 +1,43 @@
 PY ?= python3
-export PYTHONPATH := $(CURDIR)
+export PYTHONPATH := $(CURDIR)/src
 
-.PHONY: help test demo orchestrator blackboard bench real html clean
+.PHONY: help install test bench orchestrator blackboard hybrid real doctor lint clean
 
 help:
-	@echo "make test          run the deterministic smoke tests (no network)"
-	@echo "make demo          alias for 'make bench'"
-	@echo "make orchestrator  run the task through the orchestrator only"
-	@echo "make blackboard    run the task through the blackboard only"
-	@echo "make bench         run BOTH and print the comparison + write output/report.html"
-	@echo "make real          run the benchmark against the live Claude API (needs ANTHROPIC_API_KEY)"
-	@echo "make clean         remove caches and generated reports"
+	@echo "make install     editable install (pip install -e '.[dev,real,web]')"
+	@echo "make test        deterministic smoke tests (no network)"
+	@echo "make bench       run all 3 harnesses (mock) + comparison + output/report.html"
+	@echo "make orchestrator|blackboard|hybrid   run one harness, print its trace"
+	@echo "make real        run bench against the live Claude API (needs ANTHROPIC_API_KEY)"
+	@echo "make doctor      show execution mode + dependency availability"
+	@echo "make clean       remove caches and generated reports"
+
+install:
+	$(PY) -m pip install -e ".[dev,real,web]"
 
 test:
-	$(PY) tests/test_smoke.py
+	$(PY) -m pytest -q
+
+bench:
+	$(PY) -m ovb bench
 
 orchestrator:
-	$(PY) demos/run_orchestrator.py
+	$(PY) -m ovb run orchestrator
 
 blackboard:
-	$(PY) demos/run_blackboard.py
+	$(PY) -m ovb run blackboard
 
-bench demo:
-	$(PY) demos/benchmark.py
+hybrid:
+	$(PY) -m ovb run hybrid
 
 real:
-	$(PY) demos/benchmark.py --real
+	$(PY) -m ovb bench --real
+
+doctor:
+	$(PY) -m ovb doctor
+
+lint:
+	ruff check src tests || true
 
 clean:
-	rm -rf __pycache__ */__pycache__ .pytest_cache output/report.html
+	rm -rf .pytest_cache **/__pycache__ output/report.html output/*.jsonl
