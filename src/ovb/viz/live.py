@@ -61,8 +61,8 @@ async def _pump(params: ScenarioParams, engine_names, delay: float, write_ev,
 
     write_ev({"engine": "_meta", "kind": "start",
               "attrs": {"engines": engine_names, "mode": mode, "model": model,
-                        "params": {"features": params.requested_features,
-                                   "budget": params.budget_cap_k}}})
+                        "params": {"gpu": params.wanted_gpu,
+                                   "budget": params.budget_cap}}})
 
     async def run_one(name):
         cfg = RunConfig(step_delay=eff_delay, real=real, model=model,
@@ -125,8 +125,8 @@ class _Handler(BaseHTTPRequestHandler):
             except (TypeError, ValueError):
                 return d
 
-        features = max(0, min(50, _int("features", 8)))
-        budget = max(1, min(100000, _int("budget", 90)))
+        gpu = max(1, min(4, _int("gpu", 4)))
+        budget = max(1, min(100000, _int("budget", 1000)))
         engines = one("engines", ",".join(_ALL)).split(",")
         engines = [e for e in engines if e in _ALL] or list(_ALL)
         delay = max(0.0, min(2.0, _float("delay", 0.35)))
@@ -134,7 +134,7 @@ class _Handler(BaseHTTPRequestHandler):
         mode = mode if mode in ("mock", "real", "cassette") else "mock"
         model = one("model", _DEFAULT_MODEL)
         model = model if model in _MODELS else _DEFAULT_MODEL
-        params = ScenarioParams(requested_features=features, budget_cap_k=budget)
+        params = ScenarioParams(wanted_gpu=gpu, budget_cap=budget)
 
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
@@ -426,17 +426,17 @@ marker path{fill:var(--edge)}
     <div class="seg"><button id="segE" class="on" type="button">ELI5</button><button id="segX" type="button">Expert</button></div>
   </div>
   <div id="probE" class="prob-body">
-    <p class="prob-head">Four teammates, one plan — which way wastes the least?</p>
-    <p>Four teammates each own one piece of a project plan — how many <b>features</b>, the <b>budget</b>, the <b>timeline</b>, and the <b>risk</b>. Their choices fight each other: cut features to fit the budget, and the timeline and risk change too. So they keep nudging the numbers until everything finally lines up.</p>
-    <p class="prob-tip">In the panels below, the four teammates are the agents <b>Scope · Budget · Timeline · Risk</b>, and the “whiteboard” is the shared <b>Board</b>.</p>
+    <p class="prob-head">Four teammates, one PC build — which way wastes the least?</p>
+    <p>Four teammates are speccing one gaming PC. Each owns a piece: the <b>GPU tier</b>, the <b>budget</b>, the <b>power supply</b>, and the <b>performance</b> (FPS). Their choices fight each other: you want the top GPU, but it blows the budget — so drop the tier, and the wattage and FPS drop too. They keep nudging the build until it finally fits.</p>
+    <p class="prob-tip">In the panels below, the four teammates are the agents <b>GPU · Budget · Power · Performance</b>, and the “whiteboard” is the shared <b>Board</b>.</p>
   </div>
   <div id="probX" class="prob-body" style="display:none">
-    <p>Four specialist agents negotiate one project plan under coupled constraints: <b>scope</b> (requested 8), <b>budget</b> (hard cap $90k ÷ $15k/feature = 6 max), <b>timeline</b> (scope × 2 weeks), and <b>risk</b> (&gt;6 features or &gt;14 weeks → “high”; else “medium”; else “low”). The dependencies cascade — trimming scope to fit budget also shrinks timeline and downgrades risk — so agents re-fire until a fixed point is reached: <b>6 · $90k · 12 weeks · medium</b>. A <b>deterministic gate</b> (never the model) checks convergence and declares done.</p>
+    <p>Four specialist agents negotiate one PC build under coupled constraints: <b>gpu</b> (tier 1–4, want 4), <b>budget</b> (hard cap $1000 ÷ $300/tier ⇒ tier 3 max), <b>power</b> (watts = tier × 150 + 100), and <b>perf</b> (FPS class from the tier: 4→ultra, 3→high, 2→medium, else low). The tier drives everything, so dropping it to fit the budget also drops wattage and FPS — agents re-fire until a fixed point: <b>tier 3 · $900 · 550W · high</b>. A <b>deterministic gate</b> (never the model) checks convergence and declares done.</p>
     <p>All three schedules reach the same fixed point over a streaming API; they differ only in turn efficiency:</p>
     <ul>
     <li><b style="color:var(--orchestrator)">orchestrator</b> — a hub polls all four in fixed order, looping until stable, plus a confirming no-op sweep. That final all-quiet pass is the <b>hub tax</b>: maximum turns and tokens.</li>
     <li><b style="color:var(--blackboard)">blackboard</b> — a shared state store; a write only wakes the dependents of the changed field. Fewer no-op turns.</li>
-    <li><b style="color:var(--hybrid)">hybrid</b> — Scope and Budget (tightest coupling) share the blackboard; Timeline and Risk each run once in order.</li>
+    <li><b style="color:var(--hybrid)">hybrid</b> — GPU and Budget (tightest coupling) share the blackboard; Power and Performance each run once in order.</li>
     </ul>
     <p>Metrics: agent calls, no-op turns, tokens, dollar cost. Lower is more efficient.</p>
   </div>
@@ -444,13 +444,13 @@ marker path{fill:var(--edge)}
   <div class="ways">
     <div class="way" style="--e:var(--orchestrator)"><div class="way-h">Orchestrator<span>· “the boss runs it”</span></div><div class="way-b">A boss asks each teammate to speak, one at a time, in a fixed order — looping through all four again and again until nobody changes anything, plus one extra round just to double-check. The most back-and-forth.</div></div>
     <div class="way" style="--e:var(--blackboard)"><div class="way-h">Blackboard<span>· “one shared whiteboard”</span></div><div class="way-b">Everyone writes on one shared whiteboard. When a number changes, only the teammates who care about that number chime back in. Far less wasted talk.</div></div>
-    <div class="way" style="--e:var(--hybrid)"><div class="way-h">Hybrid<span>· “a bit of both”</span></div><div class="way-b">The two teammates who clash the most (Scope &amp; Budget) settle it together on the whiteboard first; then the other two each speak just once. A tidy middle ground.</div></div>
+    <div class="way" style="--e:var(--hybrid)"><div class="way-h">Hybrid<span>· “a bit of both”</span></div><div class="way-b">The two teammates who clash the most (GPU &amp; Budget) settle it together on the whiteboard first; then the other two each speak just once. A tidy middle ground.</div></div>
   </div>
-  <p class="target">🎯 <b>Same answer, every time.</b> For your prompt (<b id="hf">8</b> features, $<b id="hb">90</b>k) all three reach the one plan that fits: <b id="tgt">6 features · $90k · 12 weeks · medium risk</b>. The only difference is <b>how much talking and money</b> it took — that’s the comparison table below.</p>
+  <p class="target">🎯 <b>Same build, every time.</b> For your prompt (tier <b id="hf">4</b> GPU, $<b id="hb">1000</b>) all three reach the one build that fits: <b id="tgt">tier 3 GPU · $900 · 550W · high FPS</b>. The only difference is <b>how much talking and money</b> it took — that’s the comparison table below.</p>
 </section>
 <div class="bar">
-  <label>features <input type="number" id="features" value="8" min="0" max="50"></label>
-  <label>budget $k <input type="number" id="budget" value="90" min="1" max="100000"></label>
+  <label>GPU tier <input type="number" id="gpu" value="4" min="1" max="4"></label>
+  <label>budget $ <input type="number" id="budget" value="1000" min="1" max="100000"></label>
   <label>mode
     <select id="mode">
       <option value="mock">Mock — instant, offline, fake</option>
@@ -463,7 +463,6 @@ marker path{fill:var(--edge)}
     <option value="claude-haiku-4-5-20251001">Haiku 4.5 — $1/$5 (cheapest)</option>
     <option value="claude-sonnet-5">Sonnet 5 — $2/$10</option>
     <option value="claude-opus-4-8">Opus 4.8 — $5/$25</option>
-    <option value="claude-fable-5">Fable 5 — $10/$50</option>
   </select></label>
   <span class="chk"><input type="checkbox" id="c-orchestrator" checked><label for="c-orchestrator" style="color:var(--orchestrator)">orchestrator</label></span>
   <span class="chk"><input type="checkbox" id="c-blackboard" checked><label for="c-blackboard" style="color:var(--blackboard)">blackboard</label></span>
@@ -486,20 +485,20 @@ marker path{fill:var(--edge)}
 const ALL=['orchestrator','blackboard','hybrid'];
 const COLORS={orchestrator:'#8a94a6',blackboard:'#63c750',hybrid:'#e0a72b'};
 const CM={orchestrator:'hub · fixed order · no shared board',blackboard:'shared board · reactive',hybrid:'bounded board + supervisor tail'};
-const AGENTC={Scope:'#6ea8fe',Budget:'#4fd1c5',Timeline:'#d3a6ff',Risk:'#ff8f8f'};
-const FIELDS=['scope','max_scope','budget_k','timeline_weeks','risk'];
-const BOARD_LABEL={orchestrator:'supervisor state · fixed-order sweeps · no shared board, no re-triggering',blackboard:'shared blackboard · all agents read/write',hybrid:'shared board (Scope↔Budget core) + supervisor tail'};
+const AGENTC={GPU:'#6ea8fe',Budget:'#4fd1c5',Power:'#d3a6ff',Performance:'#ff8f8f'};
+const FIELDS=['gpu','max_gpu','cost','watts','perf'];
+const BOARD_LABEL={orchestrator:'supervisor state · fixed-order sweeps · no shared board, no re-triggering',blackboard:'shared blackboard · all agents read/write',hybrid:'shared board (GPU↔Budget core) + supervisor tail'};
 const FEED_LABEL={orchestrator:'activity · message passing',blackboard:'activity · shared memory',hybrid:'activity · core shared + tail messages'};
 const TOPO={
- orchestrator:{nodes:{SUP:[150,22],Scope:[48,108],Budget:[116,108],Timeline:[184,108],Risk:[252,108]},
-   edges:[['SUP','Scope'],['SUP','Budget'],['SUP','Timeline'],['SUP','Risk']],
+ orchestrator:{nodes:{SUP:[150,22],GPU:[48,108],Budget:[116,108],Power:[184,108],Performance:[252,108]},
+   edges:[['SUP','GPU'],['SUP','Budget'],['SUP','Power'],['SUP','Performance']],
    cap:'Supervisor calls each agent in fixed order · blue arrow = a message (no shared board)'},
- blackboard:{nodes:{BB:[150,70],Scope:[50,24],Budget:[250,24],Timeline:[50,116],Risk:[250,116]},
-   edges:[['BB','Scope'],['BB','Budget'],['BB','Timeline'],['BB','Risk']],
+ blackboard:{nodes:{BB:[150,70],GPU:[50,24],Budget:[250,24],Power:[50,116],Performance:[250,116]},
+   edges:[['BB','GPU'],['BB','Budget'],['BB','Power'],['BB','Performance']],
    cap:'All agents share one Board · teal = write to board · purple = board re-triggers an agent'},
- hybrid:{nodes:{BB:[74,70],Scope:[34,30],Budget:[34,112],SUP:[188,70],Timeline:[256,42],Risk:[256,100]},
-   edges:[['BB','Scope'],['BB','Budget'],['BB','SUP'],['SUP','Timeline'],['SUP','Risk']],
-   cap:'Board core (Scope↔Budget: teal/purple), then Supervisor tail (Timeline, Risk: blue message)'}
+ hybrid:{nodes:{BB:[74,70],GPU:[34,30],Budget:[34,112],SUP:[188,70],Power:[256,42],Performance:[256,100]},
+   edges:[['BB','GPU'],['BB','Budget'],['BB','SUP'],['SUP','Power'],['SUP','Performance']],
+   cap:'Board core (GPU↔Budget: teal/purple), then Supervisor tail (Power, Performance: blue message)'}
 };
 let view='compare', es=null, ran=[], S={};
 const $=id=>document.getElementById(id);
@@ -521,7 +520,7 @@ function flowSVG(e){const t=TOPO[e],s=S[e],f=s.flow,N=t.nodes;
    return `<line class="fx ${on?'on '+f.type+(rev?' rev':''):''}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" ${mk}/>`;}).join('');
  const nodes=Object.entries(N).map(([name,[x,y]])=>{const w=name==='SUP'?68:name==='BB'?58:48,h=18;
    const kind=name==='BB'?'nboard':name==='SUP'?'nsup':'nagent';
-   const label=name==='BB'?'Board':name==='SUP'?'Supervisor':name;
+   const label=name==='BB'?'Board':name==='SUP'?'Supervisor':name==='Performance'?'Perf':name;
    const nc=name==='BB'?'var(--blackboard)':name==='SUP'?COLORS[e]:(AGENTC[name]||'#888');
    const pulse=(f&&f.target===name)?'pulse':'';
    return `<g class="node ${kind} ${pulse}"><rect x="${x-w/2}" y="${y-h/2}" width="${w}" height="${h}" rx="4" style="--nc:${nc}"/><text x="${x}" y="${y+3.4}">${label}</text></g>`;}).join('');
@@ -550,7 +549,7 @@ function panelHTML(e){const s=S[e];if(!s)return `<div class="panel" style="--e:$
    <div class="feed"><h4>Play-by-play<span class="fsub" title="🎤 a turn · ✏️ changed a number · ✅ nothing to change · 🔔 must re-check · 🏁 done-check">every turn &amp; change · hover for key ⓘ</span></h4><div class="log" id="log-${e}">${log}</div></div></div></div>`;}
 
 function fmtPlan(b){const g=k=>b[k]===undefined||b[k]===null?'—':b[k];
-  return `${g('scope')}f · $${g('budget_k')}k · ${g('timeline_weeks')}w · ${g('risk')}`;}
+  return `tier ${g('gpu')} · $${g('cost')} · ${g('watts')}W · ${g('perf')}`;}
 function ratio(base,val){if(!base||!val||val>=base)return '';return '<span class="marg">'+(base/val).toFixed(2)+'× fewer</span>';}
 function comparisonHTML(){
   const engines=(ran.length?ran:selected()).filter(e=>S[e]);
@@ -586,7 +585,7 @@ function render(){const grid=$('grid'),gl=$('glossary'),cmp=$('cmp');
 
 function handle(ev){const e=ev.engine,a=ev.attrs||{};
  if(e==='_meta'){if(ev.kind==='all_done'&&es){es.close();es=null;} if(ev.kind==='error'){$('note').textContent='error: '+a.msg;} return;}
- const s=S[e]; if(!s)return; const core=e==='hybrid'&&(ev.agent==='Scope'||ev.agent==='Budget');
+ const s=S[e]; if(!s)return; const core=e==='hybrid'&&(ev.agent==='GPU'||ev.agent==='Budget');
  switch(ev.kind){
   case 'run_started': s.status='running'; break;
   case 'agent_activated': s.steps++; s.log.push({t:`🎤 ${ev.agent}'s turn`});
@@ -603,7 +602,7 @@ function handle(ev){const e=ev.engine,a=ev.attrs||{};
   case 'state_write': s.board[a.field]=a.new; s.flash[a.field]=true; s.writes++;
     s.log.push({t:`  ✏️ set ${a.field}: ${a.old} → ${a.new}`,cls:'write'}); break;
   case 'agent_retriggered': s.log.push({t:`  🔔 ${ev.agent} has to re-check (${a.because})`,cls:'retrig'});
-    if(e==='blackboard'||(e==='hybrid'&&(ev.agent==='Scope'||ev.agent==='Budget')))setFlow(e,'BB',ev.agent,'retrig'); break;
+    if(e==='blackboard'||(e==='hybrid'&&(ev.agent==='GPU'||ev.agent==='Budget')))setFlow(e,'BB',ev.agent,'retrig'); break;
   case 'gate_checked': s.gate=a.passed; s.log.push({t:`  🏁 done-check: ${a.passed?'every rule satisfied ✓':'not yet…'}`,cls:'gate'}); break;
   case 'run_finished': s.status='done'; if(a.state)s.board=a.state; if(a.consistent!==undefined)s.gate=a.consistent; break;
   case 'engine_done': if(!s.err)s.status='done'; break;
@@ -619,7 +618,7 @@ function run(){ran=selected(); if(!ran.length){alert('select at least one engine
  recalcTarget();
  $('note').textContent = MODE_HELP[mode] || '';
  if(es)es.close();
- const q=`features=${+$('features').value||0}&budget=${+$('budget').value||1}&engines=${ran.join(',')}`
+ const q=`gpu=${+$('gpu').value||1}&budget=${+$('budget').value||1}&engines=${ran.join(',')}`
    +`&delay=${(+$('delay').value)/1000}&mode=${mode}&model=${encodeURIComponent($('model').value)}`;
  es=new EventSource('/run?'+q);
  es.onmessage=m=>handle(JSON.parse(m.data));
@@ -631,16 +630,16 @@ function run(){ran=selected(); if(!ran.length){alert('select at least one engine
 const CASS='cassettes/demo.json';
 const MODE_HELP={
  mock:'Mock: deterministic fake narration — instant, offline, no API key, no cost. The plan, call counts and structure are identical to a real run; only the wording is stubbed.',
- cassette:'Cassette: replaying RECORDED real Claude calls — you see the real outputs, tokens and cost, but it runs offline with no API key and no new spend (recorded at features=8, budget=90; record other cases with: ovb bench --real --cassette '+CASS+').',
+ cassette:'Cassette: replaying RECORDED real Claude calls — you see the real outputs, tokens and cost, but it runs offline with no API key and no new spend (recorded at GPU tier 4, budget $1000; record other cases with: ovb bench --real --cassette '+CASS+').',
  real:'Real API: live STREAMING Claude — uses your ANTHROPIC_API_KEY and spends money. Paced by real model latency.'};
 const GLOSS=[
  ['Harness','var(--now)','The deterministic program around the model — the control loop that calls the model, applies its result through the ownership reducer, and checks the gate. Orchestrator, blackboard and hybrid are three harnesses; only the scheduling differs.'],
  ['Orchestrator','var(--orchestrator)','Hub-and-spoke. A central <b>supervisor</b> invokes agents in a fixed order over its accumulated state. <span class="warn">No shared board and no re-triggering</span> — an agent never wakes because another wrote a field; coordination is only the supervisor\'s next sweep. Each call is a fresh model call over the supervisor\'s current state. Converges by re-sweeping the whole roster.'],
  ['Blackboard','var(--blackboard)','Shared-state. All agents read and write ONE shared board. A write <b>re-triggers</b> only the agents subscribed to the changed field, so work is proportional to the ripples, not roster × rounds.'],
- ['Hybrid','var(--hybrid)','A bounded blackboard over the tightly-coupled core (Scope↔Budget), then a linear supervisor tail (Timeline, Risk). Gets shared-board reactivity where it helps and message-passing where it does not.'],
+ ['Hybrid','var(--hybrid)','A bounded blackboard over the tightly-coupled core (GPU↔Budget), then a linear supervisor tail (Power, Performance). Gets shared-board reactivity where it helps and message-passing where it does not.'],
  ['Shared board (shared memory)','var(--blackboard)','The single board all agents read/write, with reactive <b>re-triggering</b>. <span class="warn">Exists only in the blackboard and the hybrid core.</span> The orchestrator has none — its state is supervisor-held and updated only by fixed-order sweeps (no reactive board).'],
  ['Supervisor','var(--orchestrator)','The central agent that routes work in a fixed order and holds the state in the orchestrator (and drives the hybrid tail).'],
- ['Knowledge source / agent','var(--now)','A specialist that owns fields and reacts to changes. Here: Scope, Budget, Timeline, Risk. Identical across all three harnesses — only the harness (scheduling) differs.'],
+ ['Knowledge source / agent','var(--now)','A specialist that owns fields and reacts to changes. Here: GPU, Budget, Power, Performance. Identical across all three harnesses — only the harness (scheduling) differs.'],
  ['Control unit','var(--hybrid)','The deterministic scheduler + iteration cap that drives the blackboard event loop (picks who fires next, bounds the run).'],
  ['Gate','var(--gate)','The deterministic "are we done?" check. The LLM <b>never</b> decides termination — code does.'],
  ['Re-trigger','var(--retrig)','On a shared board, a write wakes the agents subscribed to the changed field (purple arrow in the flow).'],
@@ -651,7 +650,7 @@ const GLOSS=[
  ['Streaming vs Batch','var(--now)','We use the <b>streaming</b> Messages API (real-time SSE, token-by-token). NOT the Batch API (asynchronous, up to 24h, 50% cheaper) — you would not see the flow.'],
  ['Model choice','var(--ok)','Since decisions are rule-based, the model only <b>narrates</b>. It changes tokens/cost, never the plan or call counts — so the cheapest model (Haiku 4.5, $1/$5) fits. Compare with <code>ovb models</code>.'],
  ['Mock mode','var(--ok)','Deterministic fake narration, generated instantly and fully offline. No API key, no network, no cost. The call counts, writes and gate behaviour are REAL (from the harness); only the model\'s prose is stubbed. Best for understanding the topologies.'],
- ['Cassette mode','var(--now)','Replays a recorded REAL run offline. The outputs, token counts and dollar costs are the actual Claude responses captured earlier with <code>ovb bench --real --cassette</code> — so you see real numbers with <b>no API key and no spend</b>. The committed recording is features=8, budget=90.'],
+ ['Cassette mode','var(--now)','Replays a recorded REAL run offline. The outputs, token counts and dollar costs are the actual Claude responses captured earlier with <code>ovb bench --real --cassette</code> — so you see real numbers with <b>no API key and no spend</b>. The committed recording is GPU tier 4, budget $1000.'],
  ['Real API mode','var(--hybrid)','Live <b>streaming</b> Claude calls over the real Messages API. <span class="warn">Needs ANTHROPIC_API_KEY (from a local .env) and actually costs tokens/money.</span> Paced by model latency, not the speed slider.'],
 ];
 function glossaryHTML(){return `<div class="card"><h2>Glossary</h2>
@@ -672,14 +671,14 @@ $('segX').onclick=()=>{$('segX').classList.add('on');$('segE').classList.remove(
 // expand a clamped agent message (inline onclick → must be global)
 window.expandMsg=function(e,i){if(S[e]&&S[e].talk[i]){S[e].talk[i].expanded=true;render();}};
 // live "expected plan" recompute — mirrors domain/task.py exactly
-function recalcTarget(){const feat=Math.max(0,Math.min(50,+$('features').value||0));const cap=Math.max(1,+$('budget').value||1);
- const scope=Math.min(feat,Math.floor(cap/15));const weeks=scope*2,used=scope*15;
- const risk=(scope>6||weeks>14)?'high':scope>4?'medium':scope>0?'low':'—';
- $('hf').textContent=feat;$('hb').textContent=cap;$('tgt').textContent=`${scope} features · $${used}k · ${weeks} weeks · ${risk} risk`;}
-$('features').addEventListener('input',recalcTarget);$('budget').addEventListener('input',recalcTarget);recalcTarget();
+function recalcTarget(){const want=Math.max(1,Math.min(4,+$('gpu').value||1));const cap=Math.max(1,+$('budget').value||1);
+ const g=Math.min(want,Math.floor(cap/300));const watts=g*150+100,cost=g*300;
+ const perf=g>=4?'ultra':g===3?'high':g===2?'medium':'low';
+ $('hf').textContent=want;$('hb').textContent=cap;$('tgt').textContent=`tier ${g} GPU · $${cost} · ${watts}W · ${perf} FPS`;}
+$('gpu').addEventListener('input',recalcTarget);$('budget').addEventListener('input',recalcTarget);recalcTarget();
 // optional auto-run from URL params (shareable links & screenshots)
 (function(){const q=new URLSearchParams(location.search);
- ['features','budget','mode','model','delay'].forEach(k=>{if(q.has(k))$(k).value=q.get(k);});
+ ['gpu','budget','mode','model','delay'].forEach(k=>{if(q.has(k))$(k).value=q.get(k);});
  if(q.get('view')){view=q.get('view');syncTabs();}
  if(q.get('auto'))run();})();
 </script>

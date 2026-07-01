@@ -34,11 +34,11 @@ def test_pump_streams_all_three_engines():
 
 
 def test_pump_prompt_params_flow_to_all_engines():
-    # features=4 fits the budget → scope stays 4, plan is consistent
-    evs = _collect(ScenarioParams(requested_features=4, budget_cap_k=90), ["blackboard"])
+    # a tier-2 GPU fits the budget → gpu stays 2, plan is consistent
+    evs = _collect(ScenarioParams(wanted_gpu=2, budget_cap=1000), ["blackboard"])
     fin = [e for e in evs if e["kind"] == "run_finished" and e["engine"] == "blackboard"][0]
     assert fin["attrs"]["consistent"] is True
-    assert fin["attrs"]["state"]["scope"] == 4
+    assert fin["attrs"]["state"]["gpu"] == 2
 
 
 def test_agent_talk_is_present_in_stream():

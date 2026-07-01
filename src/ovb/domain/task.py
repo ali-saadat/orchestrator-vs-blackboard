@@ -1,14 +1,16 @@
-"""Scenario S1 — interdependent project-plan reconciliation.
+"""Scenario — build a gaming PC that fits a budget.
 
-An over-ambitious plan must be reconciled into a self-consistent state under
-interdependent constraints: cutting scope to fit the budget shortens the
-timeline, which lowers the risk. Chosen because interdependence is exactly where
-the shared-state harness earns its keep.
+Four specialists agree on one build:
+  - GPU        = the graphics card tier (1–4). You want the top tier.
+  - Budget     = the money; a hard cap. Cost = tier × $/tier, so a higher tier
+                 may not fit — Budget then caps the tier you can afford.
+  - Power      = the PSU wattage; it scales with the GPU tier.
+  - Performance= the FPS class; it follows the GPU tier.
 
-The scenario is parameterized (`ScenarioParams`) so the *same prompt* — requested
-features + budget cap — can be fed to all three harnesses from the live UI. The
-module-level defaults keep the back-compatible `is_consistent(state)` /
-`build_registry()` call sites working.
+Interdependence (why the shared board helps): the GPU tier drives everything.
+Dropping it to fit the budget also lowers the wattage and the FPS class, so a
+change ripples — but only to the agents that depend on the tier. The tightly
+coupled pair is GPU ↔ Budget (want-vs-afford); Power and Performance just follow.
 """
 from __future__ import annotations
 
@@ -17,19 +19,20 @@ from dataclasses import dataclass
 from ..core.state import PlanState
 
 # defaults (used when no ScenarioParams is supplied)
-COST_PER_FEATURE_K = 15
-BUDGET_CAP_K = 90
-WEEKS_PER_FEATURE = 2
-DEADLINE_WEEKS = 14
+GPU_PRICE = 300          # $ per GPU tier
+BUDGET_CAP = 1000        # $ hard cap
+WATTS_PER_TIER = 150     # PSU watts added per tier
+WATTS_BASE = 100         # PSU baseline watts
+TOP_TIER = 4             # highest GPU tier on offer
 
 
 @dataclass(frozen=True)
 class ScenarioParams:
-    requested_features: int = 8
-    budget_cap_k: int = BUDGET_CAP_K
-    cost_per_feature_k: int = COST_PER_FEATURE_K
-    weeks_per_feature: int = WEEKS_PER_FEATURE
-    deadline_weeks: int = DEADLINE_WEEKS
+    wanted_gpu: int = TOP_TIER      # the tier you'd like (the "ask")
+    budget_cap: int = BUDGET_CAP    # the hard $ cap
+    gpu_price: int = GPU_PRICE
+    watts_per_tier: int = WATTS_PER_TIER
+    watts_base: int = WATTS_BASE
 
 
 def _p(params: "ScenarioParams | None") -> ScenarioParams:
@@ -39,11 +42,10 @@ def _p(params: "ScenarioParams | None") -> ScenarioParams:
 def scenario_text(params: "ScenarioParams | None" = None) -> str:
     p = _p(params)
     return (
-        f"Reconcile a project plan. The team asked for {p.requested_features} "
-        f"features, but there is a hard budget cap of ${p.budget_cap_k}k (each "
-        f"feature costs ${p.cost_per_feature_k}k), a {p.weeks_per_feature}-week "
-        f"build time per feature, and a {p.deadline_weeks}-week risk threshold. "
-        "Scope, Budget, Timeline and Risk are interdependent."
+        f"Build a gaming PC. You want a tier-{p.wanted_gpu} GPU, but there is a hard "
+        f"budget cap of ${p.budget_cap} (each GPU tier costs ${p.gpu_price}); the PSU "
+        f"wattage and the FPS class both follow the GPU tier. GPU, Budget, Power and "
+        "Performance are interdependent — find the best build that fits the budget."
     )
 
 
@@ -52,29 +54,36 @@ SCENARIO = scenario_text()
 
 
 def initial_state(params: "ScenarioParams | None" = None) -> PlanState:
-    return PlanState(scope=_p(params).requested_features)
+    return PlanState(gpu=_p(params).wanted_gpu)
 
 
-def risk_for(scope, timeline, params: "ScenarioParams | None" = None):
-    p = _p(params)
-    if scope is None or timeline is None:
+def perf_for(gpu):
+    """FPS class that follows the GPU tier."""
+    if gpu is None:
         return None
-    if scope > 6 or timeline > p.deadline_weeks:
+    if gpu >= 4:
+        return "ultra"
+    if gpu == 3:
         return "high"
-    if scope > 4:
+    if gpu == 2:
         return "medium"
     return "low"
 
 
-def is_consistent(state: PlanState, params: "ScenarioParams | None" = None) -> bool:
-    """The gate predicate: is the plan self-consistent under every constraint?"""
+def watts_for(gpu, params: "ScenarioParams | None" = None):
     p = _p(params)
-    s = state.scope
+    return None if gpu is None else gpu * p.watts_per_tier + p.watts_base
+
+
+def is_consistent(state: PlanState, params: "ScenarioParams | None" = None) -> bool:
+    """The gate: is this a valid, self-consistent build?"""
+    p = _p(params)
+    g = state.gpu
     return all(
         [
-            state.budget_k is not None and state.budget_k <= p.budget_cap_k,
-            state.max_scope is not None and s <= state.max_scope,
-            state.timeline_weeks == s * p.weeks_per_feature,
-            state.risk == risk_for(s, state.timeline_weeks, p),
+            state.cost is not None and state.cost <= p.budget_cap,
+            state.max_gpu is not None and g <= state.max_gpu,
+            state.watts == watts_for(g, p),
+            state.perf == perf_for(g),
         ]
     )

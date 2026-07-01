@@ -4,10 +4,10 @@ Scheduling discipline: the supervisor keeps top-level control but delegates the
 *tightly-coupled* sub-problem to a bounded blackboard, then finishes the
 *independent* tail linearly.
 
-For the reconciliation task the tight cycle is Scope ↔ Budget (a budget cut forces
-a scope cut, which changes the cost, …). Timeline and Risk only *read* the settled
-scope, so they need no re-triggering — running them once, after the core settles,
-avoids the pure blackboard's "Risk fires at high, then re-fires at medium" churn.
+For the PC build the tight cycle is GPU ↔ Budget (a budget cap forces a GPU-tier
+drop, which changes the cost, …). Power and Performance only *read* the settled
+tier, so they need no re-triggering — running them once, after the core settles,
+avoids the pure blackboard's "Performance fires at ultra, then re-fires at high" churn.
 
 Honest note: the hybrid's edge here comes from *encoding the dependency structure*
 (the architect knows which agents form the cycle). That knowledge is the price of
@@ -21,8 +21,8 @@ from collections import deque
 from ..contracts import EngineResult
 from ..core.harness import Harness
 
-CORE = {"Scope", "Budget"}       # the tightly-coupled cycle
-TAIL = ("Timeline", "Risk")      # independent, downstream-only
+CORE = {"GPU", "Budget"}         # the tightly-coupled cycle (want-vs-afford)
+TAIL = ("Power", "Performance")  # independent, downstream-only
 
 
 class HybridHarness(Harness):
@@ -32,7 +32,7 @@ class HybridHarness(Harness):
         self._start()
         steps = 0
 
-        # Phase A — bounded blackboard over the coupled core {Scope, Budget}
+        # Phase A — bounded blackboard over the coupled core {GPU, Budget}
         subs = self.registry.subscription_index(only=CORE)
         queue: deque[tuple[str, str]] = deque()
         queued: set[str] = set()
@@ -43,7 +43,7 @@ class HybridHarness(Harness):
                     queue.append((n, why))
                     queued.add(n)
 
-        enqueue(subs.get("scope", []), "seed: scope posted (core)")
+        enqueue(subs.get("gpu", []), "seed: gpu posted (core)")
         while queue and steps < self.config.hybrid_cap:
             steps += 1
             name, why = queue.popleft()

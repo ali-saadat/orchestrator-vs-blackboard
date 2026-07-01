@@ -32,7 +32,7 @@ def _make_llm(config: RunConfig):
 def build_gate(params: ScenarioParams) -> PredicateGate:
     return PredicateGate(
         lambda s: task.is_consistent(s, params),
-        spec=f"reconcile/v1/cap={params.budget_cap_k}/cost={params.cost_per_feature_k}",
+        spec=f"pcbuild/v1/cap={params.budget_cap}/price={params.gpu_price}",
     )
 
 

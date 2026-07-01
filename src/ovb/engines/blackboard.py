@@ -32,8 +32,8 @@ class BlackboardHarness(Harness):
                     queue.append((n, why))
                     queued.add(n)
 
-        # seed: the requirement lands on the board as `scope`, waking its subscribers
-        enqueue(subs.get("scope", []), "seed: scope posted")
+        # seed: the requirement lands on the board as `gpu`, waking its subscribers
+        enqueue(subs.get("gpu", []), "seed: gpu posted")
 
         steps = 0
         while queue and steps < self.config.max_steps:   # control unit cap

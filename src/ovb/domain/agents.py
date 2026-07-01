@@ -1,8 +1,11 @@
-"""The four specialists as KnowledgeSources — identical for all three harnesses.
+"""The four specialists as KnowledgeSources — IDENTICAL for all three harnesses.
 
-Rules close over `ScenarioParams`, so the same registry logic reconciles whatever
-budget/scope "prompt" the UI supplies. Each `rule` is the deterministic decision
-authority; the LLM narrates/validates.
+Gaming-PC build. Rules close over `ScenarioParams`. Each `rule` is the
+deterministic decision authority; the LLM narrates/validates.
+  - GPU         owns `gpu`,   reacts to `max_gpu`  (drop the tier if the budget won't allow it)
+  - Budget      owns `cost`+`max_gpu`, reacts to `gpu`  (price it; cap the tier)
+  - Power       owns `watts`, reacts to `gpu`
+  - Performance owns `perf`,  reacts to `gpu`, `watts`
 """
 from __future__ import annotations
 
@@ -14,47 +17,47 @@ from .task import ScenarioParams
 def build_registry(params: "ScenarioParams | None" = None) -> AgentRegistry:
     p = params or ScenarioParams()
 
-    def scope_rule(s):
-        if s.max_scope is not None and s.scope > s.max_scope:
-            return {"scope": s.max_scope}
+    def gpu_rule(s):
+        if s.max_gpu is not None and s.gpu > s.max_gpu:
+            return {"gpu": s.max_gpu}
         return {}
 
     def budget_rule(s):
-        cost = s.scope * p.cost_per_feature_k
-        patch = {"budget_k": cost}
-        if cost > p.budget_cap_k:
-            patch["max_scope"] = p.budget_cap_k // p.cost_per_feature_k
+        cost = s.gpu * p.gpu_price
+        patch = {"cost": cost}
+        if cost > p.budget_cap:
+            patch["max_gpu"] = p.budget_cap // p.gpu_price
         else:
-            patch["max_scope"] = s.scope
+            patch["max_gpu"] = s.gpu
         return patch
 
-    def timeline_rule(s):
-        return {"timeline_weeks": s.scope * p.weeks_per_feature}
+    def power_rule(s):
+        return {"watts": task.watts_for(s.gpu, p)}
 
-    def risk_rule(s):
-        return {"risk": task.risk_for(s.scope, s.timeline_weeks, p)}
+    def perf_rule(s):
+        return {"perf": task.perf_for(s.gpu)}
 
     return AgentRegistry(
         sources=(
             KnowledgeSource(
-                "Scope", ("scope",), ("max_scope",),
-                "You are the Scope owner. Keep feature count within the budget ceiling.",
-                scope_rule,
+                "GPU", ("gpu",), ("max_gpu",),
+                "You own the GPU tier. Keep it within the tier the budget allows.",
+                gpu_rule,
             ),
             KnowledgeSource(
-                "Budget", ("budget_k", "max_scope"), ("scope",),
-                "You are the Budget owner. Compute cost and enforce the hard cap.",
+                "Budget", ("cost", "max_gpu"), ("gpu",),
+                "You own the Budget. Price the build and cap the affordable GPU tier.",
                 budget_rule,
             ),
             KnowledgeSource(
-                "Timeline", ("timeline_weeks",), ("scope",),
-                "You are the Timeline owner. Delivery time follows the scope.",
-                timeline_rule,
+                "Power", ("watts",), ("gpu",),
+                "You own the PSU. Wattage scales with the GPU tier.",
+                power_rule,
             ),
             KnowledgeSource(
-                "Risk", ("risk",), ("scope", "timeline_weeks"),
-                "You are the Risk owner. Grade risk from scope and timeline.",
-                risk_rule,
+                "Performance", ("perf",), ("gpu", "watts"),
+                "You own Performance. The FPS class follows the GPU tier.",
+                perf_rule,
             ),
         )
     )

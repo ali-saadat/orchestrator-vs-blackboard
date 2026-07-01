@@ -29,8 +29,8 @@ app = typer.Typer(add_completion=False,
                   help="Orchestrator vs Blackboard vs Hybrid — harness topologies, measured.")
 
 
-def _params(features: int, budget: int) -> ScenarioParams:
-    return ScenarioParams(requested_features=features, budget_cap_k=budget)
+def _params(gpu: int, budget: int) -> ScenarioParams:
+    return ScenarioParams(wanted_gpu=gpu, budget_cap=budget)
 
 
 def _trace(result) -> str:
@@ -47,8 +47,8 @@ def _trace(result) -> str:
 
 @app.command()
 def bench(
-    features: int = typer.Option(8, help="requested features (the shared 'prompt')"),
-    budget: int = typer.Option(90, help="budget cap $k"),
+    gpu: int = typer.Option(4, help="GPU tier you want, 1-4 (the shared 'prompt')"),
+    budget: int = typer.Option(1000, help="budget cap $"),
     real: bool = typer.Option(False, help="live Anthropic calls"),
     model: str = typer.Option("claude-haiku-4-5-20251001"),
     cassette: str = typer.Option(None, help="record/replay path"),
@@ -58,7 +58,7 @@ def bench(
     """Run all three harnesses on the same task and compare."""
     config = RunConfig(real=real, model=model, cassette=cassette,
                        orch_early_exit=orch_early_exit)
-    params = _params(features, budget)
+    params = _params(gpu, budget)
     results = asyncio.run(run_all(config, params))
 
     FairnessContract.assert_comparable(
@@ -81,12 +81,12 @@ def bench(
 
 @app.command()
 def run(engine: str = typer.Argument(..., help="orchestrator|blackboard|hybrid"),
-        features: int = typer.Option(8), budget: int = typer.Option(90),
+        gpu: int = typer.Option(4), budget: int = typer.Option(1000),
         real: bool = typer.Option(False), model: str = typer.Option("claude-haiku-4-5-20251001"),
         cassette: str = typer.Option(None)):
     """Run a single harness and print its trace."""
     config = RunConfig(real=real, model=model, cassette=cassette)
-    params = _params(features, budget)
+    params = _params(gpu, budget)
     result = asyncio.run(run_engine(engine, config, params))
     typer.echo(task.scenario_text(params) + "\n")
     typer.echo(_trace(result))
@@ -94,12 +94,12 @@ def run(engine: str = typer.Argument(..., help="orchestrator|blackboard|hybrid")
 
 @app.command()
 def models(
-    features: int = typer.Option(8), budget: int = typer.Option(90),
+    gpu: int = typer.Option(4), budget: int = typer.Option(1000),
     real: bool = typer.Option(False, help="live calls (else replay from cassette)"),
     cassette: str = typer.Option("cassettes/demo.json"),
     models: str = typer.Option(
-        "claude-haiku-4-5-20251001,claude-sonnet-5,claude-opus-4-8,claude-fable-5",
-        help="comma-separated model ids to compare"),
+        "claude-haiku-4-5-20251001,claude-sonnet-5,claude-opus-4-8",
+        help="comma-separated model ids to compare (add claude-fable-5 to include Fable)"),
 ):
     """Compare models on the SAME task and flag what actually differs.
 
@@ -109,7 +109,7 @@ def models(
     """
     from .pricing import get_price, is_known
     model_ids = [m.strip() for m in models.split(",") if m.strip()]
-    params = _params(features, budget)
+    params = _params(gpu, budget)
     rows = []
     for m in model_ids:
         cfg = RunConfig(real=real, model=m, cassette=(None if real else cassette))
@@ -143,7 +143,7 @@ def models(
         toks = f"{o.total_usage.total}/{b.total_usage.total}/{h.total_usage.total}"
         cost = f"${o.total_cost_usd:.4f}/${b.total_cost_usd:.4f}/${h.total_cost_usd:.4f}"
         st = res["blackboard"].state
-        plan = f"{st['scope']}f·${st['budget_k']}k·{st['timeline_weeks']}w·{st['risk']}"
+        plan = f"tier{st['gpu']}·${st['cost']}·{st['watts']}W·{st['perf']}"
         plans.add(plan)
         calls_sets.add(calls)
         flag = " ★ cheapest" if m == cheapest else ""
