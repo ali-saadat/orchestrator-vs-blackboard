@@ -164,13 +164,21 @@ def models(
 
 @app.command()
 def serve(host: str = typer.Option("127.0.0.1"), port: int = typer.Option(0, help="0 => $PORT or 8000"),
-          open_browser: bool = typer.Option(True, help="open the dashboard in a browser")):
-    """Launch the LIVE side-by-side dashboard (real-time, full visibility)."""
+          open_browser: bool = typer.Option(True, help="open the dashboard in a browser"),
+          lan: bool = typer.Option(False, help="serve on your LAN (0.0.0.0) so same-network devices can open it — corporate-safe, no tunnel"),
+          ngrok: bool = typer.Option(False, help="expose a PUBLIC url via ngrok (needs NGROK_AUTHTOKEN; may be blocked on managed Macs — prefer --lan)")):
+    """Launch the LIVE side-by-side dashboard (real-time, full visibility).
+
+    Sharing: `--lan` (same network, no tunnel — reliable on managed/corporate Macs)
+    or `--ngrok` (public URL — often blocked by endpoint security like Jamf/Netskope).
+    """
     import os
     if not port:
         port = int(os.environ.get("PORT", "8000"))
+    if lan:
+        host = "0.0.0.0"   # serve on all interfaces; ngrok still reaches localhost:port
     from .viz.live import serve as _serve
-    _serve(host=host, port=port, open_browser=open_browser)
+    _serve(host=host, port=port, open_browser=open_browser, ngrok=ngrok)
 
 
 @app.command()

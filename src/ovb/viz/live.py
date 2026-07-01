@@ -16,8 +16,13 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import shutil
+import socket
+import subprocess
 import threading
+import time
 import urllib.parse
+import urllib.request
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -175,19 +180,105 @@ class _Handler(BaseHTTPRequestHandler):
         pass
 
 
-def serve(host: str = "127.0.0.1", port: int = 8000, open_browser: bool = True):
-    load_dotenv()  # so Real mode finds ANTHROPIC_API_KEY
+def _lan_ips():
+    """Non-loopback IPv4 addresses, so testers on the same Wi-Fi/VPN can reach the
+    dashboard without any external tunnel — the reliable path on a managed/corporate
+    Mac where ngrok is likely blocked by endpoint security (Jamf/Netskope DLP)."""
+    ips = set()
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))          # no packets sent; just picks the route
+        ips.add(s.getsockname()[0])
+        s.close()
+    except Exception:
+        pass
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            ips.add(info[4][0])
+    except Exception:
+        pass
+    return sorted(i for i in ips if not i.startswith("127."))
+
+
+def _find_ngrok():
+    p = shutil.which("ngrok")
+    if p:
+        return p
+    for c in ("/opt/homebrew/bin/ngrok", "/usr/local/bin/ngrok",
+              os.path.expanduser("~/bin/ngrok"), "/snap/bin/ngrok",
+              "/usr/bin/ngrok"):
+        if os.path.exists(c):
+            return c
+    return None
+
+
+def _start_ngrok(port: int):
+    """Open a public ngrok tunnel via the ngrok CLI + its local API. Returns
+    (process, public_url) or (proc|None, None). Needs NGROK_AUTHTOKEN (in .env)
+    and the `ngrok` binary. No Python dependency."""
+    ngrok = _find_ngrok()
+    if not ngrok:
+        print("  ngrok: binary not found (install from ngrok.com) — skipping tunnel")
+        return None, None
+    token = os.environ.get("NGROK_AUTHTOKEN")
+    if not token:
+        print("  ngrok: NGROK_AUTHTOKEN not set (add it to .env) — skipping tunnel")
+        return None, None
+    # configure the token once (idempotent), then open the tunnel. Never let a
+    # broken/misconfigured ngrok take down the dashboard — degrade to local-only.
+    try:
+        subprocess.run([ngrok, "config", "add-authtoken", token],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+        proc = subprocess.Popen(
+            [ngrok, "http", str(port), "--log", "stdout"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=dict(os.environ),
+        )
+    except (OSError, ValueError) as exc:
+        print(f"  ngrok: failed to launch ({exc}) — serving locally only")
+        return None, None
+    for _ in range(40):   # poll the ngrok local API for the assigned URL
+        try:
+            with urllib.request.urlopen("http://127.0.0.1:4040/api/tunnels", timeout=1) as r:
+                for t in json.loads(r.read()).get("tunnels", []):
+                    if t.get("public_url", "").startswith("https"):
+                        return proc, t["public_url"]
+        except Exception:
+            pass
+        time.sleep(0.5)
+    return proc, None
+
+
+def serve(host: str = "127.0.0.1", port: int = 8000, open_browser: bool = True,
+          ngrok: bool = False):
+    load_dotenv()  # so Real mode finds ANTHROPIC_API_KEY (and NGROK_AUTHTOKEN)
     httpd = ThreadingHTTPServer((host, port), _Handler)
-    url = f"http://{host}:{port}/"
-    print(f"ovb live dashboard → {url}   (Ctrl-C to stop)")
+    on_all = host in ("", "0.0.0.0")
+    local = f"http://{'127.0.0.1' if on_all else host}:{port}/"
+    print(f"ovb live dashboard → {local}   (Ctrl-C to stop)")
+    if on_all:  # LAN mode: share on the local network (no external tunnel)
+        for ip in _lan_ips():
+            print(f"  🖧 LAN (same Wi-Fi/VPN) → http://{ip}:{port}/")
+
+    ng_proc, public = (None, None)
+    if ngrok:
+        ng_proc, public = _start_ngrok(port)
+        if public:
+            print(f"  🌐 public URL (ngrok) → {public}")
+        else:
+            print("  ngrok: no public URL. On a managed/corporate Mac (Jamf/Netskope DLP)")
+            print("         it's often blocked — use `ovb serve --lan` for same-network access.")
+
     if open_browser:
-        threading.Timer(0.7, lambda: webbrowser.open(url)).start()
+        target = public or local
+        threading.Timer(0.7, lambda: webbrowser.open(target)).start()
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
         print("\nstopping…")
     finally:
         httpd.server_close()
+        if ng_proc:
+            ng_proc.terminate()
 
 
 # --------------------------------------------------------------------------- UI
@@ -199,10 +290,10 @@ INDEX_HTML = r"""<!doctype html>
 <style>
 :root{--bg:#0f1117;--card:#161922;--line:#272c39;--fg:#e6e8ee;--mut:#9aa3b2;--feed:#0e1220;--feed2:#151a28;
 --orchestrator:#8a94a6;--blackboard:#63c750;--hybrid:#e0a72b;--now:#3b82f6;--bad:#e06c75;
---ok:#3ecf8e;--write:#2dd4bf;--retrig:#c792ea;--gate:#c9a227}
+--ok:#3ecf8e;--write:#2dd4bf;--retrig:#c792ea;--gate:#c9a227;--edge:#5a6478}
 html[data-theme="light"]{--bg:#f4f6f9;--card:#ffffff;--line:#dfe4ec;--fg:#1b2230;--mut:#5c6675;--feed:#eef1f6;--feed2:#e9edf3;
 --orchestrator:#5f6a7d;--blackboard:#2f9e2a;--hybrid:#b9781a;--now:#2563eb;--bad:#d64550;
---ok:#0f9d63;--write:#0d9488;--retrig:#7c3aed;--gate:#8a6d00}
+--ok:#0f9d63;--write:#0d9488;--retrig:#7c3aed;--gate:#8a6d00;--edge:#8b96a8}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
 font:13.5px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 header{padding:16px 22px 0;display:flex;align-items:flex-start;gap:16px}
@@ -215,7 +306,7 @@ input[type=number]{width:60px}input,select{background:var(--feed);color:var(--fg
 input[type=range]{accent-color:var(--now);width:110px;padding:0}
 .chk{display:flex;gap:5px;align-items:center}
 button{background:#222736;color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:7px 14px;cursor:pointer;font-size:13px}
-html[data-theme="light"] button{background:#eef1f6}
+html[data-theme="light"] button:not(.run):not(.on){background:#eef1f6;color:var(--fg)}
 button:hover{border-color:#3a4257}button.run{background:var(--now);border-color:var(--now);color:#fff;font-weight:600}
 .tabs{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}.tabs button.on{background:#2a3350;border-color:var(--now)}
 html[data-theme="light"] .tabs button.on{background:#dbe5fb}
@@ -231,7 +322,7 @@ html[data-theme="light"] .tabs button.on{background:#dbe5fb}
 @keyframes pulse{50%{opacity:.35}}
 /* flow diagram */
 svg.flow{width:100%;height:120px;display:block;background:var(--feed);border:1px solid var(--line);border-radius:8px}
-.fx{stroke:var(--line);stroke-width:1.6;fill:none;opacity:.5}
+.fx{stroke:var(--edge);stroke-width:1.6;fill:none;opacity:.85}
 .fx.on{stroke-width:2.6;opacity:1;stroke-dasharray:5 4;animation:dash .85s linear}
 .fx.on.rev{animation:dashrev .85s linear}
 .fx.on.msg{stroke:var(--now)}.fx.on.write{stroke:var(--write)}.fx.on.retrig{stroke:var(--retrig)}
@@ -239,10 +330,13 @@ svg.flow{width:100%;height:120px;display:block;background:var(--feed);border:1px
 @keyframes dashrev{from{stroke-dashoffset:0}to{stroke-dashoffset:18}}
 .node rect{fill:var(--card);stroke:var(--nc,#888);stroke-width:1.6}
 .node.nboard rect{stroke:var(--blackboard);stroke-width:2.4}
-.node text{fill:var(--fg);font-size:9px;text-anchor:middle;font-weight:600;font-family:ui-sans-serif,system-ui}
+.node text{fill:var(--fg);font-size:8.6px;text-anchor:middle;font-weight:600;font-family:ui-sans-serif,system-ui}
+.node.nsup rect{stroke-width:2}
+html[data-theme="light"] .node rect{stroke-width:2}
+html[data-theme="light"] .node.nagent rect{filter:saturate(1.3) brightness(.78)}
 .node.pulse rect{animation:npulse .85s}@keyframes npulse{0%{filter:brightness(1.7)}100%{}}
-.flowcap{fill:var(--mut);font-size:8.5px;text-anchor:middle}
-marker path{fill:var(--mut)}
+.flowcap{fill:var(--mut);font-size:9px;text-anchor:middle}
+marker path{fill:var(--edge)}
 .legend{display:flex;gap:12px;margin:6px 0 10px;font-size:10.5px;color:var(--mut)}
 .legend i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:4px;vertical-align:middle}
 .blabel{font-size:10.5px;color:var(--mut);margin:2px 0 5px}
@@ -261,6 +355,61 @@ marker path{fill:var(--mut)}
 .li{padding:1px 3px;color:var(--mut);white-space:pre-wrap;font-variant-numeric:tabular-nums}
 .li.call{color:var(--fg)}.li.write{color:var(--write)}.li.retrig{color:var(--retrig)}.li.gate{color:var(--gate);font-weight:600}.li.err{color:var(--bad);font-weight:600}
 .hint{color:var(--mut);text-align:center;padding:40px}
+/* how-to guide */
+.howto{margin:10px 22px 0;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:2px 16px}
+.howto>summary{cursor:pointer;color:var(--fg);font-weight:600;font-size:13px;padding:9px 0;list-style:none}
+.howto>summary::-webkit-details-marker{display:none}
+.howto-body{padding:2px 0 12px}
+.howto-body p{margin:6px 0;color:var(--fg);font-size:12.5px}
+.howto-mech{color:var(--mut)!important;border-top:1px solid var(--line);padding-top:9px;margin-top:9px!important}
+/* mode info glyph */
+.info{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border:1px solid var(--line);border-radius:50%;color:var(--mut);font-size:11px;font-style:italic;cursor:help;user-select:none}
+.info:hover,.info:focus{color:var(--now);border-color:var(--now);outline:none}
+/* consolidated comparison table */
+#cmp{padding:0 22px 30px}
+.cmptable{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;overflow-x:auto}
+.cmphead{font-size:14px;font-weight:700;color:var(--fg);margin-bottom:2px}
+.cmpsub{display:block;font-weight:400;font-size:11.5px;color:var(--mut);margin-top:2px}
+.cmptable table{width:100%;border-collapse:collapse;margin-top:10px;font-size:12.5px}
+.cmptable th{text-align:left;color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em;padding:6px 10px;border-bottom:1px solid var(--line)}
+.cmptable th.num,.cmptable td.num{text-align:right;font-variant-numeric:tabular-nums}
+.cmptable td{padding:8px 10px;border-bottom:1px solid var(--line)}
+.cmptable tbody tr:last-child td{border-bottom:none}
+.cmptable td.eng{font-weight:600;text-transform:capitalize;color:var(--e);white-space:nowrap}
+.cmptable td.eng i{display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--e);margin-right:7px;vertical-align:middle}
+.cmptable td.plan{color:var(--fg);font-variant-numeric:tabular-nums;white-space:nowrap}
+.marg{display:block;font-size:10px;color:var(--ok);font-weight:600;margin-top:1px}
+.g-ok{color:var(--ok);font-weight:600}.g-wait{color:var(--mut)}.g-err{color:var(--bad);font-weight:600}
+.cmpnote{margin-top:10px;font-size:11.5px;color:var(--mut);border-top:1px solid var(--line);padding-top:9px}
+.cmpnote b{color:var(--fg)}
+/* problem card + ELI5/Expert toggle + three ways */
+.prob{margin:12px 22px 0;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 20px}
+.prob-top{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.prob-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);font-weight:700}
+.prob-eyebrow span{text-transform:none;letter-spacing:0;font-weight:400}
+.seg{margin-left:auto;display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{background:transparent;border:none;border-radius:0;padding:5px 13px;font-size:12px;color:var(--mut)}
+.seg button.on{background:var(--now);color:#fff;font-weight:600}
+.prob-body p{margin:0 0 8px;font-size:13.5px;line-height:1.55;color:var(--fg)}
+.prob-head{font-size:15px;font-weight:700;margin-bottom:6px}
+.prob-tip{color:var(--mut);font-size:12px}
+.prob-body ul{margin:6px 0;padding-left:20px;font-size:13px;line-height:1.5;color:var(--fg)}
+.prob-body li{margin:3px 0}
+.ways-h{margin:12px 0 8px;font-size:11px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.ways-h span{text-transform:none;letter-spacing:0;font-weight:400}
+.ways{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:900px){.ways{grid-template-columns:1fr}}
+.way{border:1px solid var(--line);border-top:3px solid var(--e);border-radius:9px;padding:10px 12px;background:var(--feed)}
+.way-h{font-weight:700;color:var(--e);font-size:13px;text-transform:capitalize;margin-bottom:4px}
+.way-h span{color:var(--mut);font-weight:400;font-size:11.5px;text-transform:none;margin-left:4px}
+.way-b{font-size:12.5px;color:var(--fg);line-height:1.5}
+.target{margin-top:12px;padding:10px 13px;background:var(--feed);border-left:3px solid var(--now);border-radius:7px;font-size:13px;color:var(--fg);line-height:1.55}
+/* clearer feed sub-labels + collapsible agent talk */
+.feed h4 .fsub{display:block;font-weight:400;text-transform:none;letter-spacing:0;color:var(--mut);font-size:10px;margin-top:1px}
+.mtext{white-space:pre-wrap;overflow-wrap:anywhere}
+.mtext.clamp{display:block;max-height:4.6em;overflow:hidden;-webkit-mask-image:linear-gradient(#000 66%,transparent);mask-image:linear-gradient(#000 66%,transparent)}
+.msg .more{display:block;color:var(--now);font-size:11px;margin-top:3px;cursor:pointer}
+.msg.canexpand{cursor:pointer}
 /* glossary */
 #glossary{padding:0 22px 30px;max-width:980px}
 #glossary .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px}
@@ -269,14 +418,47 @@ marker path{fill:var(--mut)}
 #glossary dd{margin:3px 0 0;color:var(--fg)}#glossary dd .warn{color:var(--hybrid);font-weight:600}
 </style></head>
 <body>
-<header><div><h1>Three harness topologies, live — same prompt, side by side</h1>
-<p class="sub">Same agents, same gate. Only the <b>control loop</b> differs. Watch each harness converge in real time — the flow, the state, and what each agent says.
-<b>Only the blackboard (and the hybrid's core) has a shared board</b> that agents read/write and that re-triggers dependents; the orchestrator routes through a supervisor in fixed sweeps (no shared board, no re-triggering). Calls are <b>streamed</b> (never batched).</p></div>
+<header><div><h1>Orchestrator vs Blackboard vs Hybrid — same job, three ways to run it</h1></div>
 <button id="themebtn" title="toggle theme">☀️</button></header>
+<section class="prob">
+  <div class="prob-top">
+    <div class="prob-eyebrow">The problem <span>— in plain English</span></div>
+    <div class="seg"><button id="segE" class="on" type="button">ELI5</button><button id="segX" type="button">Expert</button></div>
+  </div>
+  <div id="probE" class="prob-body">
+    <p class="prob-head">Four teammates, one plan — which way wastes the least?</p>
+    <p>Four teammates each own one piece of a project plan — how many <b>features</b>, the <b>budget</b>, the <b>timeline</b>, and the <b>risk</b>. Their choices fight each other: cut features to fit the budget, and the timeline and risk change too. So they keep nudging the numbers until everything finally lines up.</p>
+    <p class="prob-tip">In the panels below, the four teammates are the agents <b>Scope · Budget · Timeline · Risk</b>, and the “whiteboard” is the shared <b>Board</b>.</p>
+  </div>
+  <div id="probX" class="prob-body" style="display:none">
+    <p>Four specialist agents negotiate one project plan under coupled constraints: <b>scope</b> (requested 8), <b>budget</b> (hard cap $90k ÷ $15k/feature = 6 max), <b>timeline</b> (scope × 2 weeks), and <b>risk</b> (&gt;6 features or &gt;14 weeks → “high”; else “medium”; else “low”). The dependencies cascade — trimming scope to fit budget also shrinks timeline and downgrades risk — so agents re-fire until a fixed point is reached: <b>6 · $90k · 12 weeks · medium</b>. A <b>deterministic gate</b> (never the model) checks convergence and declares done.</p>
+    <p>All three schedules reach the same fixed point over a streaming API; they differ only in turn efficiency:</p>
+    <ul>
+    <li><b style="color:var(--orchestrator)">orchestrator</b> — a hub polls all four in fixed order, looping until stable, plus a confirming no-op sweep. That final all-quiet pass is the <b>hub tax</b>: maximum turns and tokens.</li>
+    <li><b style="color:var(--blackboard)">blackboard</b> — a shared state store; a write only wakes the dependents of the changed field. Fewer no-op turns.</li>
+    <li><b style="color:var(--hybrid)">hybrid</b> — Scope and Budget (tightest coupling) share the blackboard; Timeline and Risk each run once in order.</li>
+    </ul>
+    <p>Metrics: agent calls, no-op turns, tokens, dollar cost. Lower is more efficient.</p>
+  </div>
+  <div class="ways-h">Three ways to run the meeting <span>— all reach the same plan</span></div>
+  <div class="ways">
+    <div class="way" style="--e:var(--orchestrator)"><div class="way-h">Orchestrator<span>· “the boss runs it”</span></div><div class="way-b">A boss asks each teammate to speak, one at a time, in a fixed order — looping through all four again and again until nobody changes anything, plus one extra round just to double-check. The most back-and-forth.</div></div>
+    <div class="way" style="--e:var(--blackboard)"><div class="way-h">Blackboard<span>· “one shared whiteboard”</span></div><div class="way-b">Everyone writes on one shared whiteboard. When a number changes, only the teammates who care about that number chime back in. Far less wasted talk.</div></div>
+    <div class="way" style="--e:var(--hybrid)"><div class="way-h">Hybrid<span>· “a bit of both”</span></div><div class="way-b">The two teammates who clash the most (Scope &amp; Budget) settle it together on the whiteboard first; then the other two each speak just once. A tidy middle ground.</div></div>
+  </div>
+  <p class="target">🎯 <b>Same answer, every time.</b> For your prompt (<b id="hf">8</b> features, $<b id="hb">90</b>k) all three reach the one plan that fits: <b id="tgt">6 features · $90k · 12 weeks · medium risk</b>. The only difference is <b>how much talking and money</b> it took — that’s the comparison table below.</p>
+</section>
 <div class="bar">
   <label>features <input type="number" id="features" value="8" min="0" max="50"></label>
   <label>budget $k <input type="number" id="budget" value="90" min="1" max="100000"></label>
-  <label>mode <select id="mode"><option value="mock">Mock</option><option value="real">Real API</option><option value="cassette">Cassette</option></select></label>
+  <label>mode
+    <select id="mode">
+      <option value="mock">Mock — instant, offline, fake</option>
+      <option value="cassette">Cassette — replay recorded real calls</option>
+      <option value="real">Real API — live Claude, costs $</option>
+    </select>
+    <span class="info" tabindex="0" aria-label="mode help" title="Mock: deterministic fake outputs, instant, offline, no API key, no cost. Cassette: replays REAL recorded Claude calls offline — real outputs/tokens/cost, no key, no spend. Real API: live streaming Claude — needs ANTHROPIC_API_KEY, actually costs money.">i</span>
+  </label>
   <label>model <select id="model">
     <option value="claude-haiku-4-5-20251001">Haiku 4.5 — $1/$5 (cheapest)</option>
     <option value="claude-sonnet-5">Sonnet 5 — $2/$10</option>
@@ -298,6 +480,7 @@ marker path{fill:var(--mut)}
 </div>
 <div id="note"></div>
 <div class="grid n3" id="grid"><div class="hint">Set the prompt and press <b>Run</b>.</div></div>
+<div id="cmp"></div>
 <div id="glossary" style="display:none"></div>
 <script>
 const ALL=['orchestrator','blackboard','hybrid'];
@@ -310,13 +493,13 @@ const FEED_LABEL={orchestrator:'activity · message passing',blackboard:'activit
 const TOPO={
  orchestrator:{nodes:{SUP:[150,22],Scope:[48,108],Budget:[116,108],Timeline:[184,108],Risk:[252,108]},
    edges:[['SUP','Scope'],['SUP','Budget'],['SUP','Timeline'],['SUP','Risk']],
-   cap:'supervisor routes in fixed sweeps · no shared board, no re-triggering'},
+   cap:'Supervisor calls each agent in fixed order · blue arrow = a message (no shared board)'},
  blackboard:{nodes:{BB:[150,70],Scope:[50,24],Budget:[250,24],Timeline:[50,116],Risk:[250,116]},
    edges:[['BB','Scope'],['BB','Budget'],['BB','Timeline'],['BB','Risk']],
-   cap:'all agents read/write ONE shared board · a write re-triggers dependents'},
+   cap:'All agents share one Board · teal = write to board · purple = board re-triggers an agent'},
  hybrid:{nodes:{BB:[74,70],Scope:[34,30],Budget:[34,112],SUP:[188,70],Timeline:[256,42],Risk:[256,100]},
    edges:[['BB','Scope'],['BB','Budget'],['BB','SUP'],['SUP','Timeline'],['SUP','Risk']],
-   cap:'bounded shared board (Scope↔Budget), then supervisor tail (Timeline, Risk)'}
+   cap:'Board core (Scope↔Budget: teal/purple), then Supervisor tail (Timeline, Risk: blue message)'}
 };
 let view='compare', es=null, ran=[], S={};
 const $=id=>document.getElementById(id);
@@ -326,7 +509,7 @@ const md=s=>esc(s).replace(/^\s*#{1,6}\s*/gm,'').replace(/^\s*[-*]\s+/gm,'• ')
   .replace(/`([^`]+?)`/g,'<b>$1</b>');
 
 function selected(){return ALL.filter(e=>$('c-'+e).checked);}
-function blank(){return {board:{},calls:0,wasted:0,tok:0,cost:0,steps:0,status:'idle',gate:false,talk:[],log:[],flash:{},flow:null};}
+function blank(){return {board:{},calls:0,wasted:0,writes:0,tok:0,cost:0,steps:0,status:'idle',gate:false,talk:[],log:[],flash:{},flow:null};}
 function meter(l,v){return `<div class="meter"><b>${v}</b><span>${l}</span></div>`;}
 function setFlow(e,source,target,type){if(S[e])S[e].flow={source,target,type};}
 
@@ -336,9 +519,9 @@ function flowSVG(e){const t=TOPO[e],s=S[e],f=s.flow,N=t.nodes;
    const rev=on&&f.source===b;  // line is a→b; flow source is b ⇒ reversed
    const mk=on?(rev?'marker-start="url(#arw)"':'marker-end="url(#arw)"'):'';  // head at the true target
    return `<line class="fx ${on?'on '+f.type+(rev?' rev':''):''}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" ${mk}/>`;}).join('');
- const nodes=Object.entries(N).map(([name,[x,y]])=>{const w=name==='BB'?54:46,h=18;
+ const nodes=Object.entries(N).map(([name,[x,y]])=>{const w=name==='SUP'?68:name==='BB'?58:48,h=18;
    const kind=name==='BB'?'nboard':name==='SUP'?'nsup':'nagent';
-   const label=name==='BB'?'BOARD':name==='SUP'?'SUP':name;
+   const label=name==='BB'?'Board':name==='SUP'?'Supervisor':name;
    const nc=name==='BB'?'var(--blackboard)':name==='SUP'?COLORS[e]:(AGENTC[name]||'#888');
    const pulse=(f&&f.target===name)?'pulse':'';
    return `<g class="node ${kind} ${pulse}"><rect x="${x-w/2}" y="${y-h/2}" width="${w}" height="${h}" rx="4" style="--nc:${nc}"/><text x="${x}" y="${y+3.4}">${label}</text></g>`;}).join('');
@@ -349,8 +532,11 @@ function flowSVG(e){const t=TOPO[e],s=S[e],f=s.flow,N=t.nodes;
 function panelHTML(e){const s=S[e];if(!s)return `<div class="panel" style="--e:${COLORS[e]}"><div class="hint">${e}: not in this run</div></div>`;
  const board=FIELDS.map(f=>{const v=s.board[f];const fl=s.flash[f]?'flash':'';
    return `<div class="cell ${fl}" style="--e:${COLORS[e]}"><span>${f}</span><b>${v===undefined||v===null?'—':esc(v)}</b></div>`;}).join('');
- const talk=s.talk.map(t=>t.err?`<div class="msg" style="--c:var(--bad)"><span class="who" style="color:var(--bad)">error</span>${esc(t.text)}</div>`
-   :`<div class="msg" style="--c:${AGENTC[t.agent]||'#888'}"><span class="who">${esc(t.agent)}</span>${md(t.text)}${t.changed?'':' <i>(no change)</i>'}</div>`).join('');
+ const talk=s.talk.map((t,i)=>{if(t.err)return `<div class="msg" style="--c:var(--bad)"><span class="who" style="color:var(--bad)">error</span>${esc(t.text)}</div>`;
+   const long=(t.text||'').length>160 && !t.expanded;
+   const body=md(t.text)+(t.changed?'':' <i>(no change)</i>');
+   const more=long?`<span class="more" onclick="expandMsg('${e}',${i})">show more ▸</span>`:'';
+   return `<div class="msg${long?' canexpand':''}" style="--c:${AGENTC[t.agent]||'#888'}"${long?` onclick="expandMsg('${e}',${i})"`:''}><span class="mtext${long?' clamp':''}"><span class="who">${esc(t.agent)}</span>${body}</span>${more}</div>`;}).join('');
  const log=s.log.map(l=>`<div class="li ${l.cls||''}">${esc(l.t)}</div>`).join('');
  const dot=s.err?'err':s.status==='running'?'run':s.status==='done'?'done':'';
  return `<div class="panel" style="--e:${COLORS[e]}">
@@ -360,15 +546,41 @@ function panelHTML(e){const s=S[e];if(!s)return `<div class="panel" style="--e:$
    <div class="blabel">${BOARD_LABEL[e]}</div>
    <div class="board">${board}</div>
    <div class="meters">${meter('calls',s.calls)}${meter('wasted',s.wasted)}${meter('tokens',s.tok)}${meter('cost','$'+s.cost.toFixed(5))}${meter('gate',s.gate?'PASS':'…')}</div>
-   <div class="feeds"><div class="feed"><h4>agent talk</h4><div class="talk" id="talk-${e}">${talk}</div></div>
-   <div class="feed"><h4>${FEED_LABEL[e]}</h4><div class="log" id="log-${e}">${log}</div></div></div></div>`;}
+   <div class="feeds"><div class="feed"><h4>What each teammate said<span class="fsub">one specialist per turn, in plain words</span></h4><div class="talk" id="talk-${e}">${talk}</div></div>
+   <div class="feed"><h4>Play-by-play<span class="fsub" title="🎤 a turn · ✏️ changed a number · ✅ nothing to change · 🔔 must re-check · 🏁 done-check">every turn &amp; change · hover for key ⓘ</span></h4><div class="log" id="log-${e}">${log}</div></div></div></div>`;}
 
-function render(){const grid=$('grid'),gl=$('glossary');
- if(view==='glossary'){grid.style.display='none';gl.style.display='block';gl.innerHTML=glossaryHTML();syncTabs();return;}
+function fmtPlan(b){const g=k=>b[k]===undefined||b[k]===null?'—':b[k];
+  return `${g('scope')}f · $${g('budget_k')}k · ${g('timeline_weeks')}w · ${g('risk')}`;}
+function ratio(base,val){if(!base||!val||val>=base)return '';return '<span class="marg">'+(base/val).toFixed(2)+'× fewer</span>';}
+function comparisonHTML(){
+  const engines=(ran.length?ran:selected()).filter(e=>S[e]);
+  if(!engines.length)return '';
+  const allSamePlan=engines.length>1 && engines.every(e=>fmtPlan(S[e].board)===fmtPlan(S[engines[0]].board));
+  const cols=['Engine','Calls','Wasted','State writes','Tokens','Cost $','Steps','Final plan','Gate'];
+  const head='<tr>'+cols.map((c,i)=>`<th${i>0&&i<7?' class="num"':''}>${c}</th>`).join('')+'</tr>';
+  const rows=engines.map(e=>{const s=S[e];const b=S['orchestrator'];
+    const callM=(e!=='orchestrator'&&b)?ratio(b.calls,s.calls):'';
+    const tokM =(e!=='orchestrator'&&b)?ratio(b.tok,s.tok):'';
+    const costM=(e!=='orchestrator'&&b)?ratio(b.cost,s.cost):'';
+    const gate=s.err?'<span class="g-err">error</span>':s.gate?'<span class="g-ok">PASS ✓</span>':'<span class="g-wait">…</span>';
+    return `<tr style="--e:${COLORS[e]}"><td class="eng"><i></i>${e}</td>`
+      +`<td class="num">${s.calls}${callM}</td>`+`<td class="num">${s.wasted}</td>`
+      +`<td class="num">${s.writes}</td>`+`<td class="num">${s.tok}${tokM}</td>`
+      +`<td class="num">$${s.cost.toFixed(5)}${costM}</td>`+`<td class="num">${s.steps}</td>`
+      +`<td class="plan">${fmtPlan(s.board)}</td>`+`<td>${gate}</td></tr>`;}).join('');
+  const note=allSamePlan
+    ? '<div class="cmpnote">All engines reached the <b>same final plan</b> — the only differences are the cost of coordination (calls, wasted no-ops, tokens, $). Margins are vs the orchestrator baseline.</div>'
+    : '<div class="cmpnote">Run to completion to compare; margins appear vs the orchestrator baseline once available.</div>';
+  return `<div class="cmptable"><div class="cmphead">Consolidated comparison — same prompt, same target plan
+    <span class="cmpsub">lower is better on every count; the Final plan is identical across engines</span></div>
+    <table><thead>${head}</thead><tbody>${rows}</tbody></table>${note}</div>`;}
+function render(){const grid=$('grid'),gl=$('glossary'),cmp=$('cmp');
+ if(view==='glossary'){grid.style.display='none';cmp.style.display='none';gl.style.display='block';gl.innerHTML=glossaryHTML();syncTabs();return;}
  gl.style.display='none';grid.style.display='grid';
  let shown = view==='compare' ? (ran.length?ran:selected()) : [view];
  grid.className='grid '+(view==='compare'?('n'+Math.max(1,shown.length)):'focus');
  grid.innerHTML=shown.map(panelHTML).join('');
+ if(view==='compare'){cmp.style.display='block';cmp.innerHTML=comparisonHTML();}else cmp.style.display='none';
  shown.forEach(e=>{const t=$('talk-'+e);if(t)t.scrollTop=t.scrollHeight;const l=$('log-'+e);if(l)l.scrollTop=l.scrollHeight;});
  requestAnimationFrame(()=>{Object.values(S).forEach(s=>{s.flash={};s.flow=null;});});}
 
@@ -377,22 +589,22 @@ function handle(ev){const e=ev.engine,a=ev.attrs||{};
  const s=S[e]; if(!s)return; const core=e==='hybrid'&&(ev.agent==='Scope'||ev.agent==='Budget');
  switch(ev.kind){
   case 'run_started': s.status='running'; break;
-  case 'agent_activated': s.steps++; s.log.push({t:`▸ ${ev.agent}  [${a.trigger||''}]`});
+  case 'agent_activated': s.steps++; s.log.push({t:`🎤 ${ev.agent}'s turn`});
     if(e==='orchestrator')setFlow(e,'SUP',ev.agent,'msg');
     else if(e==='blackboard')setFlow(e,'BB',ev.agent,'msg');
     else setFlow(e,core?'BB':'SUP',ev.agent,'msg'); break;
   case 'gen_ai.client.call.finished':{const tin=a['gen_ai.usage.input_tokens']||0,tout=a['gen_ai.usage.output_tokens']||0;
     s.calls++; s.tok+=tin+tout; s.cost+=a.cost_usd||0; if(!a.changed)s.wasted++;
     s.talk.push({agent:ev.agent,text:a.message||'',changed:a.changed});
-    s.log.push({t:`  ${ev.agent} → ${a.changed?'wrote':'no-op'}  (${tin+tout} tok · $${(a.cost_usd||0).toFixed(5)})`,cls:'call'});
+    s.log.push({t:a.changed?`✏️ ${ev.agent} changed something · ${tin+tout} tok · $${(a.cost_usd||0).toFixed(5)}`:`✅ ${ev.agent}: nothing to change · ${tin+tout} tok · $${(a.cost_usd||0).toFixed(5)}`,cls:'call'});
     if(a.changed){if(e==='orchestrator')setFlow(e,ev.agent,'SUP','msg');
       else if(e==='blackboard')setFlow(e,ev.agent,'BB','write');
       else setFlow(e,ev.agent,core?'BB':'SUP',core?'write':'msg');} break;}
-  case 'state_write': s.board[a.field]=a.new; s.flash[a.field]=true;
-    s.log.push({t:`    ✎ ${a.field}: ${a.old} → ${a.new}`,cls:'write'}); break;
-  case 'agent_retriggered': s.log.push({t:`    ↻ re-trigger ${ev.agent}  (${a.because})`,cls:'retrig'});
+  case 'state_write': s.board[a.field]=a.new; s.flash[a.field]=true; s.writes++;
+    s.log.push({t:`  ✏️ set ${a.field}: ${a.old} → ${a.new}`,cls:'write'}); break;
+  case 'agent_retriggered': s.log.push({t:`  🔔 ${ev.agent} has to re-check (${a.because})`,cls:'retrig'});
     if(e==='blackboard'||(e==='hybrid'&&(ev.agent==='Scope'||ev.agent==='Budget')))setFlow(e,'BB',ev.agent,'retrig'); break;
-  case 'gate_checked': s.gate=a.passed; s.log.push({t:`  ⏛ gate: ${a.passed?'PASS ✓':'…'}`,cls:'gate'}); break;
+  case 'gate_checked': s.gate=a.passed; s.log.push({t:`  🏁 done-check: ${a.passed?'every rule satisfied ✓':'not yet…'}`,cls:'gate'}); break;
   case 'run_finished': s.status='done'; if(a.state)s.board=a.state; if(a.consistent!==undefined)s.gate=a.consistent; break;
   case 'engine_done': if(!s.err)s.status='done'; break;
   case 'error': s.err=true; s.status='error'; s.talk.push({err:true,text:a.msg}); s.log.push({t:`  ✗ ${a.msg}`,cls:'err'}); break;
@@ -404,8 +616,8 @@ function run(){ran=selected(); if(!ran.length){alert('select at least one engine
  if(!['compare','glossary',...ran].includes(view))view='compare';
  syncTabs(); render();
  const mode=$('mode').value;
- $('note').textContent = mode==='real' ? 'Real mode: live STREAMING Claude calls — uses your API key and costs tokens. Paced by model latency.'
-   : mode==='cassette' ? 'Cassette mode: replaying recorded real calls offline (features=8, budget=90; record others with ovb bench --real --cassette '+CASS+').' : '';
+ recalcTarget();
+ $('note').textContent = MODE_HELP[mode] || '';
  if(es)es.close();
  const q=`features=${+$('features').value||0}&budget=${+$('budget').value||1}&engines=${ran.join(',')}`
    +`&delay=${(+$('delay').value)/1000}&mode=${mode}&model=${encodeURIComponent($('model').value)}`;
@@ -417,6 +629,10 @@ function run(){ran=selected(); if(!ran.length){alert('select at least one engine
   if(dirty){$('note').textContent='connection to server lost — run interrupted';render();}};}
 
 const CASS='cassettes/demo.json';
+const MODE_HELP={
+ mock:'Mock: deterministic fake narration — instant, offline, no API key, no cost. The plan, call counts and structure are identical to a real run; only the wording is stubbed.',
+ cassette:'Cassette: replaying RECORDED real Claude calls — you see the real outputs, tokens and cost, but it runs offline with no API key and no new spend (recorded at features=8, budget=90; record other cases with: ovb bench --real --cassette '+CASS+').',
+ real:'Real API: live STREAMING Claude — uses your ANTHROPIC_API_KEY and spends money. Paced by real model latency.'};
 const GLOSS=[
  ['Harness','var(--now)','The deterministic program around the model — the control loop that calls the model, applies its result through the ownership reducer, and checks the gate. Orchestrator, blackboard and hybrid are three harnesses; only the scheduling differs.'],
  ['Orchestrator','var(--orchestrator)','Hub-and-spoke. A central <b>supervisor</b> invokes agents in a fixed order over its accumulated state. <span class="warn">No shared board and no re-triggering</span> — an agent never wakes because another wrote a field; coordination is only the supervisor\'s next sweep. Each call is a fresh model call over the supervisor\'s current state. Converges by re-sweeping the whole roster.'],
@@ -434,6 +650,9 @@ const GLOSS=[
  ['WORM log','var(--mut)','The append-only (write-once, read-many) event stream — the audit trail every panel is rendered from.'],
  ['Streaming vs Batch','var(--now)','We use the <b>streaming</b> Messages API (real-time SSE, token-by-token). NOT the Batch API (asynchronous, up to 24h, 50% cheaper) — you would not see the flow.'],
  ['Model choice','var(--ok)','Since decisions are rule-based, the model only <b>narrates</b>. It changes tokens/cost, never the plan or call counts — so the cheapest model (Haiku 4.5, $1/$5) fits. Compare with <code>ovb models</code>.'],
+ ['Mock mode','var(--ok)','Deterministic fake narration, generated instantly and fully offline. No API key, no network, no cost. The call counts, writes and gate behaviour are REAL (from the harness); only the model\'s prose is stubbed. Best for understanding the topologies.'],
+ ['Cassette mode','var(--now)','Replays a recorded REAL run offline. The outputs, token counts and dollar costs are the actual Claude responses captured earlier with <code>ovb bench --real --cassette</code> — so you see real numbers with <b>no API key and no spend</b>. The committed recording is features=8, budget=90.'],
+ ['Real API mode','var(--hybrid)','Live <b>streaming</b> Claude calls over the real Messages API. <span class="warn">Needs ANTHROPIC_API_KEY (from a local .env) and actually costs tokens/money.</span> Paced by model latency, not the speed slider.'],
 ];
 function glossaryHTML(){return `<div class="card"><h2>Glossary</h2>
  <p class="g">Precise definitions — mind the wording: the orchestrator has <b>no shared board</b> and no re-triggering; only the blackboard (and the hybrid core) share a board that agents read/write.</p>
@@ -445,6 +664,19 @@ setTheme((function(){try{return localStorage.getItem('ovb-theme')}catch(e){retur
 function syncTabs(){document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===view));}
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{view=b.dataset.v;syncTabs();render();});
 $('go').onclick=run;
+$('mode').onchange=()=>{$('note').textContent=MODE_HELP[$('mode').value]||'';};
+$('note').textContent=MODE_HELP[$('mode').value]||'';
+// ELI5 / Expert toggle
+$('segE').onclick=()=>{$('segE').classList.add('on');$('segX').classList.remove('on');$('probE').style.display='';$('probX').style.display='none';};
+$('segX').onclick=()=>{$('segX').classList.add('on');$('segE').classList.remove('on');$('probX').style.display='';$('probE').style.display='none';};
+// expand a clamped agent message (inline onclick → must be global)
+window.expandMsg=function(e,i){if(S[e]&&S[e].talk[i]){S[e].talk[i].expanded=true;render();}};
+// live "expected plan" recompute — mirrors domain/task.py exactly
+function recalcTarget(){const feat=Math.max(0,Math.min(50,+$('features').value||0));const cap=Math.max(1,+$('budget').value||1);
+ const scope=Math.min(feat,Math.floor(cap/15));const weeks=scope*2,used=scope*15;
+ const risk=(scope>6||weeks>14)?'high':scope>4?'medium':scope>0?'low':'—';
+ $('hf').textContent=feat;$('hb').textContent=cap;$('tgt').textContent=`${scope} features · $${used}k · ${weeks} weeks · ${risk} risk`;}
+$('features').addEventListener('input',recalcTarget);$('budget').addEventListener('input',recalcTarget);recalcTarget();
 // optional auto-run from URL params (shareable links & screenshots)
 (function(){const q=new URLSearchParams(location.search);
  ['features','budget','mode','model','delay'].forEach(k=>{if(q.has(k))$(k).value=q.get(k);});
