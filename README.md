@@ -1,179 +1,135 @@
 # ovb — Orchestrator vs Blackboard vs Hybrid
 
-**Three agent-*harness* topologies over the same agents, the same task, and the same
-deterministic gate. Only the control loop differs — and it's all measured.**
+**Watch three multi-agent control models solve the *same* task, side by side — and see
+which one wastes the fewest agent calls.** A runnable, instrumented lab for anyone
+deciding how to coordinate LLM agents.
 
-A multi-agent system is `agents + a harness`: the agents are *model + role + tools*;
-the **harness** is the deterministic program that owns the control loop, context
-assembly, tool dispatch, and the termination gate. Orchestrator, blackboard, and
-hybrid are three *harness topologies* — three answers to *how the harness schedules
-model calls and where shared state lives*. This repo holds the agents constant and
-swaps the harness, then instruments calls, tokens, cost, latency, and a full WORM
-audit log so the difference is a number, not an opinion.
+Same agents, same task, same deterministic done-check. Only the **control loop** differs.
+Everything is measured: agent calls, tokens, real $ cost, and a full audit log.
 
-![Orchestrator vs Blackboard](docs/images/topologies.svg)
+![Orchestrator vs Blackboard vs Hybrid](docs/images/topologies.svg)
 
-> New here? Read **[docs/HARNESS.md](docs/HARNESS.md)** for the organizing idea, then
-> **[docs/WHEN-TO-USE.md](docs/WHEN-TO-USE.md)** to choose one for your own problem.
+---
 
-## Quickstart (mock mode — deterministic, offline, no API key)
+## Run it — one click
 
 ```bash
-pip install -e ".[dev]"          # or: export PYTHONPATH=src
-ovb serve                        # ⭐ LIVE dashboard: animated flow diagrams, light/dark, glossary
-ovb bench                        # all 3 harnesses + comparison + output/report.html
-ovb models                       # compare Haiku/Sonnet/Opus/Fable — same result, different cost
-ovb run blackboard               # one harness, print its trace
-make test                        # deterministic checks
-ovb doctor                       # what mode am I in?
+git clone <this-repo> && cd ovb
+./run.sh                 # opens the live dashboard in your browser
 ```
 
-Real model behavior and real token/cost numbers:
+- **macOS:** or just **double-click `run.command`** in Finder.
+- Also: `make run`, or `uv run ovb serve`, or `pip install -e . && ovb serve`.
+
+**No API key needed.** The dashboard ships with **recorded real Claude calls** you can
+replay offline (real tokens & cost, zero spend). `./run.sh` uses [`uv`](https://docs.astral.sh/uv/)
+if present, otherwise it creates a local `.venv` on first run.
+
+Share it on your network (no tunnel — works on managed/corporate Macs):
 
 ```bash
-pip install -e ".[real]"
-echo 'ANTHROPIC_API_KEY=sk-ant-...' > .env         # gitignored; also picked up by `ovb serve`
-ovb bench --real                                   # live streaming Claude calls
-ovb bench --real --cassette cassettes/demo.json    # record; replay offline & keyless next time
-ovb bench --cassette cassettes/demo.json           # replay the committed REAL numbers, no key
+./run.sh --lan           # prints an http://<your-ip>:8000/ URL for the same Wi-Fi/VPN
 ```
 
-A real run is already recorded in [`cassettes/demo.json`](cassettes/demo.json) — see the
-worked example with real numbers in **[docs/EXAMPLE.md](docs/EXAMPLE.md)**. In the live
-dashboard, pick **mode = Cassette** to watch those real calls (narration, tokens, cost)
-replay offline.
+## The demo: build a gaming PC that fits a budget
 
-## What you'll see
+Four specialist agents agree on one build. Their choices are **interdependent**:
 
-The task is an **interdependent** project-plan reconciliation (Scope ↔ Budget ↔
-Timeline ↔ Risk). All three harnesses converge to the *identical* consistent plan;
-the cost to get there is what differs:
+| Agent | Owns | Rule |
+|---|---|---|
+| **GPU** | the tier (you want 4) | drop the tier if the budget won't allow it |
+| **Budget** | cost + the affordable tier | cost = tier × $300; cap $1000 ⇒ tier 3 max |
+| **Power** | PSU watts | watts = tier × 150 + 100 |
+| **Performance** | FPS class | follows the tier (4→ultra, 3→high, …) |
+
+You want a tier-4 GPU, but it blows the $1000 budget — so it drops to tier 3, and the
+wattage and FPS drop with it. All three control models reach the **same** build
+(`tier 3 · $900 · 550W · high`); they differ only in how much coordination it takes:
 
 ```
-  METRIC                  ORCHESTRATOR    BLACKBOARD        HYBRID
-  ------------------------------------------------------------------------
-  agent calls                       12             7             5   hybrid
-    wasted (no-op)                   5             0             0   blackboard/hybrid
-  total tokens                     898           515           373   hybrid
-  cost (USD)                  0.00xx…       0.00xx…       0.00xx…   hybrid
-  ------------------------------------------------------------------------
-  → all topologies reached the SAME consistent plan: True
-  → blackboard used 1.71× fewer calls than orchestrator
+              agent calls   wasted (no-op)   tokens (Haiku, real)
+orchestrator       12             5                 2,988
+blackboard          7             0                 1,863   ← 1.71× fewer calls
+hybrid              5             0                 1,367
 ```
 
-- The orchestrator's **5 wasted no-op calls** are the "hub tax": with no shared state,
-  the only way to confirm convergence is a full re-sweep.
-- The blackboard re-triggers **only** the agents a write affects.
-- The hybrid does best here by *encoding the dependency structure* — it runs the tight
-  Scope↔Budget cycle as a bounded blackboard, then the independent Timeline/Risk once.
-  That edge is real but it costs architect insight; see [HARNESS.md](docs/HARNESS.md).
+## The three control models (harnesses)
 
-`output/report.html` is a self-contained animated report — press **play** to watch each
-harness's control loop converge, meters updating live from the WORM event stream.
+- **Orchestrator** — a supervisor calls each agent in a fixed order, looping until stable,
+  plus a confirming no-op sweep. No shared board, no reactivity. The most turns ("hub tax").
+- **Blackboard** — all agents read/write one shared board; a write re-triggers only the
+  agents that depend on the changed field. Fewer wasted turns.
+- **Hybrid** — a bounded blackboard for the tightly-coupled core (GPU ↔ Budget), then a
+  linear supervisor tail (Power, Performance).
 
-## Live dashboard — full visibility, side by side (`ovb serve`)
+They're the **same agents** behind one **harness** (control loop); only the *scheduling*
+differs — see [docs/HARNESS.md](docs/HARNESS.md).
+
+## The live dashboard
+
+`./run.sh` opens a browser dashboard that runs all three concurrently and streams every step:
+
+- an **ELI5 ⇄ Expert** problem explainer, animated **flow diagrams** (arrows light up per
+  step), the live **state board**, **agent talk**, a plain-language **play-by-play**, and a
+  consolidated **comparison table** with honest margins;
+- **compare** all three or **focus** one; a **Glossary** tab; **light/dark** toggle;
+- **modes**: Mock (offline), **Cassette** (replay real recorded calls, no key), Real API
+  (live streaming Claude); a **model picker** defaulting to the cheapest (Haiku 4.5).
+
+## CLI
 
 ```bash
-ovb serve            # opens http://127.0.0.1:8000
+ovb serve                 # the live dashboard  (--lan to share, --ngrok for a public URL)
+ovb bench                 # all 3 harnesses, mock, + a comparison + output/report.html
+ovb models                # compare Haiku/Sonnet/Opus — same result, different cost
+ovb run blackboard        # one harness, print its trace
+ovb bench --real          # live Claude calls (needs ANTHROPIC_API_KEY in .env, and the
+                          #   `real` extra: uv run --extra real ovb …  /  pip install -e '.[real]')
+ovb doctor                # what mode am I in?
 ```
 
-Give the **same prompt** (requested features + budget cap) to all three harnesses and
-watch them run **concurrently, in real time**:
+Because decisions are rule-based (the model only *narrates*), the model choice never
+changes the build — only tokens/cost. So use the cheapest that fits. See
+[docs/EXAMPLE.md](docs/EXAMPLE.md) for the real 3-model numbers.
 
-- **Animated flow diagram** per harness — a mermaid-style topology with arrows that light
-  up as each step streams: the orchestrator's supervisor→agent message passing (**no board
-  node — it has no shared memory**), the blackboard's agent↔**BOARD** reads/writes and `↻`
-  re-triggers, the hybrid's bounded core + supervisor tail. Colored: message (blue), write
-  (teal), re-trigger (purple).
-- **Compare view** — all three side by side, or **focus** any one independently via the tabs.
-- **State panel** — the live plan state per harness. For the blackboard/hybrid it's the
-  **shared board** (fields flash as they're written); for the orchestrator it's the
-  **supervisor's state, handed out as isolated views — not shared memory**.
-- **Agent talk** — what each agent "says" each turn (its narration; the real model's words,
-  markdown-rendered, in `--real`/cassette mode).
-- **Activity log** — every activation, `✎` write, `↻` re-trigger, and `⏛` gate check, streamed.
-- **Live meters** — calls, wasted calls, tokens, $ cost, gate. Plus a **Glossary** tab,
-  **light/dark** toggle, and a **model picker** (defaults to the cheapest, Haiku 4.5).
-
-It's a standard-library **streaming** SSE server (no uvicorn/React/build step, and never the
-Batch API) streaming the same WORM event contract the CLI and static report use. The speed
-slider paces mock runs; `--real` is paced by real model latency. (Not Streamlit — Streamlit
-re-runs the whole script and can't stream frame-by-frame like this; production could swap in
-FastAPI + React/D3, see [docs/PLAN.md](docs/PLAN.md).)
-
-### Cheapest model — same result, different cost
-
-Because the agents' decisions are **rule-based, the model only narrates** — so the model
-choice never changes the plan or call counts, **only tokens/cost**. `ovb models` makes this
-explicit and flags it; default is the cheapest (**Haiku 4.5, $1/$5**). See
-[docs/EXAMPLE.md](docs/EXAMPLE.md) for the real 4-model table (identical plan, ~20× cost spread).
-
-> ⚠️ **Honesty about the numbers.** In mock mode, tokens are *synthetic* (derived from
-> real prompt lengths) so the run is reproducible offline; cost applies **real** Claude
-> list prices to those tokens. Lead with **call-count** (7 vs 12) — the topology-pure
-> signal — over raw tokens. Run `--real` for true tokens/latency. And note: the agents'
-> numeric decisions come from deterministic rules (the LLM narrates), so this measures
-> the *control-model overhead* honestly; the real-tool-use path is exercised in the
-> heavier scenarios on the roadmap. Details in [docs/PLAN.md](docs/PLAN.md) §12.
-
-## Why it's a fair comparison (and where the harness lives)
-
-Everything that *isn't* the control model is shared exactly once; only the scheduler
-differs. That's enforced in code, not by discipline:
-
-- [`core/harness.py`](src/ovb/core/harness.py) — the `Harness` base: `invoke()` (one
-  control-loop step) and `gate_passed()` (deterministic termination). **Shared.**
-- [`core/state.py`](src/ovb/core/state.py) — typed `PlanState` + an ownership-checking
-  reducer (every write is validated, diffed, and logged). **Shared.**
-- [`core/registry.py`](src/ovb/core/registry.py), [`core/gate.py`](src/ovb/core/gate.py),
-  [`core/llm.py`](src/ovb/core/llm.py), [`core/trace.py`](src/ovb/core/trace.py) — agents,
-  gate, LLM clients, WORM event log. **Shared.**
-- [`eval/compare.py`](src/ovb/eval/compare.py) — a `FairnessContract` that hard-fails if
-  the engines weren't judged on identical terms (same roster/gate/sampling/start).
-
-The only per-engine code is `run()` — the scheduling:
-[`engines/orchestrator.py`](src/ovb/engines/orchestrator.py) ·
-[`engines/blackboard.py`](src/ovb/engines/blackboard.py) ·
-[`engines/hybrid.py`](src/ovb/engines/hybrid.py).
-
-## Repo layout
+## Project structure
 
 ```
+run.sh · run.command       one-click launchers
+pyproject.toml             package + deps (uv/pip); entry point: `ovb`
 src/ovb/
-  contracts.py         canonical Usage / Event / Engine / Sequencer — the one source of truth
-  config.py            RunConfig (model, temperature — fairness-critical, pinned)
-  pricing.py           dated Claude list prices → real $ cost
-  core/
-    harness.py         the Harness base — shared control-loop primitives (invoke, gate)
-    state.py           typed PlanState + ownership-enforcing reducer
-    registry.py        KnowledgeSource (agent) + tools + subscription index
-    gate.py            deterministic termination gate
-    llm.py             MockLLM · ClaudeLLM (streaming, cache-aware) · CassetteLLM (record/replay)
-    trace.py           Recorder + WORM event stream (OTel gen_ai.* aligned)
-  engines/             orchestrator.py · blackboard.py · hybrid.py   (scheduling ONLY)
-  domain/              task.py (scenario + gate) · agents.py (the 4 specialists)
-  eval/                runner.py (build world once) · compare.py (fairness + table)
-  viz/                 report.py (animated HTML) · live.py (stdlib SSE dashboard)
-  cli.py               `ovb serve | bench | run | doctor`
-tests/                 deterministic smoke + fairness + live-stream tests (no network)
-docs/                  HARNESS.md · WHEN-TO-USE.md · EXAMPLE.md · PLAN.md · RESEARCH.md · architecture.md
-cassettes/demo.json    recorded REAL Claude calls → replay real numbers offline, no key
-examples/report.html   animated report generated from the cassette (committed artifact)
-output/                generated report.html + per-engine *.jsonl event logs (gitignored)
+  contracts.py             canonical Usage / Event / Engine types
+  config.py · pricing.py   run config; dated Claude prices → real $
+  core/                    harness.py (the control-loop primitives) · state · registry ·
+                           gate · llm (mock/streaming/cassette) · trace (WORM log)
+  engines/                 orchestrator · blackboard · hybrid   (scheduling only)
+  domain/                  task.py (the PC-build scenario + gate) · agents.py
+  eval/                    runner · compare (fairness contract + table)
+  viz/                     report.py (static HTML) · live.py (dashboard)
+  cli.py                   `ovb` command line
+tests/                     deterministic, no network
+cassettes/demo.json        recorded real Claude calls (replay offline)
+docs/                      HARNESS · WHEN-TO-USE · EXAMPLE · HANDOVER · PLAN · RESEARCH · architecture
 ```
+
+## Development
+
+```bash
+pip install -e ".[dev]"    # or: uv run --extra dev …
+make test                  # pytest (deterministic, no network)
+make bench                 # regenerate output/report.html
+```
+
+New to the code? Start with [docs/HANDOVER.md](docs/HANDOVER.md), then
+[docs/HARNESS.md](docs/HARNESS.md).
 
 ## Documentation
 
-- **[docs/HARNESS.md](docs/HARNESS.md)** — the harness concept, the anatomy, and the
-  per-responsibility mapping across the three topologies (grounded in current sources),
-  plus how the code makes it real. **Start here.**
-- **[docs/WHEN-TO-USE.md](docs/WHEN-TO-USE.md)** — decision guide + checklist + hybrids.
-- **[docs/EXAMPLE.md](docs/EXAMPLE.md)** — real-Claude worked example (real tokens/cost),
-  reproducible offline from the committed cassette.
-- **[docs/PLAN.md](docs/PLAN.md)** — the full flagship implementation plan (phased, with
-  the event contract, cost accounting, live dashboard, security, and a risk register).
-- **[docs/RESEARCH.md](docs/RESEARCH.md)** — the cited SOTA survey.
-- **[docs/architecture.md](docs/architecture.md)** — the code map.
+- **[docs/HARNESS.md](docs/HARNESS.md)** — the harness concept + how the three topologies map to code.
+- **[docs/WHEN-TO-USE.md](docs/WHEN-TO-USE.md)** — decision guide: which control model to pick.
+- **[docs/EXAMPLE.md](docs/EXAMPLE.md)** — real-Claude worked example (3 models), reproducible offline.
+- **[docs/HANDOVER.md](docs/HANDOVER.md)** — cold-start handover & project state.
+- **[docs/PLAN.md](docs/PLAN.md)** · **[docs/RESEARCH.md](docs/RESEARCH.md)** · **[docs/architecture.md](docs/architecture.md)**.
 
 ## License
 
