@@ -81,10 +81,12 @@ class ClaudeLLM:
                        tools_exec=None) -> Completion:
         text_parts: list[str] = []
         usage = Usage()
+        # NOTE: `temperature` is intentionally NOT sent — the flagship reasoning
+        # models (e.g. claude-sonnet-5) deprecate it. Reproducibility for real
+        # runs comes from the cassette layer, not from temperature pinning.
         async with self._client.messages.stream(
             model=self.model,
             max_tokens=self.max_tokens,
-            temperature=self.temperature,
             system=system,
             messages=[{"role": "user", "content": prompt}],
         ) as stream:
@@ -143,5 +145,6 @@ class CassetteLLM:
 
 class CassetteMiss(RuntimeError):
     def __init__(self, key: str, path: Path):
-        super().__init__(f"cassette miss {key[:12]}… in {path}; re-record with `ovb record`")
+        super().__init__(f"cassette miss {key[:12]}… in {path}; "
+                         f"re-record with: ovb bench --real --cassette {path}")
         self.key = key

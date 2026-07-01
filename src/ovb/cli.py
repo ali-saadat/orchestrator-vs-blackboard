@@ -3,7 +3,7 @@
     ovb bench                         # all 3 harnesses, mock, comparison + HTML
     ovb bench --features 10 --budget 75   # same "prompt" (params) to all three
     ovb bench --real                  # live Claude calls (needs ANTHROPIC_API_KEY)
-    ovb bench --cassette cassettes/s1.json   # replay recorded real calls offline
+    ovb bench --cassette cassettes/demo.json  # replay recorded real calls offline
     ovb run blackboard                # one harness, print its trace
     ovb serve                         # LIVE side-by-side dashboard (real-time, full visibility)
     ovb doctor                        # what mode am I in?
@@ -16,11 +16,14 @@ from pathlib import Path
 import typer
 
 from .config import RunConfig
+from .dotenv import load_dotenv
 from .domain import agents, task
 from .domain.task import ScenarioParams
 from .eval.compare import FairnessContract, render_comparison
 from .eval.runner import build_gate, run_all, run_engine
 from .viz import render_html
+
+load_dotenv()  # pick up ANTHROPIC_API_KEY from a local .env for --real
 
 app = typer.Typer(add_completion=False,
                   help="Orchestrator vs Blackboard vs Hybrid — harness topologies, measured.")
@@ -90,9 +93,12 @@ def run(engine: str = typer.Argument(..., help="orchestrator|blackboard|hybrid")
 
 
 @app.command()
-def serve(host: str = typer.Option("127.0.0.1"), port: int = typer.Option(8000),
+def serve(host: str = typer.Option("127.0.0.1"), port: int = typer.Option(0, help="0 => $PORT or 8000"),
           open_browser: bool = typer.Option(True, help="open the dashboard in a browser")):
     """Launch the LIVE side-by-side dashboard (real-time, full visibility)."""
+    import os
+    if not port:
+        port = int(os.environ.get("PORT", "8000"))
     from .viz.live import serve as _serve
     _serve(host=host, port=port, open_browser=open_browser)
 

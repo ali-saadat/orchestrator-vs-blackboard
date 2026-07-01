@@ -31,10 +31,16 @@ Real model behavior and real token/cost numbers:
 
 ```bash
 pip install -e ".[real]"
-export ANTHROPIC_API_KEY=sk-ant-...
-ovb bench --real                             # live streaming Claude calls
-ovb bench --real --cassette cassettes/s1.json   # record; replay offline & keyless next time
+echo 'ANTHROPIC_API_KEY=sk-ant-...' > .env         # gitignored; also picked up by `ovb serve`
+ovb bench --real                                   # live streaming Claude calls
+ovb bench --real --cassette cassettes/demo.json    # record; replay offline & keyless next time
+ovb bench --cassette cassettes/demo.json           # replay the committed REAL numbers, no key
 ```
+
+A real run is already recorded in [`cassettes/demo.json`](cassettes/demo.json) — see the
+worked example with real numbers in **[docs/EXAMPLE.md](docs/EXAMPLE.md)**. In the live
+dashboard, pick **mode = Cassette** to watch those real calls (narration, tokens, cost)
+replay offline.
 
 ## What you'll see
 
@@ -135,9 +141,11 @@ src/ovb/
   eval/                runner.py (build world once) · compare.py (fairness + table)
   viz/                 report.py (animated HTML) · live.py (stdlib SSE dashboard)
   cli.py               `ovb serve | bench | run | doctor`
-tests/                 deterministic smoke + fairness tests (no network)
-docs/                  HARNESS.md · WHEN-TO-USE.md · PLAN.md · RESEARCH.md · architecture.md
-output/                generated report.html + per-engine *.jsonl event logs
+tests/                 deterministic smoke + fairness + live-stream tests (no network)
+docs/                  HARNESS.md · WHEN-TO-USE.md · EXAMPLE.md · PLAN.md · RESEARCH.md · architecture.md
+cassettes/demo.json    recorded REAL Claude calls → replay real numbers offline, no key
+examples/report.html   animated report generated from the cassette (committed artifact)
+output/                generated report.html + per-engine *.jsonl event logs (gitignored)
 ```
 
 ## Documentation
@@ -146,6 +154,8 @@ output/                generated report.html + per-engine *.jsonl event logs
   per-responsibility mapping across the three topologies (grounded in current sources),
   plus how the code makes it real. **Start here.**
 - **[docs/WHEN-TO-USE.md](docs/WHEN-TO-USE.md)** — decision guide + checklist + hybrids.
+- **[docs/EXAMPLE.md](docs/EXAMPLE.md)** — real-Claude worked example (real tokens/cost),
+  reproducible offline from the committed cassette.
 - **[docs/PLAN.md](docs/PLAN.md)** — the full flagship implementation plan (phased, with
   the event contract, cost accounting, live dashboard, security, and a risk register).
 - **[docs/RESEARCH.md](docs/RESEARCH.md)** — the cited SOTA survey.

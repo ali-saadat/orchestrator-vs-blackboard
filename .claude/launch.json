@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ovb-live",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "ovb", "serve", "--no-open-browser"],
+      "autoPort": true
+    }
+  ]
+}

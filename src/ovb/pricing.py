@@ -16,6 +16,7 @@ from .contracts import ModelPrice, Usage
 _BASE: dict[str, tuple[float, float]] = {
     "claude-opus-4-8": (5.0, 25.0),
     "claude-sonnet-5": (2.0, 10.0),   # intro thru 2026-08-31; then (3.0, 15.0)
+    "claude-sonnet-4-6": (3.0, 15.0),
     "claude-haiku-4-5-20251001": (1.0, 5.0),
     "claude-fable-5": (2.0, 10.0),
 }

@@ -4,7 +4,7 @@ export PYTHONPATH := $(CURDIR)/src
 .PHONY: help install test serve bench orchestrator blackboard hybrid real doctor lint clean
 
 help:
-	@echo "make install     editable install (pip install -e '.[dev,real,web]')"
+	@echo "make install     editable install (pip install -e '.[dev,real]')"
 	@echo "make serve       LIVE side-by-side dashboard (real-time, full visibility)"
 	@echo "make test        deterministic smoke tests (no network)"
 	@echo "make bench       run all 3 harnesses (mock) + comparison + output/report.html"
@@ -14,7 +14,7 @@ help:
 	@echo "make clean       remove caches and generated reports"
 
 install:
-	$(PY) -m pip install -e ".[dev,real,web]"
+	$(PY) -m pip install -e ".[dev,real]"
 
 test:
 	$(PY) -m pytest -q
