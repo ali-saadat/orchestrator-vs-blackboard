@@ -90,3 +90,24 @@ Production systems are rarely pure. Frequent shapes:
   control unit + gate so it terminates predictably and stays auditable. This is the
   model the demo's `blackboard.py` implements, and the safest way to get the
   shared‑state benefits in production.
+
+## 2026 nuances (before you pick either)
+
+The research pass ([RESEARCH.md](RESEARCH.md)) surfaced four things that reshape this
+decision for a 2026 reader:
+
+1. **Reasoning models partially substitute for fan‑out.** Multi‑agent's edge is
+   largely that it *spends more tokens* (token usage explained ~80% of the variance
+   in Anthropic's eval). A single reasoning agent with a large thinking budget now
+   absorbs work that used to justify parallel sub‑agents. Treat multi‑agent as an
+   *escalation*, not a default. (RESEARCH §11 · "Reasoning Models and the Economics Shift".)
+2. **There's a third topology.** Moderated **group‑chat / debate / society‑of‑mind**
+   (AutoGen GroupChat, consensus/voting) is a distinct family — neither pure hub nor
+   pure board. (RESEARCH §8, §11.)
+3. **The protocol substrate biases the shape.** **MCP** is intrinsically
+   hub‑and‑spoke (favors orchestrators); **A2A** is peer messaging (wires either, but
+   gives you no native blackboard — you must add a broker/shared‑state layer).
+   (RESEARCH §11 · "Protocol Substrate".)
+4. **Security differs by topology.** A poisoned entry on a *shared* board can
+   re‑trigger many agents (injection amplification); message‑passing contains blast
+   radius better. Weigh this for untrusted inputs. (RESEARCH §12.)
