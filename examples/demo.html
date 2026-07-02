@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Party Problem — three ways to agree</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('ovb-story-theme')||'dark'}catch(e){}</script>
+<style>
+/* ovb story journey — party theme, zero-build, CSS-var themed */
+:root{
+  --bg:#0e1016;--card:#171a23;--line:#2a2f3c;--fg:#eef0f6;--mut:#9aa3b2;--feed:#0f1320;
+  --orch:#8a94a6;--bb:#63c750;--hy:#e0a72b;--now:#4f8dfd;--bad:#e06c75;--ok:#3ecf8e;
+  --gold:#f5c542;--pop1:#ff6b9d;--pop2:#4fd1c5;--pop3:#c792ea;
+}
+html[data-theme="light"]{
+  --bg:#f6f7fb;--card:#ffffff;--line:#dfe4ec;--fg:#1b2230;--mut:#5c6675;--feed:#eef1f6;
+  --orch:#5f6a7d;--bb:#2f9e2a;--hy:#b9781a;--now:#2563eb;--bad:#d64550;--ok:#0f9d63;--gold:#c99b06;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);
+  font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  overflow-x:hidden}
+h1{font-size:clamp(26px,4.5vw,40px);margin:0 0 10px;text-align:center}
+.sub{color:var(--mut);text-align:center;margin:0 0 18px;font-size:15px}
+b{color:var(--fg)}
+
+/* top bar */
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;
+  padding:10px 18px;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.stepper{display:flex;gap:6px;flex-wrap:wrap}
+.stepper button{background:none;border:1px solid var(--line);border-radius:999px;
+  color:var(--mut);padding:5px 12px;font-size:12.5px;cursor:pointer}
+.stepper button.on{background:var(--now);border-color:var(--now);color:#fff;font-weight:700}
+.stepper button.done{color:var(--fg)}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.liveinfo{color:var(--mut);font-size:11.5px}
+.expertlink{color:var(--now);font-size:12.5px;text-decoration:none;white-space:nowrap}
+#themebtn{background:var(--card);border:1px solid var(--line);border-radius:8px;
+  padding:5px 9px;cursor:pointer;font-size:14px;color:var(--fg)}
+
+/* scenes */
+.scene{display:none;max-width:1080px;margin:0 auto;padding:34px 22px 60px;
+  min-height:calc(100vh - 60px)}
+.scene.active{display:block;animation:sceneIn .5s ease-out}
+@keyframes sceneIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.pop{animation:pop .6s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+
+/* scene 1 — friends + story */
+.friends{display:flex;justify-content:center;gap:22px;margin:22px 0;flex-wrap:wrap}
+.friend{display:flex;flex-direction:column;align-items:center;gap:6px;font-weight:700;
+  color:var(--c);opacity:0;animation:pop .5s cubic-bezier(.2,1.6,.4,1) forwards}
+.friend span{display:grid;place-items:center;width:74px;height:74px;border-radius:50%;
+  background:var(--card);border:3px solid var(--c);font-size:34px;
+  box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.friend:nth-child(1){animation-delay:.15s}.friend:nth-child(2){animation-delay:.35s}
+.friend:nth-child(3){animation-delay:.55s}.friend:nth-child(4){animation-delay:.75s}
+.story{max-width:560px;margin:8px auto;text-align:center}
+.story p{opacity:0;transform:translateY(10px);transition:all .5s;margin:10px 0;font-size:17.5px}
+.story p.show{opacity:1;transform:none}
+.budgetbar{max-width:560px;margin:22px auto 6px;opacity:0;transition:opacity .6s}
+.budgetbar.show{opacity:1}
+.bb-track{position:relative;height:30px;border-radius:999px;background:var(--feed);
+  border:1px solid var(--line);overflow:hidden}
+.bb-have{position:absolute;inset:0 auto 0 0;width:0;background:var(--ok);border-radius:999px 0 0 999px;
+  transition:width 1.2s ease-out}
+.bb-over{position:absolute;inset:0 auto 0 76%;width:0;background:var(--bad);
+  transition:width 1s ease-out .9s;animation:overPulse 1.2s infinite 2.2s}
+@keyframes overPulse{50%{filter:brightness(1.45)}}
+.bb-labels{display:flex;justify-content:space-between;margin-top:8px;font-size:14px}
+.bb-labels .bad{color:var(--bad)}
+.cta{display:block;margin:30px auto 0;background:linear-gradient(135deg,var(--now),var(--pop1));
+  color:#fff;border:none;border-radius:14px;padding:15px 30px;font-size:18px;font-weight:800;
+  cursor:pointer;box-shadow:0 8px 24px rgba(79,141,253,.35);transition:transform .15s}
+.cta:hover{transform:translateY(-2px) scale(1.02)}
+.cta.small{padding:10px 20px;font-size:15px;margin:0}
+.ghost{background:var(--card);border:1px solid var(--line);color:var(--fg);border-radius:10px;
+  padding:8px 14px;font-size:13.5px;cursor:pointer}
+.ghost:hover{border-color:var(--now)}
+.btnlink{text-decoration:none;display:inline-block}
+
+/* scene 2 — the three ways */
+.ways{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:18px 0}
+@media(max-width:900px){.ways{grid-template-columns:1fr}}
+.wcard{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--e);
+  border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px;
+  transition:transform .2s;position:relative}
+.wcard:hover{transform:translateY(-4px)}
+.wh{font-weight:800;font-size:16.5px;color:var(--e)}
+.wh small{color:var(--mut);font-weight:500;font-size:11px}
+.mini{width:100%;height:110px;background:var(--feed);border:1px solid var(--line);border-radius:10px}
+.wcard p{margin:0;font-size:14px;color:var(--fg)}
+.keyline{text-align:center;background:var(--card);border:1px solid var(--line);
+  border-left:4px solid var(--gold);border-radius:12px;padding:12px 16px;max-width:640px;margin:18px auto}
+.guess{max-width:640px;margin:10px auto;text-align:center}
+.guessbtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.guessbtns button{background:var(--card);border:2px solid var(--line);border-radius:12px;
+  color:var(--fg);padding:10px 16px;font-size:14px;cursor:pointer;transition:all .15s}
+.guessbtns button:hover{border-color:var(--e)}
+.guessbtns button.picked{border-color:var(--e);background:color-mix(in srgb,var(--e) 15%,var(--card));
+  font-weight:800;transform:scale(1.05)}
+
+/* mini topology animations (scene 2) */
+.mini .mn{fill:var(--card);stroke-width:2}
+.mini text{fill:var(--fg);font-size:9px;font-weight:700;text-anchor:middle}
+.mini .me{stroke:var(--mut);stroke-width:1.5;opacity:.35}
+.mini .spark{animation:sparkle 3.2s linear infinite}
+@keyframes sparkle{0%,18%{opacity:1}22%,100%{opacity:.25}}
+
+/* scene 3 — the race */
+.controls{display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap;
+  margin:0 0 16px;position:sticky;top:52px;z-index:10;background:color-mix(in srgb,var(--bg) 90%,transparent);
+  padding:8px;border-radius:12px}
+.controls button{background:var(--card);border:1px solid var(--line);border-radius:9px;
+  color:var(--fg);padding:7px 13px;font-size:13.5px;cursor:pointer}
+.controls button:hover{border-color:var(--now)}
+.speeds{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.speeds button{border:none;border-radius:0;background:var(--card)}
+.speeds button.on{background:var(--now);color:#fff;font-weight:700}
+.partybox{display:none;justify-content:center;gap:14px;align-items:center;margin:0 0 14px;
+  background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;flex-wrap:wrap}
+.partybox.open{display:flex}
+.partybox label{color:var(--mut);font-size:13.5px;display:flex;gap:7px;align-items:center}
+.partybox input{width:74px;background:var(--feed);color:var(--fg);border:1px solid var(--line);
+  border-radius:8px;padding:7px;font-size:15px}
+.lanes{display:flex;flex-direction:column;gap:14px}
+.lane{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--e);
+  border-radius:14px;padding:12px 16px;animation:sceneIn .4s ease-out}
+.lane-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.lane-name{font-weight:800;font-size:16px;color:var(--e)}
+.lane-name small{color:var(--mut);font-weight:500;font-size:10.5px}
+.lane-live{margin-left:auto;display:flex;gap:16px;font-size:13px;color:var(--mut)}
+.lane-live b{color:var(--fg);font-size:16px;font-variant-numeric:tabular-nums}
+.lane-mid{display:grid;grid-template-columns:210px 1fr;gap:14px;align-items:center;margin-top:8px}
+@media(max-width:760px){.lane-mid{grid-template-columns:1fr}}
+svg.topo{width:210px;height:110px;background:var(--feed);border:1px solid var(--line);border-radius:10px}
+svg.topo .tn rect{fill:var(--card);stroke-width:2}
+svg.topo .tn text{fill:var(--fg);font-size:8.6px;font-weight:700;text-anchor:middle}
+svg.topo .te{stroke:var(--mut);stroke-width:1.4;opacity:.4}
+svg.topo .dot{filter:drop-shadow(0 0 4px currentColor)}
+.trackwrap{min-width:0}
+.track{display:flex;gap:5px;align-items:center;flex-wrap:wrap;min-height:26px}
+.step{width:17px;height:17px;border-radius:50%;background:var(--e);
+  animation:pop .35s cubic-bezier(.2,1.6,.4,1)}
+.step.noop{background:none;border:2px solid var(--mut);opacity:.65}
+.step.flag{background:none;font-size:17px;width:auto;height:auto;animation:pop .5s}
+.board5{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.chip{background:var(--feed);border:1px solid var(--line);border-radius:8px;
+  padding:3px 9px;font-size:12.5px;color:var(--mut)}
+.chip b{color:var(--fg);font-variant-numeric:tabular-nums}
+.chip.hit{animation:chipHit .7s}
+@keyframes chipHit{0%{background:var(--e);color:#0b0d12;transform:scale(1.12)}100%{}}
+.talk{display:none;margin-top:9px;max-height:130px;overflow:auto;background:var(--feed);
+  border:1px solid var(--line);border-radius:9px;padding:7px;font-size:12px}
+body.showtalk .talk{display:block}
+.talk .m{margin:3px 0;padding:4px 7px;background:var(--card);border-radius:6px;
+  border-left:3px solid var(--c,#888);white-space:pre-wrap;overflow-wrap:anywhere}
+.talk .m .w{font-weight:700;color:var(--c)}
+.lane.finished{box-shadow:0 0 0 2px var(--e), 0 10px 30px rgba(0,0,0,.25)}
+.lane .done-tag{display:none;margin-left:8px;font-size:13px;font-weight:800;color:var(--ok)}
+.lane.finished .done-tag{display:inline;animation:pop .5s}
+
+/* scene 4 — winner */
+.verdict{max-width:680px;margin:0 auto 6px;text-align:center;font-size:18px;
+  background:var(--card);border:1px solid var(--line);border-left:5px solid var(--gold);
+  border-radius:14px;padding:16px 20px;animation:pop .5s}
+.guessresult{text-align:center;font-size:16px;min-height:22px;font-weight:700}
+.podium{display:flex;justify-content:center;align-items:flex-end;gap:18px;
+  height:230px;margin:18px 0 8px}
+.pod{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px}
+.pod .medal{font-size:34px;animation:medalDrop .8s cubic-bezier(.2,1.5,.4,1)}
+@keyframes medalDrop{0%{transform:translateY(-70px);opacity:0}100%{transform:none;opacity:1}}
+.pod .who{font-weight:800;color:var(--e);text-align:center;font-size:14.5px}
+.pod .turns{color:var(--mut);font-size:12.5px}
+.pod .bar{width:120px;border-radius:10px 10px 0 0;background:linear-gradient(180deg,var(--e),color-mix(in srgb,var(--e) 55%,#000));
+  height:0;transition:height 1s cubic-bezier(.2,1,.4,1)}
+table.score{margin:14px auto;border-collapse:collapse;background:var(--card);
+  border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:14.5px}
+table.score th,table.score td{padding:9px 16px;border-bottom:1px solid var(--line);text-align:right}
+table.score th:first-child,table.score td:first-child{text-align:left}
+table.score th{color:var(--mut);font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}
+table.score tr.win td{background:color-mix(in srgb,var(--e) 13%,transparent);font-weight:800}
+table.score td.way{color:var(--e);font-weight:700}
+.endbtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+
+/* word list modal */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;
+  place-items:center;padding:20px}
+.modal.open{display:grid}
+.modal-card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+  max-width:480px;padding:22px 26px;animation:pop .35s}
+.modal-card h2{margin:0 0 10px}
+.modal-card dt{font-weight:800;margin-top:10px;color:var(--now)}
+.modal-card dd{margin:2px 0 0;color:var(--fg)}
+.modal-card .cta{margin-top:18px}
+
+/* confetti */
+#confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:40}
+.cf{position:absolute;top:-12px;width:9px;height:14px;border-radius:2px;
+  animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(105vh) rotate(720deg);opacity:.9}}
+
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="stepper" id="stepper">
+    <button data-s="0" class="on">1 · The problem</button>
+    <button data-s="1">2 · Three ways</button>
+    <button data-s="2">3 · The race</button>
+    <button data-s="3">4 · The winner</button>
+  </div>
+  <div class="top-right">
+    <span id="liveinfo" class="liveinfo"></span>
+    <a href="/expert" class="expertlink" title="all the numbers, for experts">🧠 Expert view</a>
+    <button id="themebtn" title="light / dark">☀️</button>
+  </div>
+</header>
+
+<!-- ══════════ SCENE 1 — THE PROBLEM ══════════ -->
+<section class="scene active" id="s0">
+  <h1 class="pop">The Party Problem 🎉</h1>
+  <div class="friends" id="friends">
+    <div class="friend" style="--c:#6ea8fe"><span>😀</span>Guests</div>
+    <div class="friend" style="--c:#4fd1c5"><span>💰</span>Budget</div>
+    <div class="friend" style="--c:#d3a6ff"><span>🍕</span>Food</div>
+    <div class="friend" style="--c:#ff8f8f"><span>🎵</span>Vibe</div>
+  </div>
+  <div class="story" id="story">
+    <p>Four friends plan a birthday party.</p>
+    <p>😀 They want <b>15 guests</b>.</p>
+    <p>💰 Each guest costs <b>$50</b>. So 15 guests cost <b>$750</b>.</p>
+    <p>But they only have <b>$600</b>. Too much! 😬</p>
+    <p>🍕 The pizzas and 🎵 the music follow the guest list.</p>
+    <p>The friends must <b>talk</b> and change the plan — until it fits.</p>
+  </div>
+  <div class="budgetbar">
+    <div class="bb-track"><div class="bb-have" id="bbHave"></div><div class="bb-over" id="bbOver"></div></div>
+    <div class="bb-labels"><span>✅ They have <b>$600</b></span><span class="bad">❌ They need <b>$750</b></span></div>
+  </div>
+  <button class="cta" onclick="go(1)">How do they fix it? →</button>
+</section>
+
+<!-- ══════════ SCENE 2 — THREE WAYS ══════════ -->
+<section class="scene" id="s1">
+  <h1>Three ways to talk 💬</h1>
+  <p class="sub">Same friends. Same problem. Three ways to run the meeting.</p>
+  <div class="ways">
+    <div class="wcard" style="--e:var(--orch)">
+      <div class="wh">👔 The Boss Way <small>(Orchestrator)</small></div>
+      <svg class="mini" viewBox="0 0 200 110" data-mini="boss"></svg>
+      <p>One boss asks each friend. One by one. Again and again. Then one more round, just to check.</p>
+      <button class="ghost" onclick="startRace(['orchestrator'])">▶ Watch only this way</button>
+    </div>
+    <div class="wcard" style="--e:var(--bb)">
+      <div class="wh">📋 The Whiteboard Way <small>(Blackboard)</small></div>
+      <svg class="mini" viewBox="0 0 200 110" data-mini="board"></svg>
+      <p>All friends share <b>one whiteboard</b>. A number changes? Only the right friends speak again.</p>
+      <button class="ghost" onclick="startRace(['blackboard'])">▶ Watch only this way</button>
+    </div>
+    <div class="wcard" style="--e:var(--hy)">
+      <div class="wh">🤝 The Mix Way <small>(Hybrid)</small></div>
+      <svg class="mini" viewBox="0 0 200 110" data-mini="mix"></svg>
+      <p>Guests and Budget fix the money together first. Then Food and Vibe speak once.</p>
+      <button class="ghost" onclick="startRace(['hybrid'])">▶ Watch only this way</button>
+    </div>
+  </div>
+  <p class="keyline">⭐ All three find the <b>same party</b>. But more talk costs more time and more money.</p>
+  <div class="guess" id="guess">
+    <p><b>Your guess:</b> which way needs the <b>least</b> talk?</p>
+    <div class="guessbtns">
+      <button data-g="orchestrator" style="--e:var(--orch)">👔 The Boss Way</button>
+      <button data-g="blackboard" style="--e:var(--bb)">📋 The Whiteboard Way</button>
+      <button data-g="hybrid" style="--e:var(--hy)">🤝 The Mix Way</button>
+    </div>
+  </div>
+  <button class="cta" onclick="startRace(['orchestrator','blackboard','hybrid'])">🏁 Start the race!</button>
+</section>
+
+<!-- ══════════ SCENE 3 — THE RACE ══════════ -->
+<section class="scene" id="s2">
+  <h1>The race 🏁</h1>
+  <p class="sub" id="goal"></p>
+  <div class="controls">
+    <button id="playbtn" onclick="togglePlay()">⏸ Pause</button>
+    <button onclick="stepOne()">⏭ One step</button>
+    <span class="speeds">
+      <button data-sp="600">🐢 Slow</button><button data-sp="300" class="on">▶ Normal</button><button data-sp="90">⚡ Fast</button><button data-sp="0">🚀 Max</button>
+    </span>
+    <button id="talkbtn" onclick="toggleTalk()">💬 Show the talk</button>
+    <button onclick="openParty()">🎛 Change the party</button>
+  </div>
+  <div class="partybox" id="partybox">
+    <label>Guests <input type="number" id="inGuests" value="15" min="1" max="50"></label>
+    <label>Money $ <input type="number" id="inBudget" value="600" min="50" max="100000"></label>
+    <button class="cta small" onclick="restartRace()">🔁 Race again</button>
+  </div>
+  <div class="lanes" id="lanes"></div>
+</section>
+
+<!-- ══════════ SCENE 4 — THE WINNER ══════════ -->
+<section class="scene" id="s3">
+  <h1>The winner! 🏆</h1>
+  <p class="verdict" id="verdict"></p>
+  <p class="guessresult" id="guessresult"></p>
+  <div class="podium" id="podium"></div>
+  <table class="score" id="score"></table>
+  <div class="endbtns">
+    <button class="cta small" onclick="restartRace()">🔁 Race again</button>
+    <button class="ghost" onclick="openParty();go(2)">🎛 Change the party</button>
+    <button class="ghost" onclick="openWords()">📖 Word list</button>
+    <a class="ghost btnlink" href="/expert">🧠 Expert view</a>
+  </div>
+</section>
+
+<!-- word list modal -->
+<div class="modal" id="words">
+  <div class="modal-card">
+    <h2>Word list 📖</h2>
+    <dl>
+      <dt>Turn</dt><dd>One friend speaks one time.</dd>
+      <dt>Wasted turn</dt><dd>A friend speaks, but changes nothing.</dd>
+      <dt>Talk cost</dt><dd>The money paid to the AI for the talking.</dd>
+      <dt>Whiteboard / Board</dt><dd>One page that all friends can see and write on.</dd>
+      <dt>Boss</dt><dd>The one who asks each friend, one by one.</dd>
+      <dt>The race</dt><dd>All three ways solve the same problem. Fewer turns = better.</dd>
+    </dl>
+    <button class="cta small" onclick="closeWords()">OK, got it</button>
+  </div>
+</div>
+
+<div id="confetti"></div>
+<script>window.PRELOADED={"events": [{"engine": "_meta", "kind": "start", "attrs": {}}, {"seq": 1, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "run_started", "agent": null, "attrs": {"scenario": "Plan a birthday party. You want to invite 15 guests, but there is a hard budget cap of $600 (each guest costs $50); one pizza feeds 3 guests, and the vibe follows the headcount. Guests, Budget, Food and Vibe are interdependent \u2014 find the best party that fits the budget.", "model": "claude-haiku-4-5-20251001"}, "engine": "orchestrator"}, {"seq": 1, "run_id": "blackboard", "control_model": "blackboard", "kind": "run_started", "agent": null, "attrs": {"scenario": "Plan a birthday party. You want to invite 15 guests, but there is a hard budget cap of $600 (each guest costs $50); one pizza feeds 3 guests, and the vibe follows the headcount. Guests, Budget, Food and Vibe are interdependent \u2014 find the best party that fits the budget.", "model": "claude-haiku-4-5-20251001"}, "engine": "blackboard"}, {"seq": 1, "run_id": "hybrid", "control_model": "hybrid", "kind": "run_started", "agent": null, "attrs": {"scenario": "Plan a birthday party. You want to invite 15 guests, but there is a hard budget cap of $600 (each guest costs $50); one pizza feeds 3 guests, and the vibe follows the headcount. Guests, Budget, Food and Vibe are interdependent \u2014 find the best party that fits the budget.", "model": "claude-haiku-4-5-20251001"}, "engine": "hybrid"}, {"seq": 2, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "agent_activated", "agent": "Guests", "attrs": {"trigger": "sweep 1"}, "engine": "orchestrator"}, {"seq": 2, "run_id": "blackboard", "control_model": "blackboard", "kind": "agent_activated", "agent": "Budget", "attrs": {"trigger": "seed: guest list posted"}, "engine": "blackboard"}, {"seq": 2, "run_id": "hybrid", "control_model": "hybrid", "kind": "agent_activated", "agent": "Budget", "attrs": {"trigger": "seed: guest list posted (core)"}, "engine": "hybrid"}, {"seq": 3, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.started", "agent": "Guests", "attrs": {}, "engine": "orchestrator"}, {"seq": 3, "run_id": "blackboard", "control_model": "blackboard", "kind": "gen_ai.client.call.started", "agent": "Budget", "attrs": {}, "engine": "blackboard"}, {"seq": 3, "run_id": "hybrid", "control_model": "hybrid", "kind": "gen_ai.client.call.started", "agent": "Budget", "attrs": {}, "engine": "hybrid"}, {"seq": 4, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.finished", "agent": "Guests", "attrs": {"gen_ai.usage.input_tokens": 80, "gen_ai.usage.output_tokens": 149, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.000825, "latency_ms": 22.9, "changed": false, "message": "I own the 'guests' field. Looking at the current state, I have 15 guests planned with no maximum limit set.\n\nSince my constraint is to \"keep it within what the budget allows,\" I need a budget to enforce this constraint. Currently, 'cost' and 'max_guests' are both None, so I cannot determine if 15 guests exceeds any budget limit.\n\n**No change made.** \n\nI cannot apply my constraint without knowing either:\n- A total budget (cost field), or\n- A maximum guest limit (max_guests field)\n\nOnce one of these values is set, I can enforce that the 15 guests stay within budget."}, "engine": "orchestrator"}, {"seq": 4, "run_id": "blackboard", "control_model": "blackboard", "kind": "state_write", "agent": "Budget", "attrs": {"field": "cost", "old": null, "new": 750}, "engine": "blackboard"}, {"seq": 4, "run_id": "hybrid", "control_model": "hybrid", "kind": "state_write", "agent": "Budget", "attrs": {"field": "cost", "old": null, "new": 750}, "engine": "hybrid"}, {"seq": 5, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "agent_activated", "agent": "Budget", "attrs": {"trigger": "sweep 1"}, "engine": "orchestrator"}, {"seq": 5, "run_id": "blackboard", "control_model": "blackboard", "kind": "state_write", "agent": "Budget", "attrs": {"field": "max_guests", "old": null, "new": 12}, "engine": "blackboard"}, {"seq": 5, "run_id": "hybrid", "control_model": "hybrid", "kind": "state_write", "agent": "Budget", "attrs": {"field": "max_guests", "old": null, "new": 12}, "engine": "hybrid"}, {"seq": 6, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.started", "agent": "Budget", "attrs": {}, "engine": "orchestrator"}, {"seq": 6, "run_id": "blackboard", "control_model": "blackboard", "kind": "gen_ai.client.call.finished", "agent": "Budget", "attrs": {"gen_ai.usage.input_tokens": 87, "gen_ai.usage.output_tokens": 120, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.000687, "latency_ms": 20.7, "changed": true, "message": "I own the budget constraints. Let me apply them:\n\n**Constraint Application:**\n- Set `max_guests: 15` (capping at current guest count to establish affordability boundary)\n- Set `cost: 150` (budget allocation: $10 per guest \u00d7 15 guests)\n\n**Single Change to Report:**\n```\n'max_guests': 15\n```\n\nThis is the primary constraint that governs the party's scope. The cost ($150) derives from this cap and serves as validation that the party remains affordable."}, "engine": "blackboard"}, {"seq": 6, "run_id": "hybrid", "control_model": "hybrid", "kind": "gen_ai.client.call.finished", "agent": "Budget", "attrs": {"gen_ai.usage.input_tokens": 87, "gen_ai.usage.output_tokens": 120, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.000687, "latency_ms": 20.7, "changed": true, "message": "I own the budget constraints. Let me apply them:\n\n**Constraint Application:**\n- Set `max_guests: 15` (capping at current guest count to establish affordability boundary)\n- Set `cost: 150` (budget allocation: $10 per guest \u00d7 15 guests)\n\n**Single Change to Report:**\n```\n'max_guests': 15\n```\n\nThis is the primary constraint that governs the party's scope. The cost ($150) derives from this cap and serves as validation that the party remains affordable."}, "engine": "hybrid"}, {"seq": 7, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "state_write", "agent": "Budget", "attrs": {"field": "cost", "old": null, "new": 750}, "engine": "orchestrator"}, {"seq": 7, "run_id": "blackboard", "control_model": "blackboard", "kind": "agent_retriggered", "agent": "Guests", "attrs": {"because": "max_guests changed"}, "engine": "blackboard"}, {"seq": 7, "run_id": "hybrid", "control_model": "hybrid", "kind": "agent_retriggered", "agent": "Guests", "attrs": {"because": "max_guests changed (core)"}, "engine": "hybrid"}, {"seq": 8, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "state_write", "agent": "Budget", "attrs": {"field": "max_guests", "old": null, "new": 12}, "engine": "orchestrator"}, {"seq": 8, "run_id": "blackboard", "control_model": "blackboard", "kind": "gate_checked", "agent": null, "attrs": {"passed": false}, "engine": "blackboard"}, {"seq": 8, "run_id": "hybrid", "control_model": "hybrid", "kind": "agent_activated", "agent": "Guests", "attrs": {"trigger": "max_guests changed (core)"}, "engine": "hybrid"}, {"seq": 9, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.finished", "agent": "Budget", "attrs": {"gen_ai.usage.input_tokens": 87, "gen_ai.usage.output_tokens": 120, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.000687, "latency_ms": 20.7, "changed": true, "message": "I own the budget constraints. Let me apply them:\n\n**Constraint Application:**\n- Set `max_guests: 15` (capping at current guest count to establish affordability boundary)\n- Set `cost: 150` (budget allocation: $10 per guest \u00d7 15 guests)\n\n**Single Change to Report:**\n```\n'max_guests': 15\n```\n\nThis is the primary constraint that governs the party's scope. The cost ($150) derives from this cap and serves as validation that the party remains affordable."}, "engine": "orchestrator"}, {"seq": 9, "run_id": "blackboard", "control_model": "blackboard", "kind": "agent_activated", "agent": "Food", "attrs": {"trigger": "seed: guest list posted"}, "engine": "blackboard"}, {"seq": 9, "run_id": "hybrid", "control_model": "hybrid", "kind": "gen_ai.client.call.started", "agent": "Guests", "attrs": {}, "engine": "hybrid"}, {"seq": 10, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "agent_activated", "agent": "Food", "attrs": {"trigger": "sweep 1"}, "engine": "orchestrator"}, {"seq": 10, "run_id": "blackboard", "control_model": "blackboard", "kind": "gen_ai.client.call.started", "agent": "Food", "attrs": {}, "engine": "blackboard"}, {"seq": 10, "run_id": "hybrid", "control_model": "hybrid", "kind": "state_write", "agent": "Guests", "attrs": {"field": "guests", "old": 15, "new": 12}, "engine": "hybrid"}, {"seq": 11, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.started", "agent": "Food", "attrs": {}, "engine": "orchestrator"}, {"seq": 11, "run_id": "blackboard", "control_model": "blackboard", "kind": "state_write", "agent": "Food", "attrs": {"field": "pizzas", "old": null, "new": 5}, "engine": "blackboard"}, {"seq": 11, "run_id": "hybrid", "control_model": "hybrid", "kind": "gen_ai.client.call.finished", "agent": "Guests", "attrs": {"gen_ai.usage.input_tokens": 82, "gen_ai.usage.output_tokens": 88, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.000522, "latency_ms": 17.0, "changed": true, "message": "I own the 'guests' field and need to apply my constraint: keep guests within the budget-allowed maximum.\n\n**Change made:**\n- 'guests': 15 \u2192 12\n\n**Reasoning:** Current guests (15) exceeds max_guests (12). I'm reducing guests to 12 to comply with the constraint.\n\n**Updated field:** `{'guests': 12}`"}, "engine": "hybrid"}, {"seq": 12, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "state_write", "agent": "Food", "attrs": {"field": "pizzas", "old": null, "new": 5}, "engine": "orchestrator"}, {"seq": 12, "run_id": "blackboard", "control_model": "blackboard", "kind": "gen_ai.client.call.finished", "agent": "Food", "attrs": {"gen_ai.usage.input_tokens": 80, "gen_ai.usage.output_tokens": 114, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.00065, "latency_ms": 19.4, "changed": true, "message": "# Constraint Application\n\n**Constraint:** One pizza feeds three guests.\n\n**Current state analysis:**\n- Guests: 15\n- Pizzas needed: 15 \u00f7 3 = 5 pizzas\n- Current pizzas value: None\n\n**Single change I make:**\n\n```\n'pizzas': 5\n```\n\n**Rationale:** With 15 guests attending, you need 5 pizzas to ensure everyone is fed (at 3 guests per pizza)."}, "engine": "blackboard"}, {"seq": 12, "run_id": "hybrid", "control_model": "hybrid", "kind": "agent_retriggered", "agent": "Budget", "attrs": {"because": "guests changed (core)"}, "engine": "hybrid"}, {"seq": 13, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.finished", "agent": "Food", "attrs": {"gen_ai.usage.input_tokens": 80, "gen_ai.usage.output_tokens": 114, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.00065, "latency_ms": 19.4, "changed": true, "message": "# Constraint Application\n\n**Constraint:** One pizza feeds three guests.\n\n**Current state analysis:**\n- Guests: 15\n- Pizzas needed: 15 \u00f7 3 = 5 pizzas\n- Current pizzas value: None\n\n**Single change I make:**\n\n```\n'pizzas': 5\n```\n\n**Rationale:** With 15 guests attending, you need 5 pizzas to ensure everyone is fed (at 3 guests per pizza)."}, "engine": "orchestrator"}, {"seq": 13, "run_id": "blackboard", "control_model": "blackboard", "kind": "agent_retriggered", "agent": "Vibe", "attrs": {"because": "pizzas changed"}, "engine": "blackboard"}, {"seq": 13, "run_id": "hybrid", "control_model": "hybrid", "kind": "agent_activated", "agent": "Budget", "attrs": {"trigger": "guests changed (core)"}, "engine": "hybrid"}, {"seq": 14, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "agent_activated", "agent": "Vibe", "attrs": {"trigger": "sweep 1"}, "engine": "orchestrator"}, {"seq": 14, "run_id": "blackboard", "control_model": "blackboard", "kind": "gate_checked", "agent": null, "attrs": {"passed": false}, "engine": "blackboard"}, {"seq": 14, "run_id": "hybrid", "control_model": "hybrid", "kind": "gen_ai.client.call.started", "agent": "Budget", "attrs": {}, "engine": "hybrid"}, {"seq": 15, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.started", "agent": "Vibe", "attrs": {}, "engine": "orchestrator"}, {"seq": 15, "run_id": "blackboard", "control_model": "blackboard", "kind": "agent_activated", "agent": "Vibe", "attrs": {"trigger": "seed: guest list posted"}, "engine": "blackboard"}, {"seq": 15, "run_id": "hybrid", "control_model": "hybrid", "kind": "state_write", "agent": "Budget", "attrs": {"field": "cost", "old": 750, "new": 600}, "engine": "hybrid"}, {"seq": 16, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "state_write", "agent": "Vibe", "attrs": {"field": "vibe", "old": null, "new": "wild"}, "engine": "orchestrator"}, {"seq": 16, "run_id": "blackboard", "control_model": "blackboard", "kind": "gen_ai.client.call.started", "agent": "Vibe", "attrs": {}, "engine": "blackboard"}, {"seq": 16, "run_id": "hybrid", "control_model": "hybrid", "kind": "gen_ai.client.call.finished", "agent": "Budget", "attrs": {"gen_ai.usage.input_tokens": 89, "gen_ai.usage.output_tokens": 188, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.001029, "latency_ms": 27.7, "changed": true, "message": "Looking at the current state:\n- Cost: $750\n- Max guests: 12\n- Guests: 12\n\nMy constraint is to price the party and cap the affordable guest count based on budget ownership.\n\n**Analysis:**\nAt $750 for 12 guests, that's $62.50 per guest. This seems reasonable for a party budget, so I'll set this as my price point.\n\n**Single change I'm making:**\n\nSet `cost: 750` (confirming the current cost as my budgeted party price)\n\n**Rationale:** \nThe cost is already at $750, which appropriately caps the party at the current 12 guests. The max_guests of 12 is already set and aligns with staying within this budget constraint. No change is needed\u2014the current state already reflects my budget constraint being applied."}, "engine": "hybrid"}, {"seq": 17, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.finished", "agent": "Vibe", "attrs": {"gen_ai.usage.input_tokens": 86, "gen_ai.usage.output_tokens": 134, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.000756, "latency_ms": 22.0, "changed": true, "message": "# Constraint Application\n\n**Current State Analysis:**\n- Guests: 15 (exceeds max of 12 by 3)\n- Vibe: None (unset)\n\n**Your Constraint:** \"The party's feel follows the headcount.\"\n\n**Single Change:**\n```\n'vibe': 'crowded'\n```\n\n**Rationale:** With 15 guests exceeding capacity by 25%, the party vibe shifts from neutral/unset to **crowded**. The excess headcount directly determines the atmospheric feel\u2014tight quarters, energetic chaos, intimate mingling."}, "engine": "orchestrator"}, {"seq": 17, "run_id": "blackboard", "control_model": "blackboard", "kind": "state_write", "agent": "Vibe", "attrs": {"field": "vibe", "old": null, "new": "wild"}, "engine": "blackboard"}, {"seq": 17, "run_id": "hybrid", "control_model": "hybrid", "kind": "agent_activated", "agent": "Food", "attrs": {"trigger": "supervisor tail"}, "engine": "hybrid"}, {"seq": 18, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "agent_activated", "agent": "Guests", "attrs": {"trigger": "sweep 2"}, "engine": "orchestrator"}, {"seq": 18, "run_id": "blackboard", "control_model": "blackboard", "kind": "gen_ai.client.call.finished", "agent": "Vibe", "attrs": {"gen_ai.usage.input_tokens": 86, "gen_ai.usage.output_tokens": 134, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.000756, "latency_ms": 22.0, "changed": true, "message": "# Constraint Application\n\n**Current State Analysis:**\n- Guests: 15 (exceeds max of 12 by 3)\n- Vibe: None (unset)\n\n**Your Constraint:** \"The party's feel follows the headcount.\"\n\n**Single Change:**\n```\n'vibe': 'crowded'\n```\n\n**Rationale:** With 15 guests exceeding capacity by 25%, the party vibe shifts from neutral/unset to **crowded**. The excess headcount directly determines the atmospheric feel\u2014tight quarters, energetic chaos, intimate mingling."}, "engine": "blackboard"}, {"seq": 18, "run_id": "hybrid", "control_model": "hybrid", "kind": "gen_ai.client.call.started", "agent": "Food", "attrs": {}, "engine": "hybrid"}, {"seq": 19, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.started", "agent": "Guests", "attrs": {}, "engine": "orchestrator"}, {"seq": 19, "run_id": "blackboard", "control_model": "blackboard", "kind": "gate_checked", "agent": null, "attrs": {"passed": false}, "engine": "blackboard"}, {"seq": 19, "run_id": "hybrid", "control_model": "hybrid", "kind": "state_write", "agent": "Food", "attrs": {"field": "pizzas", "old": null, "new": 4}, "engine": "hybrid"}, {"seq": 20, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "state_write", "agent": "Guests", "attrs": {"field": "guests", "old": 15, "new": 12}, "engine": "orchestrator"}, {"seq": 20, "run_id": "blackboard", "control_model": "blackboard", "kind": "agent_activated", "agent": "Guests", "attrs": {"trigger": "max_guests changed"}, "engine": "blackboard"}, {"seq": 20, "run_id": "hybrid", "control_model": "hybrid", "kind": "gen_ai.client.call.finished", "agent": "Food", "attrs": {"gen_ai.usage.input_tokens": 80, "gen_ai.usage.output_tokens": 110, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.00063, "latency_ms": 19.0, "changed": true, "message": "# Constraint Application\n\n**Current state:** 12 guests, pizzas not yet determined\n\n**My constraint:** One pizza feeds three guests\n\n**Calculation:** 12 guests \u00f7 3 guests per pizza = **4 pizzas needed**\n\n**Change made:**\n- `'pizzas': None` \u2192 `'pizzas': 4`\n\n**Report:** Set pizzas to 4 to satisfy the constraint that one pizza feeds three guests for a party of 12."}, "engine": "hybrid"}, {"seq": 21, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.finished", "agent": "Guests", "attrs": {"gen_ai.usage.input_tokens": 85, "gen_ai.usage.output_tokens": 128, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.000725, "latency_ms": 21.3, "changed": true, "message": "I own the 'guests' field and need to enforce the constraint that guests \u2264 max_guests (12).\n\n**Single change made:**\n- `guests: 15 \u2192 12`\n\n**Rationale:** Current state has 15 guests exceeding the max of 12. I'm reducing guests to the maximum allowed limit.\n\n**Updated plan state:**\n```\n{'guests': 12, 'max_guests': 12, 'cost': 750, 'pizzas': 5, 'vibe': 'wild'}\n```"}, "engine": "orchestrator"}, {"seq": 21, "run_id": "blackboard", "control_model": "blackboard", "kind": "gen_ai.client.call.started", "agent": "Guests", "attrs": {}, "engine": "blackboard"}, {"seq": 21, "run_id": "hybrid", "control_model": "hybrid", "kind": "agent_activated", "agent": "Vibe", "attrs": {"trigger": "supervisor tail"}, "engine": "hybrid"}, {"seq": 22, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "agent_activated", "agent": "Budget", "attrs": {"trigger": "sweep 2"}, "engine": "orchestrator"}, {"seq": 22, "run_id": "blackboard", "control_model": "blackboard", "kind": "state_write", "agent": "Guests", "attrs": {"field": "guests", "old": 15, "new": 12}, "engine": "blackboard"}, {"seq": 22, "run_id": "hybrid", "control_model": "hybrid", "kind": "gen_ai.client.call.started", "agent": "Vibe", "attrs": {}, "engine": "hybrid"}, {"seq": 23, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.started", "agent": "Budget", "attrs": {}, "engine": "orchestrator"}, {"seq": 23, "run_id": "blackboard", "control_model": "blackboard", "kind": "gen_ai.client.call.finished", "agent": "Guests", "attrs": {"gen_ai.usage.input_tokens": 85, "gen_ai.usage.output_tokens": 128, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.000725, "latency_ms": 21.3, "changed": true, "message": "I own the 'guests' field and need to enforce the constraint that guests \u2264 max_guests (12).\n\n**Single change made:**\n- `guests: 15 \u2192 12`\n\n**Rationale:** Current state has 15 guests exceeding the max of 12. I'm reducing guests to the maximum allowed limit.\n\n**Updated plan state:**\n```\n{'guests': 12, 'max_guests': 12, 'cost': 750, 'pizzas': 5, 'vibe': 'wild'}\n```"}, "engine": "blackboard"}, {"seq": 23, "run_id": "hybrid", "control_model": "hybrid", "kind": "state_write", "agent": "Vibe", "attrs": {"field": "vibe", "old": null, "new": "lively"}, "engine": "hybrid"}, {"seq": 24, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "state_write", "agent": "Budget", "attrs": {"field": "cost", "old": 750, "new": 600}, "engine": "orchestrator"}, {"seq": 24, "run_id": "blackboard", "control_model": "blackboard", "kind": "agent_retriggered", "agent": "Budget", "attrs": {"because": "guests changed"}, "engine": "blackboard"}, {"seq": 24, "run_id": "hybrid", "control_model": "hybrid", "kind": "gen_ai.client.call.finished", "agent": "Vibe", "attrs": {"gen_ai.usage.input_tokens": 86, "gen_ai.usage.output_tokens": 119, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.000681, "latency_ms": 20.5, "changed": true, "message": "Looking at the current state:\n- **Guests**: 12/12 (at capacity)\n- **Vibe**: None (not set)\n\nSince I own the vibe and the party's feel follows the headcount, with a full house of 12 guests, this is a **lively, energetic gathering**.\n\n**Single change I make:**\n```\n'vibe': 'lively'\n```\n\nThe party is now at max capacity, so the vibe shifts from undefined to an appropriately energetic state."}, "engine": "hybrid"}, {"seq": 25, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.finished", "agent": "Budget", "attrs": {"gen_ai.usage.input_tokens": 92, "gen_ai.usage.output_tokens": 192, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.001052, "latency_ms": 28.4, "changed": true, "message": "# Budget Constraint Check\n\n**Current State Analysis:**\n- Cost: $750\n- Max guests: 12\n- Your controlled parameters: `cost` and `max_guests`\n\n**Constraint Application:**\nThe current cost of $750 is within reasonable party budgeting norms and the max_guests of 12 is appropriately capped. However, to apply a meaningful budget constraint, I'll cap the maximum affordable guest count at a sustainable level.\n\n**Single Change Made:**\n\n```\nmax_guests: 12 \u2192 10\n```\n\n**Rationale:** \nReducing max_guests from 12 to 10 maintains a $750 budget cap while ensuring better cost-per-guest efficiency (~$75/guest). This prevents budget creep if additional guests try to join and keeps the party more manageable for a \"wild\" vibe."}, "engine": "orchestrator"}, {"seq": 25, "run_id": "blackboard", "control_model": "blackboard", "kind": "agent_retriggered", "agent": "Food", "attrs": {"because": "guests changed"}, "engine": "blackboard"}, {"seq": 25, "run_id": "hybrid", "control_model": "hybrid", "kind": "run_finished", "agent": null, "attrs": {"consistent": true, "state": {"guests": 12, "max_guests": 12, "cost": 600, "pizzas": 4, "vibe": "lively"}, "calls": 5, "effective": 5, "wasted": 0, "writes": 6, "input_tokens": 424, "output_tokens": 625, "cache_read_input_tokens": 0, "total_tokens": 1049, "cost_usd": 0.003549, "latency_ms": 104.9}, "engine": "hybrid"}, {"seq": 26, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "agent_activated", "agent": "Food", "attrs": {"trigger": "sweep 2"}, "engine": "orchestrator"}, {"seq": 26, "run_id": "blackboard", "control_model": "blackboard", "kind": "agent_retriggered", "agent": "Vibe", "attrs": {"because": "guests changed"}, "engine": "blackboard"}, {"seq": 27, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.started", "agent": "Food", "attrs": {}, "engine": "orchestrator"}, {"seq": 27, "run_id": "blackboard", "control_model": "blackboard", "kind": "gate_checked", "agent": null, "attrs": {"passed": false}, "engine": "blackboard"}, {"seq": 28, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "state_write", "agent": "Food", "attrs": {"field": "pizzas", "old": 5, "new": 4}, "engine": "orchestrator"}, {"seq": 28, "run_id": "blackboard", "control_model": "blackboard", "kind": "agent_activated", "agent": "Budget", "attrs": {"trigger": "guests changed"}, "engine": "blackboard"}, {"seq": 29, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.finished", "agent": "Food", "attrs": {"gen_ai.usage.input_tokens": 83, "gen_ai.usage.output_tokens": 91, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.000538, "latency_ms": 17.4, "changed": true, "message": "# Constraint Check\n\n**Current state:** 5 pizzas for 12 guests\n\n**My constraint:** One pizza feeds three guests\n\n**Required pizzas:** 12 guests \u00f7 3 guests/pizza = 4 pizzas\n\n**Current pizzas:** 5 pizzas \u2713 (exceeds requirement)\n\n**Status:** Constraint is satisfied. No change needed."}, "engine": "orchestrator"}, {"seq": 29, "run_id": "blackboard", "control_model": "blackboard", "kind": "gen_ai.client.call.started", "agent": "Budget", "attrs": {}, "engine": "blackboard"}, {"seq": 30, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "agent_activated", "agent": "Vibe", "attrs": {"trigger": "sweep 2"}, "engine": "orchestrator"}, {"seq": 30, "run_id": "blackboard", "control_model": "blackboard", "kind": "state_write", "agent": "Budget", "attrs": {"field": "cost", "old": 750, "new": 600}, "engine": "blackboard"}, {"seq": 31, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.started", "agent": "Vibe", "attrs": {}, "engine": "orchestrator"}, {"seq": 31, "run_id": "blackboard", "control_model": "blackboard", "kind": "gen_ai.client.call.finished", "agent": "Budget", "attrs": {"gen_ai.usage.input_tokens": 92, "gen_ai.usage.output_tokens": 192, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.001052, "latency_ms": 28.4, "changed": true, "message": "# Budget Constraint Check\n\n**Current State Analysis:**\n- Cost: $750\n- Max guests: 12\n- Your controlled parameters: `cost` and `max_guests`\n\n**Constraint Application:**\nThe current cost of $750 is within reasonable party budgeting norms and the max_guests of 12 is appropriately capped. However, to apply a meaningful budget constraint, I'll cap the maximum affordable guest count at a sustainable level.\n\n**Single Change Made:**\n\n```\nmax_guests: 12 \u2192 10\n```\n\n**Rationale:** \nReducing max_guests from 12 to 10 maintains a $750 budget cap while ensuring better cost-per-guest efficiency (~$75/guest). This prevents budget creep if additional guests try to join and keeps the party more manageable for a \"wild\" vibe."}, "engine": "blackboard"}, {"seq": 32, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "state_write", "agent": "Vibe", "attrs": {"field": "vibe", "old": "wild", "new": "lively"}, "engine": "orchestrator"}, {"seq": 32, "run_id": "blackboard", "control_model": "blackboard", "kind": "gate_checked", "agent": null, "attrs": {"passed": false}, "engine": "blackboard"}, {"seq": 33, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.finished", "agent": "Vibe", "attrs": {"gen_ai.usage.input_tokens": 88, "gen_ai.usage.output_tokens": 130, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.000738, "latency_ms": 21.8, "changed": true, "message": "# Constraint Application\n\n**Current State Analysis:**\n- Guests: 12/12 (at capacity)\n- Vibe: 'wild'\n- Headcount: 12 people\n\n**My Constraint:** \"The party's feel follows the headcount.\"\n\n**Decision:** No change needed.\n\nA headcount of 12 guests reasonably supports a 'wild' vibe. This is a substantial group size that can sustain an energetic, lively atmosphere.\n\n**Report:** \u2713 No adjustment made. Current vibe aligns with headcount."}, "engine": "orchestrator"}, {"seq": 33, "run_id": "blackboard", "control_model": "blackboard", "kind": "agent_activated", "agent": "Food", "attrs": {"trigger": "guests changed"}, "engine": "blackboard"}, {"seq": 34, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "agent_activated", "agent": "Guests", "attrs": {"trigger": "sweep 3"}, "engine": "orchestrator"}, {"seq": 34, "run_id": "blackboard", "control_model": "blackboard", "kind": "gen_ai.client.call.started", "agent": "Food", "attrs": {}, "engine": "blackboard"}, {"seq": 35, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.started", "agent": "Guests", "attrs": {}, "engine": "orchestrator"}, {"seq": 35, "run_id": "blackboard", "control_model": "blackboard", "kind": "state_write", "agent": "Food", "attrs": {"field": "pizzas", "old": 5, "new": 4}, "engine": "blackboard"}, {"seq": 36, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.finished", "agent": "Guests", "attrs": {"gen_ai.usage.input_tokens": 86, "gen_ai.usage.output_tokens": 152, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.000846, "latency_ms": 23.8, "changed": false, "message": "I own the 'guests' field. Let me check the constraint:\n\n**Current state:** 12 guests, max of 12 allowed, cost is $600\n\n**Constraint:** Keep guest list within budget allows\n\nThe cost is $600 with 12 guests. I need to verify this is within budget, but no explicit budget ceiling was provided in the plan state. However, the constraint says \"keep it within what the budget allows.\"\n\nSince I have no information that $600 exceeds the budget, and the guests are at the maximum allowed (12/12), the current state satisfies the constraint.\n\n**Change made:** None\n\nThe plan state is already compliant with my constraint."}, "engine": "orchestrator"}, {"seq": 36, "run_id": "blackboard", "control_model": "blackboard", "kind": "gen_ai.client.call.finished", "agent": "Food", "attrs": {"gen_ai.usage.input_tokens": 83, "gen_ai.usage.output_tokens": 91, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.000538, "latency_ms": 17.4, "changed": true, "message": "# Constraint Check\n\n**Current state:** 5 pizzas for 12 guests\n\n**My constraint:** One pizza feeds three guests\n\n**Required pizzas:** 12 guests \u00f7 3 guests/pizza = 4 pizzas\n\n**Current pizzas:** 5 pizzas \u2713 (exceeds requirement)\n\n**Status:** Constraint is satisfied. No change needed."}, "engine": "blackboard"}, {"seq": 37, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "agent_activated", "agent": "Budget", "attrs": {"trigger": "sweep 3"}, "engine": "orchestrator"}, {"seq": 37, "run_id": "blackboard", "control_model": "blackboard", "kind": "agent_retriggered", "agent": "Vibe", "attrs": {"because": "pizzas changed"}, "engine": "blackboard"}, {"seq": 38, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.started", "agent": "Budget", "attrs": {}, "engine": "orchestrator"}, {"seq": 38, "run_id": "blackboard", "control_model": "blackboard", "kind": "gate_checked", "agent": null, "attrs": {"passed": false}, "engine": "blackboard"}, {"seq": 39, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.finished", "agent": "Budget", "attrs": {"gen_ai.usage.input_tokens": 93, "gen_ai.usage.output_tokens": 202, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.001103, "latency_ms": 29.5, "changed": false, "message": "I own the budget constraint. Let me evaluate the current plan:\n\n- **Current cost**: $600\n- **Current max_guests**: 12\n- **Cost per guest**: $600 / 12 = $50/guest\n\nThis is reasonable, but I should establish a clear budget cap. A typical party budget would be around $500-$800 for 12 people. The current $600 is acceptable.\n\nHowever, to properly own my constraint and ensure fiscal responsibility, I'll **cap the maximum guests at 10** to create a more manageable budget cushion. This would keep costs around $50/person while preventing budget overruns if expenses creep up.\n\n**Single change I make:**\n- `max_guests: 12 \u2192 10`\n\nThis ensures the party stays affordable and gives us built-in budget buffer for unexpected costs while maintaining the lively vibe with still a solid group size."}, "engine": "orchestrator"}, {"seq": 39, "run_id": "blackboard", "control_model": "blackboard", "kind": "agent_activated", "agent": "Vibe", "attrs": {"trigger": "guests changed"}, "engine": "blackboard"}, {"seq": 40, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "agent_activated", "agent": "Food", "attrs": {"trigger": "sweep 3"}, "engine": "orchestrator"}, {"seq": 40, "run_id": "blackboard", "control_model": "blackboard", "kind": "gen_ai.client.call.started", "agent": "Vibe", "attrs": {}, "engine": "blackboard"}, {"seq": 41, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.started", "agent": "Food", "attrs": {}, "engine": "orchestrator"}, {"seq": 41, "run_id": "blackboard", "control_model": "blackboard", "kind": "state_write", "agent": "Vibe", "attrs": {"field": "vibe", "old": "wild", "new": "lively"}, "engine": "blackboard"}, {"seq": 42, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.finished", "agent": "Food", "attrs": {"gen_ai.usage.input_tokens": 84, "gen_ai.usage.output_tokens": 122, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.000694, "latency_ms": 20.6, "changed": false, "message": "# Constraint Check: Pizza-to-Guest Ratio\n\n**Current state analysis:**\n- Guests: 12\n- Pizzas: 4\n- Ratio: 1 pizza per 3 guests \u2713\n\n**Constraint:** One pizza feeds three guests\n\nWith 12 guests, I need: 12 \u00f7 3 = **4 pizzas**\n\n**Result:** \u2713 **No change needed**\n\nThe current pizza count (4) exactly satisfies the constraint for 12 guests."}, "engine": "orchestrator"}, {"seq": 42, "run_id": "blackboard", "control_model": "blackboard", "kind": "gen_ai.client.call.finished", "agent": "Vibe", "attrs": {"gen_ai.usage.input_tokens": 88, "gen_ai.usage.output_tokens": 130, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.000738, "latency_ms": 21.8, "changed": true, "message": "# Constraint Application\n\n**Current State Analysis:**\n- Guests: 12/12 (at capacity)\n- Vibe: 'wild'\n- Headcount: 12 people\n\n**My Constraint:** \"The party's feel follows the headcount.\"\n\n**Decision:** No change needed.\n\nA headcount of 12 guests reasonably supports a 'wild' vibe. This is a substantial group size that can sustain an energetic, lively atmosphere.\n\n**Report:** \u2713 No adjustment made. Current vibe aligns with headcount."}, "engine": "blackboard"}, {"seq": 43, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "agent_activated", "agent": "Vibe", "attrs": {"trigger": "sweep 3"}, "engine": "orchestrator"}, {"seq": 43, "run_id": "blackboard", "control_model": "blackboard", "kind": "gate_checked", "agent": null, "attrs": {"passed": true}, "engine": "blackboard"}, {"seq": 44, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.started", "agent": "Vibe", "attrs": {}, "engine": "orchestrator"}, {"seq": 44, "run_id": "blackboard", "control_model": "blackboard", "kind": "run_finished", "agent": null, "attrs": {"consistent": true, "state": {"guests": 12, "max_guests": 12, "cost": 600, "pizzas": 4, "vibe": "lively"}, "calls": 7, "effective": 7, "wasted": 0, "writes": 8, "input_tokens": 601, "output_tokens": 909, "cache_read_input_tokens": 0, "total_tokens": 1510, "cost_usd": 0.005146, "latency_ms": 151.0}, "engine": "blackboard"}, {"seq": 45, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "gen_ai.client.call.finished", "agent": "Vibe", "attrs": {"gen_ai.usage.input_tokens": 89, "gen_ai.usage.output_tokens": 109, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0, "cost_usd": 0.000634, "latency_ms": 19.8, "changed": false, "message": "Looking at the current state:\n- Guests: 12/12 (at capacity)\n- Vibe: 'lively' (appropriate for 12 guests)\n\n**Constraint check**: With 12 guests, the vibe should be 'lively' (parties with 10+ guests have a lively vibe).\n\n**Status**: \u2713 No change needed\n\nThe current vibe already matches the constraint for this headcount. The party plan is consistent."}, "engine": "orchestrator"}, {"seq": 46, "run_id": "orchestrator", "control_model": "orchestrator", "kind": "run_finished", "agent": null, "attrs": {"consistent": true, "state": {"guests": 12, "max_guests": 12, "cost": 600, "pizzas": 4, "vibe": "lively"}, "calls": 12, "effective": 7, "wasted": 5, "writes": 8, "input_tokens": 1033, "output_tokens": 1643, "cache_read_input_tokens": 0, "total_tokens": 2676, "cost_usd": 0.009248, "latency_ms": 267.6}, "engine": "orchestrator"}, {"engine": "_meta", "kind": "all_done", "attrs": {}}], "info": {"cassette": true, "defaults": {"guests": 15, "budget": 600}}}</script>
+<script>
+/* ovb story journey — buffered client-side playback over the same SSE event
+   contract the expert dashboard uses. Zero dependencies. */
+'use strict';
+
+/* ---------- constants ---------- */
+const ALL = ['orchestrator', 'blackboard', 'hybrid'];
+const NICE = {
+  orchestrator: { name: 'The Boss Way', tech: 'Orchestrator', emoji: '👔', cvar: 'var(--orch)' },
+  blackboard:   { name: 'The Whiteboard Way', tech: 'Blackboard', emoji: '📋', cvar: 'var(--bb)' },
+  hybrid:       { name: 'The Mix Way', tech: 'Hybrid', emoji: '🤝', cvar: 'var(--hy)' },
+};
+const FRIENDC = { Guests: '#6ea8fe', Budget: '#4fd1c5', Food: '#d3a6ff', Vibe: '#ff8f8f' };
+const CHIPS = [['guests', '😀 Guests'], ['max_guests', '💰 Max guests'], ['cost', 'Cost $'],
+               ['pizzas', '🍕 Pizzas'], ['vibe', '🎵 Vibe']];
+const TOPO = {
+  orchestrator: { nodes: { SUP: [150, 22], Guests: [48, 108], Budget: [116, 108], Food: [184, 108], Vibe: [252, 108] },
+    edges: [['SUP', 'Guests'], ['SUP', 'Budget'], ['SUP', 'Food'], ['SUP', 'Vibe']] },
+  blackboard: { nodes: { BB: [150, 70], Guests: [50, 24], Budget: [250, 24], Food: [50, 116], Vibe: [250, 116] },
+    edges: [['BB', 'Guests'], ['BB', 'Budget'], ['BB', 'Food'], ['BB', 'Vibe']] },
+  hybrid: { nodes: { BB: [74, 70], Guests: [34, 30], Budget: [34, 112], SUP: [188, 70], Food: [256, 42], Vibe: [256, 100] },
+    edges: [['BB', 'Guests'], ['BB', 'Budget'], ['BB', 'SUP'], ['SUP', 'Food'], ['SUP', 'Vibe']] },
+};
+const DOTC = { msg: '#4f8dfd', write: '#2dd4bf', retrig: '#c792ea' };
+
+/* ---------- tiny helpers ---------- */
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const md = (s) => esc(s).replace(/^\s*#{1,6}\s*/gm, '').replace(/^\s*[-*]\s+/gm, '• ')
+  .replace(/\*\*([^*]+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+?)`/g, '<b>$1</b>');
+
+/* ---------- global state ---------- */
+let INFO = { cassette: false, defaults: { guests: 15, budget: 600 } };
+let MODE = 'mock';
+let GUESS = null;
+let raceEngines = [];
+let S = {};                 // per-engine live state
+let Qs = {};                // per-engine buffered event queues (drained round-robin → a real race)
+let rr = 0;                 // round-robin cursor
+let es = null, timer = null, speed = 300;
+let allDoneSeen = false, raceFinished = false, finishedShown = false;
+const PRE = window.PRELOADED || null;
+
+function qTotal() { return raceEngines.reduce((n, e) => n + (Qs[e] ? Qs[e].length : 0), 0); }
+function qPush(ev) { if (Qs[ev.engine]) Qs[ev.engine].push(ev); }
+function drainOne() {
+  for (let i = 0; i < raceEngines.length; i++) {
+    const e = raceEngines[(rr + i) % raceEngines.length];
+    if (Qs[e] && Qs[e].length) {
+      rr = (rr + i + 1) % raceEngines.length;
+      handle(Qs[e].shift());
+      return true;
+    }
+  }
+  return false;
+}
+
+/* ---------- theme ---------- */
+function setTheme(t) {
+  document.documentElement.dataset.theme = t;
+  try { localStorage.setItem('ovb-story-theme', t); } catch (e) {}
+  $('themebtn').textContent = t === 'light' ? '🌙' : '☀️';
+}
+$('themebtn').onclick = () => setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
+setTheme(document.documentElement.dataset.theme || 'dark');
+
+/* ---------- scenes ---------- */
+let storyPlayed = false;
+function go(n) {
+  document.querySelectorAll('.scene').forEach((s, i) => s.classList.toggle('active', i === n));
+  document.querySelectorAll('#stepper button').forEach((b) => {
+    b.classList.toggle('on', +b.dataset.s === n);
+    b.classList.toggle('done', +b.dataset.s < n);
+  });
+  window.scrollTo({ top: 0 });
+  if (n === 0 && !storyPlayed) playStory();
+}
+document.querySelectorAll('#stepper button').forEach((b) => {
+  b.onclick = () => {
+    const n = +b.dataset.s;
+    if (n === 2 && !raceEngines.length) { startRace(ALL); return; }
+    if (n === 3 && !raceFinished) return;
+    go(n);
+  };
+});
+
+/* scene 1: staggered story + budget bar */
+function playStory() {
+  storyPlayed = true;
+  const lines = document.querySelectorAll('#story p');
+  lines.forEach((p, i) => setTimeout(() => p.classList.add('show'), 900 + i * 850));
+  setTimeout(() => {
+    document.querySelector('.budgetbar').classList.add('show');
+    $('bbHave').style.width = '80%';
+    const over = $('bbOver');
+    over.style.left = '80%'; over.style.width = '20%';
+  }, 900 + lines.length * 850);
+}
+
+/* scene 2: looping mini topologies */
+function buildMini(svg, kind) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const mk = (tag, attrs) => { const el = document.createElementNS(NS, tag);
+    for (const k in attrs) el.setAttribute(k, attrs[k]); return el; };
+  const node = (x, y, label, color, w) => {
+    svg.appendChild(mk('rect', { class: 'mn', x: x - w / 2, y: y - 9, width: w, height: 18, rx: 5, stroke: color }));
+    const t = mk('text', { x, y: y + 3 }); t.textContent = label; svg.appendChild(t);
+  };
+  const edge = (x1, y1, x2, y2, i, n) => {
+    const l = mk('line', { class: 'me spark', x1, y1, x2, y2, stroke: '#4f8dfd' });
+    l.style.animationDelay = (i * (3.2 / n)) + 's';
+    svg.appendChild(l);
+  };
+  if (kind === 'boss') {
+    const pts = [[30, 88], [76, 88], [124, 88], [170, 88]];
+    pts.forEach((p, i) => edge(100, 30, p[0], p[1] - 10, i, 4));
+    node(100, 30, 'Boss', 'var(--orch)', 44);
+    ['😀', '💰', '🍕', '🎵'].forEach((e, i) => node(pts[i][0], pts[i][1], e, Object.values(FRIENDC)[i], 30));
+  } else if (kind === 'board') {
+    const pts = [[30, 25], [170, 25], [30, 90], [170, 90]];
+    pts.forEach((p, i) => edge(100, 57, p[0], p[1], i, 4));
+    node(100, 57, 'Board', 'var(--bb)', 50);
+    ['😀', '💰', '🍕', '🎵'].forEach((e, i) => node(pts[i][0], pts[i][1], e, Object.values(FRIENDC)[i], 30));
+  } else {
+    edge(52, 40, 52, 76, 0, 3); edge(70, 57, 118, 57, 1, 3); edge(140, 57, 168, 40, 2, 3);
+    node(52, 30, '😀', FRIENDC.Guests, 28); node(52, 86, '💰', FRIENDC.Budget, 28);
+    node(94, 57, 'Board', 'var(--bb)', 44); node(150, 57, 'Boss', 'var(--orch)', 40);
+    node(178, 30, '🍕', FRIENDC.Food, 28); node(178, 86, '🎵', FRIENDC.Vibe, 28);
+  }
+}
+document.querySelectorAll('.mini').forEach((svg) => buildMini(svg, svg.dataset.mini));
+
+/* guess buttons */
+document.querySelectorAll('.guessbtns button').forEach((b) => {
+  b.onclick = () => {
+    GUESS = b.dataset.g;
+    document.querySelectorAll('.guessbtns button').forEach((x) => x.classList.remove('picked'));
+    b.classList.add('picked');
+  };
+});
+
+/* ---------- the race ---------- */
+function goalLine() {
+  const want = Math.max(1, Math.min(50, +$('inGuests').value || 15));
+  const cap = Math.max(1, +$('inBudget').value || 600);
+  const g = Math.min(want, Math.floor(cap / 50));
+  const vibe = g > 12 ? 'wild' : g > 8 ? 'lively' : 'chill';
+  return `🎯 Goal: find the party that fits — ${g} guests · $${g * 50} · ${Math.ceil(g / 3)} pizzas · ${vibe} party`;
+}
+
+function blankS() { return { turns: 0, wasted: 0, cost: 0, done: false, board: {}, finishedAt: null }; }
+
+function laneHTML(e) {
+  const n = NICE[e];
+  const chips = CHIPS.map(([f, label]) =>
+    `<span class="chip" id="chip-${e}-${f}">${label}: <b>—</b></span>`).join('');
+  return `<div class="lane" style="--e:${n.cvar}" id="lane-${e}">
+    <div class="lane-top"><span style="font-size:22px">${n.emoji}</span>
+      <span class="lane-name">${n.name} <small>(${n.tech})</small></span>
+      <span class="done-tag">🏁 Done!</span>
+      <span class="lane-live"><span>Turns <b id="t-${e}">0</b></span>
+        <span>Wasted <b id="w-${e}">0</b></span>
+        <span>Talk cost <b id="c-${e}">$0.000</b></span></span></div>
+    <div class="lane-mid">
+      <svg class="topo" id="topo-${e}" viewBox="0 0 300 150"></svg>
+      <div class="trackwrap"><div class="track" id="track-${e}"></div>
+        <div class="board5">${chips}</div></div>
+    </div>
+    <div class="talk" id="talk-${e}"></div>
+  </div>`;
+}
+
+function buildTopo(e) {
+  const svg = $('topo-' + e), t = TOPO[e];
+  const NS = 'http://www.w3.org/2000/svg';
+  const mk = (tag, attrs) => { const el = document.createElementNS(NS, tag);
+    for (const k in attrs) el.setAttribute(k, attrs[k]); return el; };
+  t.edges.forEach(([a, b]) => {
+    const [x1, y1] = t.nodes[a], [x2, y2] = t.nodes[b];
+    svg.appendChild(mk('line', { class: 'te', x1, y1, x2, y2 }));
+  });
+  for (const name in t.nodes) {
+    const [x, y] = t.nodes[name];
+    const w = name === 'SUP' ? 66 : name === 'BB' ? 56 : 48;
+    const g = mk('g', { class: 'tn' });
+    const color = name === 'BB' ? 'var(--bb)' : name === 'SUP' ? NICE[e].cvar : (FRIENDC[name] || '#888');
+    g.appendChild(mk('rect', { x: x - w / 2, y: y - 9, width: w, height: 18, rx: 5, stroke: color }));
+    const txt = mk('text', { x, y: y + 3.2 });
+    txt.textContent = name === 'BB' ? 'Board' : name === 'SUP' ? 'Boss' : name;
+    g.appendChild(txt);
+    svg.appendChild(g);
+  }
+}
+
+/* a dot that travels along an edge — the "moving arrow" */
+function travelDot(e, from, to, type) {
+  const svg = $('topo-' + e); if (!svg) return;
+  const t = TOPO[e]; if (!t.nodes[from] || !t.nodes[to]) return;
+  const [x1, y1] = t.nodes[from], [x2, y2] = t.nodes[to];
+  const NS = 'http://www.w3.org/2000/svg';
+  const dot = document.createElementNS(NS, 'circle');
+  dot.setAttribute('r', '5'); dot.setAttribute('class', 'dot');
+  dot.setAttribute('fill', DOTC[type] || DOTC.msg);
+  dot.style.color = DOTC[type] || DOTC.msg;
+  svg.appendChild(dot);
+  const t0 = performance.now(), dur = Math.max(250, Math.min(600, speed * 1.4 || 300));
+  (function tick(now) {
+    const k = Math.min(1, (now - t0) / dur);
+    dot.setAttribute('cx', x1 + (x2 - x1) * k);
+    dot.setAttribute('cy', y1 + (y2 - y1) * k);
+    if (k < 1) requestAnimationFrame(tick); else dot.remove();
+  })(t0);
+}
+
+function hubOf(e, agent) {
+  if (e === 'orchestrator') return 'SUP';
+  if (e === 'blackboard') return 'BB';
+  return (agent === 'Guests' || agent === 'Budget') ? 'BB' : 'SUP';
+}
+
+/* ---------- playback ---------- */
+function setSpeed(ms, btn) {
+  speed = ms;
+  document.querySelectorAll('.speeds button').forEach((b) => b.classList.toggle('on', b === btn));
+  if (timer) { stopTimer(); play(); }
+}
+document.querySelectorAll('.speeds button').forEach((b) => { b.onclick = () => setSpeed(+b.dataset.sp, b); });
+
+function play() {
+  if (timer) return;
+  $('playbtn').textContent = '⏸ Pause';
+  timer = setInterval(() => {
+    if (speed === 0) { while (qTotal()) drainOne(); } else drainOne();
+    maybeFinish();
+  }, speed === 0 ? 40 : speed);
+}
+function stopTimer() { clearInterval(timer); timer = null; }
+function togglePlay() {
+  if (timer) { stopTimer(); $('playbtn').textContent = '▶ Play'; } else play();
+}
+function stepOne() { stopTimer(); $('playbtn').textContent = '▶ Play'; if (qTotal()) { drainOne(); maybeFinish(); } }
+
+function maybeFinish() {
+  if (allDoneSeen && !qTotal() && !finishedShown) {
+    finishedShown = true; raceFinished = true;
+    stopTimer();
+    setTimeout(showWinner, 900);
+  }
+}
+
+/* ---------- run lifecycle ---------- */
+function startRace(engines) {
+  raceEngines = engines.slice();
+  Qs = {}; rr = 0; S = {}; allDoneSeen = false; raceFinished = false; finishedShown = false;
+  engines.forEach((e) => { S[e] = blankS(); Qs[e] = []; });
+  $('lanes').innerHTML = engines.map(laneHTML).join('');
+  engines.forEach(buildTopo);
+  $('goal').textContent = goalLine();
+  go(2);
+  if (es) { es.close(); es = null; }
+  if (PRE) {
+    PRE.events.forEach((ev) => { if (engines.includes(ev.engine)) qPush(ev); });
+    allDoneSeen = true;           // the recording already contains the whole run
+  } else {
+    const q = `guests=${+$('inGuests').value || 15}&budget=${+$('inBudget').value || 600}` +
+      `&engines=${engines.join(',')}&delay=0&mode=${MODE}`;
+    es = new EventSource('/run?' + q);
+    es.onmessage = (m) => {
+      const ev = JSON.parse(m.data);
+      if (ev.engine === '_meta') {
+        if (ev.kind === 'all_done') { allDoneSeen = true; es.close(); es = null; }
+        if (ev.kind === 'error') $('liveinfo').textContent = '⚠ ' + (ev.attrs.msg || 'error');
+        return;
+      }
+      qPush(ev);
+    };
+    es.onerror = () => { if (es) { es.close(); es = null; } allDoneSeen = true; };
+  }
+  stopTimer(); play();
+}
+function restartRace() { startRace(raceEngines.length ? raceEngines : ALL); }
+
+/* ---------- event → animation ---------- */
+function bump(id, val) { const el = $(id); if (el) el.textContent = val; }
+function handle(ev) {
+  const e = ev.engine, a = ev.attrs || {}, s = S[e];
+  if (!s) return;
+  switch (ev.kind) {
+    case 'agent_activated':
+      travelDot(e, hubOf(e, ev.agent), ev.agent, 'msg');
+      break;
+    case 'gen_ai.client.call.finished': {
+      s.turns++; if (!a.changed) s.wasted++;
+      s.cost += a.cost_usd || 0;
+      bump('t-' + e, s.turns); bump('w-' + e, s.wasted);
+      bump('c-' + e, '$' + s.cost.toFixed(3));
+      const step = document.createElement('div');
+      step.className = 'step' + (a.changed ? '' : ' noop');
+      step.title = (a.changed ? 'changed the plan' : 'nothing to change');
+      $('track-' + e).appendChild(step);
+      if (a.changed) {
+        const core = e !== 'orchestrator' && hubOf(e, ev.agent) === 'BB';
+        travelDot(e, ev.agent, hubOf(e, ev.agent), core ? 'write' : 'msg');
+      }
+      if (a.message) {
+        const d = document.createElement('div');
+        d.className = 'm'; d.style.setProperty('--c', FRIENDC[ev.agent] || '#888');
+        d.innerHTML = `<span class="w">${esc(ev.agent)}</span> ${md(a.message)}`;
+        const box = $('talk-' + e); box.appendChild(d); box.scrollTop = box.scrollHeight;
+      }
+      break;
+    }
+    case 'state_write': {
+      s.board[a.field] = a.new;
+      const chip = $(`chip-${e}-${a.field}`);
+      if (chip) {
+        chip.querySelector('b').textContent = a.field === 'cost' ? '$' + a.new : a.new;
+        chip.classList.remove('hit'); void chip.offsetWidth; chip.classList.add('hit');
+      }
+      break;
+    }
+    case 'agent_retriggered':
+      if (e === 'blackboard' || (e === 'hybrid' && (ev.agent === 'Guests' || ev.agent === 'Budget')))
+        travelDot(e, 'BB', ev.agent, 'retrig');
+      break;
+    case 'run_finished': {
+      s.done = true; s.finishedAt = s.turns;
+      if (a.state) for (const f in a.state) {
+        const chip = $(`chip-${e}-${f}`);
+        if (chip) chip.querySelector('b').textContent = f === 'cost' ? '$' + a.state[f] : a.state[f];
+      }
+      const flag = document.createElement('div');
+      flag.className = 'step flag'; flag.textContent = '🏁🎉';
+      $('track-' + e).appendChild(flag);
+      $('lane-' + e).classList.add('finished');
+      break;
+    }
+  }
+}
+
+/* ---------- winner scene ---------- */
+function showWinner() {
+  go(3);
+  const ranked = raceEngines.slice().sort((x, y) => S[x].turns - S[y].turns);
+  const b = S[ranked[0]].board;
+  const plan = `${b.guests} guests, $${b.cost}, ${b.pizzas} pizzas, ${b.vibe} party`;
+
+  if (raceEngines.length === 1) {
+    const e = raceEngines[0], n = NICE[e];
+    $('verdict').innerHTML = `${n.emoji} <b>${n.name}</b> found the party: <b>${plan}</b>.<br>
+      It used <b>${S[e].turns} turns</b> (${S[e].wasted} wasted) and paid <b>$${S[e].cost.toFixed(3)}</b> for the talk.`;
+    $('guessresult').textContent = '';
+    $('podium').innerHTML = '';
+    $('score').innerHTML = '';
+    $('podium').insertAdjacentHTML('beforeend',
+      `<button class="cta" onclick="startRace(['orchestrator','blackboard','hybrid'])">🏁 Now race all three!</button>`);
+    return;
+  }
+
+  const win = ranked[0], lose = ranked[ranked.length - 1];
+  $('verdict').innerHTML = `🎉 <b>Same party from all three:</b> ${plan}.<br>
+    ${NICE[win].emoji} <b style="color:${NICE[win].cvar}">${NICE[win].name}</b> needed only <b>${S[win].turns} turns</b>.
+    ${NICE[lose].emoji} ${NICE[lose].name} needed <b>${S[lose].turns}</b>.<br>
+    <b>Less talk. Same party. That is the whole idea!</b>`;
+
+  if (GUESS) {
+    $('guessresult').innerHTML = GUESS === win
+      ? `✅ Your guess was right! Great job! 🎉`
+      : `❌ Good try! The winner was ${NICE[win].emoji} ${NICE[win].name}.`;
+  } else $('guessresult').textContent = '';
+
+  const heights = { 0: 150, 1: 105, 2: 72 };
+  const medals = ['🥇', '🥈', '🥉'];
+  const order = ranked.length === 3 ? [ranked[1], ranked[0], ranked[2]] : ranked;
+  $('podium').innerHTML = order.map((e) => {
+    const rank = ranked.indexOf(e);
+    return `<div class="pod" style="--e:${NICE[e].cvar}">
+      <div class="medal">${medals[rank]}</div>
+      <div class="who">${NICE[e].emoji} ${NICE[e].name}</div>
+      <div class="turns">${S[e].turns} turns</div>
+      <div class="bar" data-h="${heights[rank]}"></div></div>`;
+  }).join('');
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.querySelectorAll('.pod .bar').forEach((el) => { el.style.height = el.dataset.h + 'px'; });
+  }));
+
+  $('score').innerHTML = `<tr><th>Way</th><th>Turns</th><th>Wasted turns</th><th>Talk cost</th></tr>` +
+    ranked.map((e) => `<tr class="${e === win ? 'win' : ''}" style="--e:${NICE[e].cvar}">
+      <td class="way">${NICE[e].emoji} ${NICE[e].name}</td><td>${S[e].turns}</td>
+      <td>${S[e].wasted}</td><td>$${S[e].cost.toFixed(3)}</td></tr>`).join('');
+
+  confetti();
+}
+
+function confetti() {
+  const box = $('confetti');
+  const colors = ['#ff6b9d', '#4fd1c5', '#f5c542', '#4f8dfd', '#c792ea', '#63c750'];
+  for (let i = 0; i < 90; i++) {
+    const c = document.createElement('div');
+    c.className = 'cf';
+    c.style.left = Math.random() * 100 + 'vw';
+    c.style.background = colors[i % colors.length];
+    c.style.animationDuration = (2.2 + Math.random() * 2) + 's';
+    c.style.animationDelay = (Math.random() * .8) + 's';
+    box.appendChild(c);
+    setTimeout(() => c.remove(), 5200);
+  }
+}
+
+/* ---------- small UI ---------- */
+function toggleTalk() {
+  document.body.classList.toggle('showtalk');
+  $('talkbtn').textContent = document.body.classList.contains('showtalk') ? '💬 Hide the talk' : '💬 Show the talk';
+}
+function openParty() { $('partybox').classList.toggle('open'); }
+function openWords() { $('words').classList.add('open'); }
+function closeWords() { $('words').classList.remove('open'); }
+$('words').onclick = (ev) => { if (ev.target === $('words')) closeWords(); };
+['inGuests', 'inBudget'].forEach((id) => $(id).addEventListener('input', () => { $('goal').textContent = goalLine(); }));
+
+/* expose for inline onclick= */
+Object.assign(window, { go, startRace, restartRace, togglePlay, stepOne, toggleTalk, openParty, openWords, closeWords });
+
+/* ---------- boot ---------- */
+function applyInfo() {
+  MODE = INFO.cassette ? 'cassette' : 'mock';
+  $('liveinfo').textContent = INFO.cassette
+    ? '🎙 Real AI talk — recorded. Free to watch.'
+    : '🤖 Demo talk — offline.';
+}
+if (PRE) {
+  INFO = PRE.info || INFO;
+  applyInfo();
+  // no server: hide things that need one
+  document.querySelectorAll('.expertlink,.btnlink').forEach((el) => { el.style.display = 'none'; });
+  document.querySelectorAll('[onclick*="openParty"]').forEach((el) => { el.style.display = 'none'; });
+} else {
+  fetch('/info').then((r) => r.json()).then((d) => { INFO = d; applyInfo(); })
+    .catch(() => applyInfo());
+}
+playStory();
+
+</script>
+</body>
+</html>

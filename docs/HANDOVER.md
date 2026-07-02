@@ -58,7 +58,21 @@ ovb doctor                         # what mode am I in?
 make test                          # pytest
 ```
 
-## 4. The live dashboard (`ovb serve`)
+## 4. The UI — story journey (`/`) + expert dashboard (`/expert`)
+
+**The default UI is now a 4-scene, gamified story in A2-simple English** (built 2026-07-02
+per the IMPROVEMENTS plan + owner's "full immersive experience" ask). It lives in real
+files — `src/ovb/viz/static/{index.html,style.css,app.js}` — served by the same stdlib
+server (routes `/`, `/static/*`, `/expert`, `/info`, `/run`). Scenes: ① animated problem
+intro (budget bar overflow) → ② the three "ways" with looping mini-diagrams + a
+make-your-guess game → ③ the race: three lanes, traveling dots on arrows, client-side
+buffered playback (per-engine queues drained **round-robin** so lanes race together;
+pause/step/speed presets) → ④ winner podium + medals + confetti + guess payoff + score
+table. Solo mode ("watch only this way") works from scene 2. `ovb export` inlines
+everything + the event stream into a self-contained `examples/demo.html` (replays with
+no server — `window.PRELOADED` branch in app.js).
+
+## 4b. The expert dashboard (`ovb serve` → /expert)
 
 Runs all three harnesses **concurrently** over the same prompt, streaming every event live.
 - **Problem card** with an **ELI5 ⇄ Expert** toggle (plain "four teammates" story vs precise

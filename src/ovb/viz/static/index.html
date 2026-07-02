@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Party Problem — three ways to agree</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('ovb-story-theme')||'dark'}catch(e){}</script>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="stepper" id="stepper">
+    <button data-s="0" class="on">1 · The problem</button>
+    <button data-s="1">2 · Three ways</button>
+    <button data-s="2">3 · The race</button>
+    <button data-s="3">4 · The winner</button>
+  </div>
+  <div class="top-right">
+    <span id="liveinfo" class="liveinfo"></span>
+    <a href="/expert" class="expertlink" title="all the numbers, for experts">🧠 Expert view</a>
+    <button id="themebtn" title="light / dark">☀️</button>
+  </div>
+</header>
+
+<!-- ══════════ SCENE 1 — THE PROBLEM ══════════ -->
+<section class="scene active" id="s0">
+  <h1 class="pop">The Party Problem 🎉</h1>
+  <div class="friends" id="friends">
+    <div class="friend" style="--c:#6ea8fe"><span>😀</span>Guests</div>
+    <div class="friend" style="--c:#4fd1c5"><span>💰</span>Budget</div>
+    <div class="friend" style="--c:#d3a6ff"><span>🍕</span>Food</div>
+    <div class="friend" style="--c:#ff8f8f"><span>🎵</span>Vibe</div>
+  </div>
+  <div class="story" id="story">
+    <p>Four friends plan a birthday party.</p>
+    <p>😀 They want <b>15 guests</b>.</p>
+    <p>💰 Each guest costs <b>$50</b>. So 15 guests cost <b>$750</b>.</p>
+    <p>But they only have <b>$600</b>. Too much! 😬</p>
+    <p>🍕 The pizzas and 🎵 the music follow the guest list.</p>
+    <p>The friends must <b>talk</b> and change the plan — until it fits.</p>
+  </div>
+  <div class="budgetbar">
+    <div class="bb-track"><div class="bb-have" id="bbHave"></div><div class="bb-over" id="bbOver"></div></div>
+    <div class="bb-labels"><span>✅ They have <b>$600</b></span><span class="bad">❌ They need <b>$750</b></span></div>
+  </div>
+  <button class="cta" onclick="go(1)">How do they fix it? →</button>
+</section>
+
+<!-- ══════════ SCENE 2 — THREE WAYS ══════════ -->
+<section class="scene" id="s1">
+  <h1>Three ways to talk 💬</h1>
+  <p class="sub">Same friends. Same problem. Three ways to run the meeting.</p>
+  <div class="ways">
+    <div class="wcard" style="--e:var(--orch)">
+      <div class="wh">👔 The Boss Way <small>(Orchestrator)</small></div>
+      <svg class="mini" viewBox="0 0 200 110" data-mini="boss"></svg>
+      <p>One boss asks each friend. One by one. Again and again. Then one more round, just to check.</p>
+      <button class="ghost" onclick="startRace(['orchestrator'])">▶ Watch only this way</button>
+    </div>
+    <div class="wcard" style="--e:var(--bb)">
+      <div class="wh">📋 The Whiteboard Way <small>(Blackboard)</small></div>
+      <svg class="mini" viewBox="0 0 200 110" data-mini="board"></svg>
+      <p>All friends share <b>one whiteboard</b>. A number changes? Only the right friends speak again.</p>
+      <button class="ghost" onclick="startRace(['blackboard'])">▶ Watch only this way</button>
+    </div>
+    <div class="wcard" style="--e:var(--hy)">
+      <div class="wh">🤝 The Mix Way <small>(Hybrid)</small></div>
+      <svg class="mini" viewBox="0 0 200 110" data-mini="mix"></svg>
+      <p>Guests and Budget fix the money together first. Then Food and Vibe speak once.</p>
+      <button class="ghost" onclick="startRace(['hybrid'])">▶ Watch only this way</button>
+    </div>
+  </div>
+  <p class="keyline">⭐ All three find the <b>same party</b>. But more talk costs more time and more money.</p>
+  <div class="guess" id="guess">
+    <p><b>Your guess:</b> which way needs the <b>least</b> talk?</p>
+    <div class="guessbtns">
+      <button data-g="orchestrator" style="--e:var(--orch)">👔 The Boss Way</button>
+      <button data-g="blackboard" style="--e:var(--bb)">📋 The Whiteboard Way</button>
+      <button data-g="hybrid" style="--e:var(--hy)">🤝 The Mix Way</button>
+    </div>
+  </div>
+  <button class="cta" onclick="startRace(['orchestrator','blackboard','hybrid'])">🏁 Start the race!</button>
+</section>
+
+<!-- ══════════ SCENE 3 — THE RACE ══════════ -->
+<section class="scene" id="s2">
+  <h1>The race 🏁</h1>
+  <p class="sub" id="goal"></p>
+  <div class="controls">
+    <button id="playbtn" onclick="togglePlay()">⏸ Pause</button>
+    <button onclick="stepOne()">⏭ One step</button>
+    <span class="speeds">
+      <button data-sp="600">🐢 Slow</button><button data-sp="300" class="on">▶ Normal</button><button data-sp="90">⚡ Fast</button><button data-sp="0">🚀 Max</button>
+    </span>
+    <button id="talkbtn" onclick="toggleTalk()">💬 Show the talk</button>
+    <button onclick="openParty()">🎛 Change the party</button>
+  </div>
+  <div class="partybox" id="partybox">
+    <label>Guests <input type="number" id="inGuests" value="15" min="1" max="50"></label>
+    <label>Money $ <input type="number" id="inBudget" value="600" min="50" max="100000"></label>
+    <button class="cta small" onclick="restartRace()">🔁 Race again</button>
+  </div>
+  <div class="lanes" id="lanes"></div>
+</section>
+
+<!-- ══════════ SCENE 4 — THE WINNER ══════════ -->
+<section class="scene" id="s3">
+  <h1>The winner! 🏆</h1>
+  <p class="verdict" id="verdict"></p>
+  <p class="guessresult" id="guessresult"></p>
+  <div class="podium" id="podium"></div>
+  <table class="score" id="score"></table>
+  <div class="endbtns">
+    <button class="cta small" onclick="restartRace()">🔁 Race again</button>
+    <button class="ghost" onclick="openParty();go(2)">🎛 Change the party</button>
+    <button class="ghost" onclick="openWords()">📖 Word list</button>
+    <a class="ghost btnlink" href="/expert">🧠 Expert view</a>
+  </div>
+</section>
+
+<!-- word list modal -->
+<div class="modal" id="words">
+  <div class="modal-card">
+    <h2>Word list 📖</h2>
+    <dl>
+      <dt>Turn</dt><dd>One friend speaks one time.</dd>
+      <dt>Wasted turn</dt><dd>A friend speaks, but changes nothing.</dd>
+      <dt>Talk cost</dt><dd>The money paid to the AI for the talking.</dd>
+      <dt>Whiteboard / Board</dt><dd>One page that all friends can see and write on.</dd>
+      <dt>Boss</dt><dd>The one who asks each friend, one by one.</dd>
+      <dt>The race</dt><dd>All three ways solve the same problem. Fewer turns = better.</dd>
+    </dl>
+    <button class="cta small" onclick="closeWords()">OK, got it</button>
+  </div>
+</div>
+
+<div id="confetti"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

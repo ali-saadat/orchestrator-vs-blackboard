@@ -39,6 +39,13 @@ _DEFAULT_MODEL = "claude-haiku-4-5-20251001"   # cheapest; model only affects na
 # anchor to the repo root so `ovb serve` replays the committed cassette from any CWD
 DEMO_CASSETTE = str(Path(__file__).resolve().parents[3] / "cassettes" / "demo.json")
 
+# the immersive story UI lives in real files (lintable, formattable) — see static/
+_STATIC_DIR = Path(__file__).resolve().parent / "static"
+_STATIC_FILES = {  # allowlist => no path traversal
+    "style.css": "text/css; charset=utf-8",
+    "app.js": "text/javascript; charset=utf-8",
+}
+
 
 class _Disconnected(Exception):
     pass
@@ -92,15 +99,33 @@ async def _pump(params: ScenarioParams, engine_names, delay: float, write_ev,
 
 
 class _Handler(BaseHTTPRequestHandler):
+    def _send(self, body: bytes, ctype: str) -> None:
+        self.send_response(200)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         if parsed.path in ("/", "/index.html"):
-            body = INDEX_HTML.encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
+            # the immersive story journey (simple-English, gamified)
+            self._send((_STATIC_DIR / "index.html").read_bytes(),
+                       "text/html; charset=utf-8")
+        elif parsed.path.startswith("/static/"):
+            name = parsed.path[len("/static/"):]
+            if name in _STATIC_FILES:
+                self._send((_STATIC_DIR / name).read_bytes(), _STATIC_FILES[name])
+            else:
+                self.send_response(404); self.end_headers()
+        elif parsed.path == "/expert":
+            # the full expert dashboard (unchanged)
+            self._send(INDEX_HTML.encode("utf-8"), "text/html; charset=utf-8")
+        elif parsed.path == "/info":
+            info = {"cassette": os.path.exists(DEMO_CASSETTE),
+                    "defaults": {"guests": 15, "budget": 600}}
+            self._send(json.dumps(info).encode("utf-8"),
+                       "application/json; charset=utf-8")
         elif parsed.path == "/run":
             self._run(urllib.parse.parse_qs(parsed.query))
         elif parsed.path == "/health":
@@ -419,7 +444,8 @@ marker path{fill:var(--edge)}
 </style></head>
 <body>
 <header><div><h1>Orchestrator vs Blackboard vs Hybrid — same job, three ways to run it</h1></div>
-<button id="themebtn" title="toggle theme">☀️</button></header>
+<a href="/" style="margin-left:auto;align-self:flex-start;color:var(--now);font-size:12.5px;text-decoration:none;white-space:nowrap;padding:6px 0">🎉 Story view</a>
+<button id="themebtn" title="toggle theme" style="margin-left:12px">☀️</button></header>
 <section class="prob">
   <div class="prob-top">
     <div class="prob-eyebrow">The problem <span>— in plain English</span></div>

@@ -1,0 +1,194 @@
+/* ovb story journey — party theme, zero-build, CSS-var themed */
+:root{
+  --bg:#0e1016;--card:#171a23;--line:#2a2f3c;--fg:#eef0f6;--mut:#9aa3b2;--feed:#0f1320;
+  --orch:#8a94a6;--bb:#63c750;--hy:#e0a72b;--now:#4f8dfd;--bad:#e06c75;--ok:#3ecf8e;
+  --gold:#f5c542;--pop1:#ff6b9d;--pop2:#4fd1c5;--pop3:#c792ea;
+}
+html[data-theme="light"]{
+  --bg:#f6f7fb;--card:#ffffff;--line:#dfe4ec;--fg:#1b2230;--mut:#5c6675;--feed:#eef1f6;
+  --orch:#5f6a7d;--bb:#2f9e2a;--hy:#b9781a;--now:#2563eb;--bad:#d64550;--ok:#0f9d63;--gold:#c99b06;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);
+  font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  overflow-x:hidden}
+h1{font-size:clamp(26px,4.5vw,40px);margin:0 0 10px;text-align:center}
+.sub{color:var(--mut);text-align:center;margin:0 0 18px;font-size:15px}
+b{color:var(--fg)}
+
+/* top bar */
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;
+  padding:10px 18px;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.stepper{display:flex;gap:6px;flex-wrap:wrap}
+.stepper button{background:none;border:1px solid var(--line);border-radius:999px;
+  color:var(--mut);padding:5px 12px;font-size:12.5px;cursor:pointer}
+.stepper button.on{background:var(--now);border-color:var(--now);color:#fff;font-weight:700}
+.stepper button.done{color:var(--fg)}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.liveinfo{color:var(--mut);font-size:11.5px}
+.expertlink{color:var(--now);font-size:12.5px;text-decoration:none;white-space:nowrap}
+#themebtn{background:var(--card);border:1px solid var(--line);border-radius:8px;
+  padding:5px 9px;cursor:pointer;font-size:14px;color:var(--fg)}
+
+/* scenes */
+.scene{display:none;max-width:1080px;margin:0 auto;padding:34px 22px 60px;
+  min-height:calc(100vh - 60px)}
+.scene.active{display:block;animation:sceneIn .5s ease-out}
+@keyframes sceneIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.pop{animation:pop .6s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+
+/* scene 1 — friends + story */
+.friends{display:flex;justify-content:center;gap:22px;margin:22px 0;flex-wrap:wrap}
+.friend{display:flex;flex-direction:column;align-items:center;gap:6px;font-weight:700;
+  color:var(--c);opacity:0;animation:pop .5s cubic-bezier(.2,1.6,.4,1) forwards}
+.friend span{display:grid;place-items:center;width:74px;height:74px;border-radius:50%;
+  background:var(--card);border:3px solid var(--c);font-size:34px;
+  box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.friend:nth-child(1){animation-delay:.15s}.friend:nth-child(2){animation-delay:.35s}
+.friend:nth-child(3){animation-delay:.55s}.friend:nth-child(4){animation-delay:.75s}
+.story{max-width:560px;margin:8px auto;text-align:center}
+.story p{opacity:0;transform:translateY(10px);transition:all .5s;margin:10px 0;font-size:17.5px}
+.story p.show{opacity:1;transform:none}
+.budgetbar{max-width:560px;margin:22px auto 6px;opacity:0;transition:opacity .6s}
+.budgetbar.show{opacity:1}
+.bb-track{position:relative;height:30px;border-radius:999px;background:var(--feed);
+  border:1px solid var(--line);overflow:hidden}
+.bb-have{position:absolute;inset:0 auto 0 0;width:0;background:var(--ok);border-radius:999px 0 0 999px;
+  transition:width 1.2s ease-out}
+.bb-over{position:absolute;inset:0 auto 0 76%;width:0;background:var(--bad);
+  transition:width 1s ease-out .9s;animation:overPulse 1.2s infinite 2.2s}
+@keyframes overPulse{50%{filter:brightness(1.45)}}
+.bb-labels{display:flex;justify-content:space-between;margin-top:8px;font-size:14px}
+.bb-labels .bad{color:var(--bad)}
+.cta{display:block;margin:30px auto 0;background:linear-gradient(135deg,var(--now),var(--pop1));
+  color:#fff;border:none;border-radius:14px;padding:15px 30px;font-size:18px;font-weight:800;
+  cursor:pointer;box-shadow:0 8px 24px rgba(79,141,253,.35);transition:transform .15s}
+.cta:hover{transform:translateY(-2px) scale(1.02)}
+.cta.small{padding:10px 20px;font-size:15px;margin:0}
+.ghost{background:var(--card);border:1px solid var(--line);color:var(--fg);border-radius:10px;
+  padding:8px 14px;font-size:13.5px;cursor:pointer}
+.ghost:hover{border-color:var(--now)}
+.btnlink{text-decoration:none;display:inline-block}
+
+/* scene 2 — the three ways */
+.ways{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:18px 0}
+@media(max-width:900px){.ways{grid-template-columns:1fr}}
+.wcard{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--e);
+  border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px;
+  transition:transform .2s;position:relative}
+.wcard:hover{transform:translateY(-4px)}
+.wh{font-weight:800;font-size:16.5px;color:var(--e)}
+.wh small{color:var(--mut);font-weight:500;font-size:11px}
+.mini{width:100%;height:110px;background:var(--feed);border:1px solid var(--line);border-radius:10px}
+.wcard p{margin:0;font-size:14px;color:var(--fg)}
+.keyline{text-align:center;background:var(--card);border:1px solid var(--line);
+  border-left:4px solid var(--gold);border-radius:12px;padding:12px 16px;max-width:640px;margin:18px auto}
+.guess{max-width:640px;margin:10px auto;text-align:center}
+.guessbtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.guessbtns button{background:var(--card);border:2px solid var(--line);border-radius:12px;
+  color:var(--fg);padding:10px 16px;font-size:14px;cursor:pointer;transition:all .15s}
+.guessbtns button:hover{border-color:var(--e)}
+.guessbtns button.picked{border-color:var(--e);background:color-mix(in srgb,var(--e) 15%,var(--card));
+  font-weight:800;transform:scale(1.05)}
+
+/* mini topology animations (scene 2) */
+.mini .mn{fill:var(--card);stroke-width:2}
+.mini text{fill:var(--fg);font-size:9px;font-weight:700;text-anchor:middle}
+.mini .me{stroke:var(--mut);stroke-width:1.5;opacity:.35}
+.mini .spark{animation:sparkle 3.2s linear infinite}
+@keyframes sparkle{0%,18%{opacity:1}22%,100%{opacity:.25}}
+
+/* scene 3 — the race */
+.controls{display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap;
+  margin:0 0 16px;position:sticky;top:52px;z-index:10;background:color-mix(in srgb,var(--bg) 90%,transparent);
+  padding:8px;border-radius:12px}
+.controls button{background:var(--card);border:1px solid var(--line);border-radius:9px;
+  color:var(--fg);padding:7px 13px;font-size:13.5px;cursor:pointer}
+.controls button:hover{border-color:var(--now)}
+.speeds{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.speeds button{border:none;border-radius:0;background:var(--card)}
+.speeds button.on{background:var(--now);color:#fff;font-weight:700}
+.partybox{display:none;justify-content:center;gap:14px;align-items:center;margin:0 0 14px;
+  background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;flex-wrap:wrap}
+.partybox.open{display:flex}
+.partybox label{color:var(--mut);font-size:13.5px;display:flex;gap:7px;align-items:center}
+.partybox input{width:74px;background:var(--feed);color:var(--fg);border:1px solid var(--line);
+  border-radius:8px;padding:7px;font-size:15px}
+.lanes{display:flex;flex-direction:column;gap:14px}
+.lane{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--e);
+  border-radius:14px;padding:12px 16px;animation:sceneIn .4s ease-out}
+.lane-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.lane-name{font-weight:800;font-size:16px;color:var(--e)}
+.lane-name small{color:var(--mut);font-weight:500;font-size:10.5px}
+.lane-live{margin-left:auto;display:flex;gap:16px;font-size:13px;color:var(--mut)}
+.lane-live b{color:var(--fg);font-size:16px;font-variant-numeric:tabular-nums}
+.lane-mid{display:grid;grid-template-columns:210px 1fr;gap:14px;align-items:center;margin-top:8px}
+@media(max-width:760px){.lane-mid{grid-template-columns:1fr}}
+svg.topo{width:210px;height:110px;background:var(--feed);border:1px solid var(--line);border-radius:10px}
+svg.topo .tn rect{fill:var(--card);stroke-width:2}
+svg.topo .tn text{fill:var(--fg);font-size:8.6px;font-weight:700;text-anchor:middle}
+svg.topo .te{stroke:var(--mut);stroke-width:1.4;opacity:.4}
+svg.topo .dot{filter:drop-shadow(0 0 4px currentColor)}
+.trackwrap{min-width:0}
+.track{display:flex;gap:5px;align-items:center;flex-wrap:wrap;min-height:26px}
+.step{width:17px;height:17px;border-radius:50%;background:var(--e);
+  animation:pop .35s cubic-bezier(.2,1.6,.4,1)}
+.step.noop{background:none;border:2px solid var(--mut);opacity:.65}
+.step.flag{background:none;font-size:17px;width:auto;height:auto;animation:pop .5s}
+.board5{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.chip{background:var(--feed);border:1px solid var(--line);border-radius:8px;
+  padding:3px 9px;font-size:12.5px;color:var(--mut)}
+.chip b{color:var(--fg);font-variant-numeric:tabular-nums}
+.chip.hit{animation:chipHit .7s}
+@keyframes chipHit{0%{background:var(--e);color:#0b0d12;transform:scale(1.12)}100%{}}
+.talk{display:none;margin-top:9px;max-height:130px;overflow:auto;background:var(--feed);
+  border:1px solid var(--line);border-radius:9px;padding:7px;font-size:12px}
+body.showtalk .talk{display:block}
+.talk .m{margin:3px 0;padding:4px 7px;background:var(--card);border-radius:6px;
+  border-left:3px solid var(--c,#888);white-space:pre-wrap;overflow-wrap:anywhere}
+.talk .m .w{font-weight:700;color:var(--c)}
+.lane.finished{box-shadow:0 0 0 2px var(--e), 0 10px 30px rgba(0,0,0,.25)}
+.lane .done-tag{display:none;margin-left:8px;font-size:13px;font-weight:800;color:var(--ok)}
+.lane.finished .done-tag{display:inline;animation:pop .5s}
+
+/* scene 4 — winner */
+.verdict{max-width:680px;margin:0 auto 6px;text-align:center;font-size:18px;
+  background:var(--card);border:1px solid var(--line);border-left:5px solid var(--gold);
+  border-radius:14px;padding:16px 20px;animation:pop .5s}
+.guessresult{text-align:center;font-size:16px;min-height:22px;font-weight:700}
+.podium{display:flex;justify-content:center;align-items:flex-end;gap:18px;
+  height:230px;margin:18px 0 8px}
+.pod{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px}
+.pod .medal{font-size:34px;animation:medalDrop .8s cubic-bezier(.2,1.5,.4,1)}
+@keyframes medalDrop{0%{transform:translateY(-70px);opacity:0}100%{transform:none;opacity:1}}
+.pod .who{font-weight:800;color:var(--e);text-align:center;font-size:14.5px}
+.pod .turns{color:var(--mut);font-size:12.5px}
+.pod .bar{width:120px;border-radius:10px 10px 0 0;background:linear-gradient(180deg,var(--e),color-mix(in srgb,var(--e) 55%,#000));
+  height:0;transition:height 1s cubic-bezier(.2,1,.4,1)}
+table.score{margin:14px auto;border-collapse:collapse;background:var(--card);
+  border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:14.5px}
+table.score th,table.score td{padding:9px 16px;border-bottom:1px solid var(--line);text-align:right}
+table.score th:first-child,table.score td:first-child{text-align:left}
+table.score th{color:var(--mut);font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}
+table.score tr.win td{background:color-mix(in srgb,var(--e) 13%,transparent);font-weight:800}
+table.score td.way{color:var(--e);font-weight:700}
+.endbtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+
+/* word list modal */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;
+  place-items:center;padding:20px}
+.modal.open{display:grid}
+.modal-card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+  max-width:480px;padding:22px 26px;animation:pop .35s}
+.modal-card h2{margin:0 0 10px}
+.modal-card dt{font-weight:800;margin-top:10px;color:var(--now)}
+.modal-card dd{margin:2px 0 0;color:var(--fg)}
+.modal-card .cta{margin-top:18px}
+
+/* confetti */
+#confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:40}
+.cf{position:absolute;top:-12px;width:9px;height:14px;border-radius:2px;
+  animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(105vh) rotate(720deg);opacity:.9}}

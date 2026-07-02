@@ -66,21 +66,45 @@ hybrid              5             0                 1,049
 They're the **same agents** behind one **harness** (control loop); only the *scheduling*
 differs — see [docs/HARNESS.md](docs/HARNESS.md).
 
-## The live dashboard
+## The story journey (default UI)
 
-`./run.sh` opens a browser dashboard that runs all three concurrently and streams every step:
+`./run.sh` opens a **4-scene, gamified story** written in simple English (A2 level) —
+built for people who do not code:
 
-- an **ELI5 ⇄ Expert** problem explainer, animated **flow diagrams** (arrows light up per
-  step), the live **state board**, **agent talk**, a plain-language **play-by-play**, and a
-  consolidated **comparison table** with honest margins;
-- **compare** all three or **focus** one; a **Glossary** tab; **light/dark** toggle;
-- **modes**: Mock (offline), **Cassette** (replay real recorded calls, no key), Real API
-  (live streaming Claude); a **model picker** defaulting to the cheapest (Haiku 4.5).
+1. **The problem** 🎉 — an animated intro: four friends, $600, a budget bar that overflows.
+2. **Three ways** 💬 — "The Boss Way / The Whiteboard Way / The Mix Way" as animated
+   cards, plus a **make-your-guess** game (which way needs the least talk?).
+3. **The race** 🏁 — three lanes run side by side with **moving dots along the arrows**,
+   live boards, turn/wasted/cost counters, and video-style controls
+   (pause · one step · slow/normal/fast/max). Watch all three, or **one alone**.
+4. **The winner** 🏆 — an animated podium, medals, **confetti**, your-guess payoff, and a
+   simple score table. Same party — different amounts of talk.
+
+It replays **recorded real Claude calls** by default (free, offline, no key). A **word
+list** explains every term in one line.
+
+## The expert dashboard (`/expert`)
+
+One click from the story (🧠 Expert view): flow diagrams, state boards, agent narration,
+play-by-play log, the consolidated comparison table, Glossary, light/dark, and
+**modes** — Mock (offline), Cassette (replay real recorded calls), Real API (live
+streaming Claude) — plus a **model picker** defaulting to the cheapest (Haiku 4.5).
+
+## Ship it anywhere (`ovb export`)
+
+```bash
+ovb export        # → examples/demo.html
+```
+
+One **self-contained HTML file** (~74 KB) that replays the recorded real run with **no
+server and no install** — open it from a file, email it, or host it on any static page
+(GitHub Pages, S3, …).
 
 ## CLI
 
 ```bash
-ovb serve                 # the live dashboard  (--lan to share, --ngrok for a public URL)
+ovb serve                 # the story journey + /expert  (--lan to share, --ngrok for public)
+ovb export                # one-file demo.html — no server, host anywhere
 ovb bench                 # all 3 harnesses, mock, + a comparison + output/report.html
 ovb models                # compare Haiku/Sonnet/Opus — same result, different cost
 ovb run blackboard        # one harness, print its trace
@@ -106,8 +130,9 @@ src/ovb/
   engines/                 orchestrator · blackboard · hybrid   (scheduling only)
   domain/                  task.py (the PC-build scenario + gate) · agents.py
   eval/                    runner · compare (fairness contract + table)
-  viz/                     report.py (static HTML) · live.py (dashboard)
-  cli.py                   `ovb` command line
+  viz/                     live.py (server + expert page) · static/ (the story journey:
+                           index.html, style.css, app.js) · report.py (static HTML)
+  cli.py                   `ovb` command line (serve, export, bench, models, …)
 tests/                     deterministic, no network
 cassettes/demo.json        recorded real Claude calls (replay offline)
 docs/                      HARNESS · WHEN-TO-USE · EXAMPLE · HANDOVER · PLAN · RESEARCH · architecture

@@ -182,6 +182,60 @@ def serve(host: str = typer.Option("127.0.0.1"), port: int = typer.Option(0, hel
 
 
 @app.command()
+def export(
+    out: str = typer.Option("examples/demo.html", help="output file"),
+    guests: int = typer.Option(15), budget: int = typer.Option(600),
+):
+    """Build ONE self-contained demo.html — the full story journey replaying a
+    recorded run with no server, no install (works from file:// or any static host)."""
+    import json as _json
+    from .viz.live import DEMO_CASSETTE, _STATIC_DIR
+
+    params = _params(guests, budget)
+    use_cassette = Path(DEMO_CASSETTE).exists()
+    config = RunConfig(cassette=(DEMO_CASSETTE if use_cassette else None))
+
+    per_engine: dict[str, list] = {}
+    for name in ("orchestrator", "blackboard", "hybrid"):
+        events: list = []
+
+        def sink(ev, _n=name, _evs=events):
+            d = ev.model_dump()
+            d["engine"] = _n
+            _evs.append(d)
+
+        asyncio.run(run_engine(name, config, params, event_sink=sink))
+        per_engine[name] = events
+
+    # round-robin interleave so the three lanes appear to run together
+    merged: list = [{"engine": "_meta", "kind": "start", "attrs": {}}]
+    queues = [per_engine[n][:] for n in per_engine]
+    while any(queues):
+        for q in queues:
+            if q:
+                merged.append(q.pop(0))
+    merged.append({"engine": "_meta", "kind": "all_done", "attrs": {}})
+
+    html = (_STATIC_DIR / "index.html").read_text()
+    css = (_STATIC_DIR / "style.css").read_text()
+    js = (_STATIC_DIR / "app.js").read_text()
+    preloaded = _json.dumps({
+        "events": merged,
+        "info": {"cassette": use_cassette, "defaults": {"guests": guests, "budget": budget}},
+    })
+    html = html.replace('<link rel="stylesheet" href="/static/style.css">',
+                        "<style>\n" + css + "\n</style>")
+    html = html.replace('<script src="/static/app.js"></script>',
+                        "<script>window.PRELOADED=" + preloaded + "</script>\n<script>\n"
+                        + js + "\n</script>")
+    Path(out).parent.mkdir(parents=True, exist_ok=True)
+    Path(out).write_text(html)
+    typer.echo(f"self-contained demo → {out}  "
+               f"({'recorded REAL calls' if use_cassette else 'mock narration'}, "
+               f"{len(merged)} events, {Path(out).stat().st_size // 1024} KB)")
+
+
+@app.command()
 def doctor():
     """Report the execution mode and dependency availability."""
     def have(m):

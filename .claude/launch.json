@@ -6,6 +6,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "ovb", "serve", "--no-open-browser"],
       "autoPort": true
+    },
+    {
+      "name": "demo-static",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-c", "import os,http.server,socketserver;from functools import partial;h=partial(http.server.SimpleHTTPRequestHandler,directory='examples');s=socketserver.TCPServer(('127.0.0.1',int(os.environ.get('PORT','3999'))),h);s.serve_forever()"],
+      "autoPort": true
     }
   ]
 }
