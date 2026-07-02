@@ -7,7 +7,7 @@ Copy the block below exactly (LinkedIn is plain text — the blank lines and das
 ```text
 Multi-agent AI projects rarely fail on model choice. They fail on coordination — the architecture decision most teams make by default rather than on purpose.
 
-Coordination — which agent acts, and when — is what governs cost, latency, auditability and failure behavior once the system is live.
+It is what governs cost, latency, auditability and failure behavior once the system is live.
 
 Two patterns, both decades older than LLMs, cover most of the ground:
 
@@ -15,7 +15,7 @@ Two patterns, both decades older than LLMs, cover most of the ground:
 
 – Blackboard: shared state, event-triggered specialists. Buys adaptability and scale; pays in explainability and control.
 
-Two operational notes that matter more than any diagram: LLM routing is not deterministic and drifts across model upgrades, and every writer to shared state is a potential injection vector.
+Two operational notes: LLM routing is not deterministic and drifts across model upgrades, and every writer to shared state is a potential injection vector.
 
 Three questions settle most architecture reviews:
 – Can you specify the process before execution? → supervisor
@@ -24,7 +24,7 @@ Three questions settle most architecture reviews:
 
 Mature deployments end up hybrid: an orchestrated core for the regulated path, an event-driven perimeter around it.
 
-The full write-up includes an attribute-by-attribute comparison and a 10-row sector fit table, from banking KYC to catastrophe response.
+The article includes a head-to-head comparison and a 10-row sector fit table, from banking KYC to catastrophe response.
 
 Model choices change quarterly. The coordination architecture is the decision the system lives with.
 
