@@ -19,7 +19,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class PlanState(BaseModel):
-    """The typed build state for the gaming-PC scenario.
+    """The typed party plan for the birthday-party scenario.
 
     In the blackboard and hybrid core this is the SHARED board all agents read and
     write (and re-trigger on); in the orchestrator it is the supervisor's
@@ -30,11 +30,11 @@ class PlanState(BaseModel):
     """
 
     model_config = ConfigDict(frozen=True)
-    gpu: int                        # chosen GPU tier (owned by GPU)
-    max_gpu: int | None = None      # highest tier the budget allows (owned by Budget)
-    cost: int | None = None         # total build cost $ (owned by Budget)
-    watts: int | None = None        # PSU wattage (owned by Power)
-    perf: Literal["low", "medium", "high", "ultra"] | None = None  # FPS class (owned by Performance)
+    guests: int                       # invited guests (owned by Guests)
+    max_guests: int | None = None     # most guests the budget allows (owned by Budget)
+    cost: int | None = None           # total party cost $ (owned by Budget)
+    pizzas: int | None = None         # pizzas to order (owned by Food)
+    vibe: Literal["chill", "lively", "wild"] | None = None  # party vibe (owned by Vibe)
 
     def fingerprint(self) -> str:
         return hashlib.sha256(self.model_dump_json().encode()).hexdigest()[:16]

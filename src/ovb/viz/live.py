@@ -61,7 +61,7 @@ async def _pump(params: ScenarioParams, engine_names, delay: float, write_ev,
 
     write_ev({"engine": "_meta", "kind": "start",
               "attrs": {"engines": engine_names, "mode": mode, "model": model,
-                        "params": {"gpu": params.wanted_gpu,
+                        "params": {"guests": params.wanted_guests,
                                    "budget": params.budget_cap}}})
 
     async def run_one(name):
@@ -125,8 +125,8 @@ class _Handler(BaseHTTPRequestHandler):
             except (TypeError, ValueError):
                 return d
 
-        gpu = max(1, min(4, _int("gpu", 4)))
-        budget = max(1, min(100000, _int("budget", 1000)))
+        guests = max(1, min(50, _int("guests", 15)))
+        budget = max(1, min(100000, _int("budget", 600)))
         engines = one("engines", ",".join(_ALL)).split(",")
         engines = [e for e in engines if e in _ALL] or list(_ALL)
         delay = max(0.0, min(2.0, _float("delay", 0.35)))
@@ -134,7 +134,7 @@ class _Handler(BaseHTTPRequestHandler):
         mode = mode if mode in ("mock", "real", "cassette") else "mock"
         model = one("model", _DEFAULT_MODEL)
         model = model if model in _MODELS else _DEFAULT_MODEL
-        params = ScenarioParams(wanted_gpu=gpu, budget_cap=budget)
+        params = ScenarioParams(wanted_guests=guests, budget_cap=budget)
 
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
@@ -426,31 +426,31 @@ marker path{fill:var(--edge)}
     <div class="seg"><button id="segE" class="on" type="button">ELI5</button><button id="segX" type="button">Expert</button></div>
   </div>
   <div id="probE" class="prob-body">
-    <p class="prob-head">Four teammates, one PC build — which way wastes the least?</p>
-    <p>Four teammates are speccing one gaming PC. Each owns a piece: the <b>GPU tier</b>, the <b>budget</b>, the <b>power supply</b>, and the <b>performance</b> (FPS). Their choices fight each other: you want the top GPU, but it blows the budget — so drop the tier, and the wattage and FPS drop too. They keep nudging the build until it finally fits.</p>
-    <p class="prob-tip">In the panels below, the four teammates are the agents <b>GPU · Budget · Power · Performance</b>, and the “whiteboard” is the shared <b>Board</b>.</p>
+    <p class="prob-head">Four friends, one birthday party — which way wastes the least?</p>
+    <p>Four friends are planning one birthday party. Each owns a piece: the <b>guest list</b>, the <b>budget</b>, the <b>food</b>, and the <b>vibe</b>. Their choices fight each other: you want 15 people, but at $50 a head that's $750 — over the $600 budget. Trim the list to 12 and the pizza order and the vibe change too. They keep nudging the plan until it finally fits.</p>
+    <p class="prob-tip">In the panels below, the four friends are the agents <b>Guests · Budget · Food · Vibe</b>, and the “whiteboard” is the shared <b>Board</b>.</p>
   </div>
   <div id="probX" class="prob-body" style="display:none">
-    <p>Four specialist agents negotiate one PC build under coupled constraints: <b>gpu</b> (tier 1–4, want 4), <b>budget</b> (hard cap $1000 ÷ $300/tier ⇒ tier 3 max), <b>power</b> (watts = tier × 150 + 100), and <b>perf</b> (FPS class from the tier: 4→ultra, 3→high, 2→medium, else low). The tier drives everything, so dropping it to fit the budget also drops wattage and FPS — agents re-fire until a fixed point: <b>tier 3 · $900 · 550W · high</b>. A <b>deterministic gate</b> (never the model) checks convergence and declares done.</p>
+    <p>Four specialist agents negotiate one party plan under coupled constraints: <b>guests</b> (want 15), <b>budget</b> (hard cap $600 ÷ $50/guest ⇒ 12 max), <b>pizzas</b> (⌈guests ÷ 3⌉), and <b>vibe</b> (from the headcount: &gt;12 wild, &gt;8 lively, else chill). The headcount drives everything, so trimming it to fit the budget also shrinks the pizza order and calms the vibe — agents re-fire until a fixed point: <b>12 guests · $600 · 4 pizzas · lively</b>. A <b>deterministic gate</b> (never the model) checks convergence and declares done.</p>
     <p>All three schedules reach the same fixed point over a streaming API; they differ only in turn efficiency:</p>
     <ul>
     <li><b style="color:var(--orchestrator)">orchestrator</b> — a hub polls all four in fixed order, looping until stable, plus a confirming no-op sweep. That final all-quiet pass is the <b>hub tax</b>: maximum turns and tokens.</li>
     <li><b style="color:var(--blackboard)">blackboard</b> — a shared state store; a write only wakes the dependents of the changed field. Fewer no-op turns.</li>
-    <li><b style="color:var(--hybrid)">hybrid</b> — GPU and Budget (tightest coupling) share the blackboard; Power and Performance each run once in order.</li>
+    <li><b style="color:var(--hybrid)">hybrid</b> — Guests and Budget (tightest coupling) share the blackboard; Food and Vibe each run once in order.</li>
     </ul>
     <p>Metrics: agent calls, no-op turns, tokens, dollar cost. Lower is more efficient.</p>
   </div>
   <div class="ways-h">Three ways to run the meeting <span>— all reach the same plan</span></div>
   <div class="ways">
-    <div class="way" style="--e:var(--orchestrator)"><div class="way-h">Orchestrator<span>· “the boss runs it”</span></div><div class="way-b">A boss asks each teammate to speak, one at a time, in a fixed order — looping through all four again and again until nobody changes anything, plus one extra round just to double-check. The most back-and-forth.</div></div>
-    <div class="way" style="--e:var(--blackboard)"><div class="way-h">Blackboard<span>· “one shared whiteboard”</span></div><div class="way-b">Everyone writes on one shared whiteboard. When a number changes, only the teammates who care about that number chime back in. Far less wasted talk.</div></div>
-    <div class="way" style="--e:var(--hybrid)"><div class="way-h">Hybrid<span>· “a bit of both”</span></div><div class="way-b">The two teammates who clash the most (GPU &amp; Budget) settle it together on the whiteboard first; then the other two each speak just once. A tidy middle ground.</div></div>
+    <div class="way" style="--e:var(--orchestrator)"><div class="way-h">Orchestrator<span>· “the boss runs it”</span></div><div class="way-b">A boss asks each friend to speak, one at a time, in a fixed order — looping through all four again and again until nobody changes anything, plus one extra round just to double-check. The most back-and-forth.</div></div>
+    <div class="way" style="--e:var(--blackboard)"><div class="way-h">Blackboard<span>· “one shared whiteboard”</span></div><div class="way-b">Everyone writes on one shared whiteboard. When a number changes, only the friends who care about that number chime back in. Far less wasted talk.</div></div>
+    <div class="way" style="--e:var(--hybrid)"><div class="way-h">Hybrid<span>· “a bit of both”</span></div><div class="way-b">The two friends who clash the most (Guests &amp; Budget) settle it together on the whiteboard first; then the other two each speak just once. A tidy middle ground.</div></div>
   </div>
-  <p class="target">🎯 <b>Same build, every time.</b> For your prompt (tier <b id="hf">4</b> GPU, $<b id="hb">1000</b>) all three reach the one build that fits: <b id="tgt">tier 3 GPU · $900 · 550W · high FPS</b>. The only difference is <b>how much talking and money</b> it took — that’s the comparison table below.</p>
+  <p class="target">🎯 <b>Same party, every time.</b> For your ask (<b id="hf">15</b> guests, $<b id="hb">600</b>) all three reach the one plan that fits: <b id="tgt">12 guests · $600 · 4 pizzas · lively vibe</b>. The only difference is <b>how much talking and money</b> it took — that’s the comparison table below.</p>
 </section>
 <div class="bar">
-  <label>GPU tier <input type="number" id="gpu" value="4" min="1" max="4"></label>
-  <label>budget $ <input type="number" id="budget" value="1000" min="1" max="100000"></label>
+  <label>guests <input type="number" id="guests" value="15" min="1" max="50"></label>
+  <label>budget $ <input type="number" id="budget" value="600" min="1" max="100000"></label>
   <label>mode
     <select id="mode">
       <option value="mock">Mock — instant, offline, fake</option>
@@ -485,20 +485,20 @@ marker path{fill:var(--edge)}
 const ALL=['orchestrator','blackboard','hybrid'];
 const COLORS={orchestrator:'#8a94a6',blackboard:'#63c750',hybrid:'#e0a72b'};
 const CM={orchestrator:'hub · fixed order · no shared board',blackboard:'shared board · reactive',hybrid:'bounded board + supervisor tail'};
-const AGENTC={GPU:'#6ea8fe',Budget:'#4fd1c5',Power:'#d3a6ff',Performance:'#ff8f8f'};
-const FIELDS=['gpu','max_gpu','cost','watts','perf'];
-const BOARD_LABEL={orchestrator:'supervisor state · fixed-order sweeps · no shared board, no re-triggering',blackboard:'shared blackboard · all agents read/write',hybrid:'shared board (GPU↔Budget core) + supervisor tail'};
+const AGENTC={Guests:'#6ea8fe',Budget:'#4fd1c5',Food:'#d3a6ff',Vibe:'#ff8f8f'};
+const FIELDS=['guests','max_guests','cost','pizzas','vibe'];
+const BOARD_LABEL={orchestrator:'supervisor state · fixed-order sweeps · no shared board, no re-triggering',blackboard:'shared blackboard · all agents read/write',hybrid:'shared board (Guests↔Budget core) + supervisor tail'};
 const FEED_LABEL={orchestrator:'activity · message passing',blackboard:'activity · shared memory',hybrid:'activity · core shared + tail messages'};
 const TOPO={
- orchestrator:{nodes:{SUP:[150,22],GPU:[48,108],Budget:[116,108],Power:[184,108],Performance:[252,108]},
-   edges:[['SUP','GPU'],['SUP','Budget'],['SUP','Power'],['SUP','Performance']],
+ orchestrator:{nodes:{SUP:[150,22],Guests:[48,108],Budget:[116,108],Food:[184,108],Vibe:[252,108]},
+   edges:[['SUP','Guests'],['SUP','Budget'],['SUP','Food'],['SUP','Vibe']],
    cap:'Supervisor calls each agent in fixed order · blue arrow = a message (no shared board)'},
- blackboard:{nodes:{BB:[150,70],GPU:[50,24],Budget:[250,24],Power:[50,116],Performance:[250,116]},
-   edges:[['BB','GPU'],['BB','Budget'],['BB','Power'],['BB','Performance']],
+ blackboard:{nodes:{BB:[150,70],Guests:[50,24],Budget:[250,24],Food:[50,116],Vibe:[250,116]},
+   edges:[['BB','Guests'],['BB','Budget'],['BB','Food'],['BB','Vibe']],
    cap:'All agents share one Board · teal = write to board · purple = board re-triggers an agent'},
- hybrid:{nodes:{BB:[74,70],GPU:[34,30],Budget:[34,112],SUP:[188,70],Power:[256,42],Performance:[256,100]},
-   edges:[['BB','GPU'],['BB','Budget'],['BB','SUP'],['SUP','Power'],['SUP','Performance']],
-   cap:'Board core (GPU↔Budget: teal/purple), then Supervisor tail (Power, Performance: blue message)'}
+ hybrid:{nodes:{BB:[74,70],Guests:[34,30],Budget:[34,112],SUP:[188,70],Food:[256,42],Vibe:[256,100]},
+   edges:[['BB','Guests'],['BB','Budget'],['BB','SUP'],['SUP','Food'],['SUP','Vibe']],
+   cap:'Board core (Guests↔Budget: teal/purple), then Supervisor tail (Food, Vibe: blue message)'}
 };
 let view='compare', es=null, ran=[], S={};
 const $=id=>document.getElementById(id);
@@ -520,7 +520,7 @@ function flowSVG(e){const t=TOPO[e],s=S[e],f=s.flow,N=t.nodes;
    return `<line class="fx ${on?'on '+f.type+(rev?' rev':''):''}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" ${mk}/>`;}).join('');
  const nodes=Object.entries(N).map(([name,[x,y]])=>{const w=name==='SUP'?68:name==='BB'?58:48,h=18;
    const kind=name==='BB'?'nboard':name==='SUP'?'nsup':'nagent';
-   const label=name==='BB'?'Board':name==='SUP'?'Supervisor':name==='Performance'?'Perf':name;
+   const label=name==='BB'?'Board':name==='SUP'?'Supervisor':name;
    const nc=name==='BB'?'var(--blackboard)':name==='SUP'?COLORS[e]:(AGENTC[name]||'#888');
    const pulse=(f&&f.target===name)?'pulse':'';
    return `<g class="node ${kind} ${pulse}"><rect x="${x-w/2}" y="${y-h/2}" width="${w}" height="${h}" rx="4" style="--nc:${nc}"/><text x="${x}" y="${y+3.4}">${label}</text></g>`;}).join('');
@@ -545,11 +545,11 @@ function panelHTML(e){const s=S[e];if(!s)return `<div class="panel" style="--e:$
    <div class="blabel">${BOARD_LABEL[e]}</div>
    <div class="board">${board}</div>
    <div class="meters">${meter('calls',s.calls)}${meter('wasted',s.wasted)}${meter('tokens',s.tok)}${meter('cost','$'+s.cost.toFixed(5))}${meter('gate',s.gate?'PASS':'…')}</div>
-   <div class="feeds"><div class="feed"><h4>What each teammate said<span class="fsub">one specialist per turn, in plain words</span></h4><div class="talk" id="talk-${e}">${talk}</div></div>
+   <div class="feeds"><div class="feed"><h4>What each friend said<span class="fsub">one specialist per turn, in plain words</span></h4><div class="talk" id="talk-${e}">${talk}</div></div>
    <div class="feed"><h4>Play-by-play<span class="fsub" title="🎤 a turn · ✏️ changed a number · ✅ nothing to change · 🔔 must re-check · 🏁 done-check">every turn &amp; change · hover for key ⓘ</span></h4><div class="log" id="log-${e}">${log}</div></div></div></div>`;}
 
 function fmtPlan(b){const g=k=>b[k]===undefined||b[k]===null?'—':b[k];
-  return `tier ${g('gpu')} · $${g('cost')} · ${g('watts')}W · ${g('perf')}`;}
+  return `${g('guests')} guests · $${g('cost')} · ${g('pizzas')} pizzas · ${g('vibe')}`;}
 function ratio(base,val){if(!base||!val||val>=base)return '';return '<span class="marg">'+(base/val).toFixed(2)+'× fewer</span>';}
 function comparisonHTML(){
   const engines=(ran.length?ran:selected()).filter(e=>S[e]);
@@ -585,7 +585,7 @@ function render(){const grid=$('grid'),gl=$('glossary'),cmp=$('cmp');
 
 function handle(ev){const e=ev.engine,a=ev.attrs||{};
  if(e==='_meta'){if(ev.kind==='all_done'&&es){es.close();es=null;} if(ev.kind==='error'){$('note').textContent='error: '+a.msg;} return;}
- const s=S[e]; if(!s)return; const core=e==='hybrid'&&(ev.agent==='GPU'||ev.agent==='Budget');
+ const s=S[e]; if(!s)return; const core=e==='hybrid'&&(ev.agent==='Guests'||ev.agent==='Budget');
  switch(ev.kind){
   case 'run_started': s.status='running'; break;
   case 'agent_activated': s.steps++; s.log.push({t:`🎤 ${ev.agent}'s turn`});
@@ -602,7 +602,7 @@ function handle(ev){const e=ev.engine,a=ev.attrs||{};
   case 'state_write': s.board[a.field]=a.new; s.flash[a.field]=true; s.writes++;
     s.log.push({t:`  ✏️ set ${a.field}: ${a.old} → ${a.new}`,cls:'write'}); break;
   case 'agent_retriggered': s.log.push({t:`  🔔 ${ev.agent} has to re-check (${a.because})`,cls:'retrig'});
-    if(e==='blackboard'||(e==='hybrid'&&(ev.agent==='GPU'||ev.agent==='Budget')))setFlow(e,'BB',ev.agent,'retrig'); break;
+    if(e==='blackboard'||(e==='hybrid'&&(ev.agent==='Guests'||ev.agent==='Budget')))setFlow(e,'BB',ev.agent,'retrig'); break;
   case 'gate_checked': s.gate=a.passed; s.log.push({t:`  🏁 done-check: ${a.passed?'every rule satisfied ✓':'not yet…'}`,cls:'gate'}); break;
   case 'run_finished': s.status='done'; if(a.state)s.board=a.state; if(a.consistent!==undefined)s.gate=a.consistent; break;
   case 'engine_done': if(!s.err)s.status='done'; break;
@@ -618,7 +618,7 @@ function run(){ran=selected(); if(!ran.length){alert('select at least one engine
  recalcTarget();
  $('note').textContent = MODE_HELP[mode] || '';
  if(es)es.close();
- const q=`gpu=${+$('gpu').value||1}&budget=${+$('budget').value||1}&engines=${ran.join(',')}`
+ const q=`guests=${+$('guests').value||1}&budget=${+$('budget').value||1}&engines=${ran.join(',')}`
    +`&delay=${(+$('delay').value)/1000}&mode=${mode}&model=${encodeURIComponent($('model').value)}`;
  es=new EventSource('/run?'+q);
  es.onmessage=m=>handle(JSON.parse(m.data));
@@ -630,16 +630,16 @@ function run(){ran=selected(); if(!ran.length){alert('select at least one engine
 const CASS='cassettes/demo.json';
 const MODE_HELP={
  mock:'Mock: deterministic fake narration — instant, offline, no API key, no cost. The plan, call counts and structure are identical to a real run; only the wording is stubbed.',
- cassette:'Cassette: replaying RECORDED real Claude calls — you see the real outputs, tokens and cost, but it runs offline with no API key and no new spend (recorded at GPU tier 4, budget $1000; record other cases with: ovb bench --real --cassette '+CASS+').',
+ cassette:'Cassette: replaying RECORDED real Claude calls — you see the real outputs, tokens and cost, but it runs offline with no API key and no new spend (recorded at 15 guests, budget $600; record other cases with: ovb bench --real --cassette '+CASS+').',
  real:'Real API: live STREAMING Claude — uses your ANTHROPIC_API_KEY and spends money. Paced by real model latency.'};
 const GLOSS=[
  ['Harness','var(--now)','The deterministic program around the model — the control loop that calls the model, applies its result through the ownership reducer, and checks the gate. Orchestrator, blackboard and hybrid are three harnesses; only the scheduling differs.'],
  ['Orchestrator','var(--orchestrator)','Hub-and-spoke. A central <b>supervisor</b> invokes agents in a fixed order over its accumulated state. <span class="warn">No shared board and no re-triggering</span> — an agent never wakes because another wrote a field; coordination is only the supervisor\'s next sweep. Each call is a fresh model call over the supervisor\'s current state. Converges by re-sweeping the whole roster.'],
  ['Blackboard','var(--blackboard)','Shared-state. All agents read and write ONE shared board. A write <b>re-triggers</b> only the agents subscribed to the changed field, so work is proportional to the ripples, not roster × rounds.'],
- ['Hybrid','var(--hybrid)','A bounded blackboard over the tightly-coupled core (GPU↔Budget), then a linear supervisor tail (Power, Performance). Gets shared-board reactivity where it helps and message-passing where it does not.'],
+ ['Hybrid','var(--hybrid)','A bounded blackboard over the tightly-coupled core (Guests↔Budget), then a linear supervisor tail (Food, Vibe). Gets shared-board reactivity where it helps and message-passing where it does not.'],
  ['Shared board (shared memory)','var(--blackboard)','The single board all agents read/write, with reactive <b>re-triggering</b>. <span class="warn">Exists only in the blackboard and the hybrid core.</span> The orchestrator has none — its state is supervisor-held and updated only by fixed-order sweeps (no reactive board).'],
  ['Supervisor','var(--orchestrator)','The central agent that routes work in a fixed order and holds the state in the orchestrator (and drives the hybrid tail).'],
- ['Knowledge source / agent','var(--now)','A specialist that owns fields and reacts to changes. Here: GPU, Budget, Power, Performance. Identical across all three harnesses — only the harness (scheduling) differs.'],
+ ['Knowledge source / agent','var(--now)','A specialist that owns fields and reacts to changes. Here: Guests, Budget, Food, Vibe. Identical across all three harnesses — only the harness (scheduling) differs.'],
  ['Control unit','var(--hybrid)','The deterministic scheduler + iteration cap that drives the blackboard event loop (picks who fires next, bounds the run).'],
  ['Gate','var(--gate)','The deterministic "are we done?" check. The LLM <b>never</b> decides termination — code does.'],
  ['Re-trigger','var(--retrig)','On a shared board, a write wakes the agents subscribed to the changed field (purple arrow in the flow).'],
@@ -650,7 +650,7 @@ const GLOSS=[
  ['Streaming vs Batch','var(--now)','We use the <b>streaming</b> Messages API (real-time SSE, token-by-token). NOT the Batch API (asynchronous, up to 24h, 50% cheaper) — you would not see the flow.'],
  ['Model choice','var(--ok)','Since decisions are rule-based, the model only <b>narrates</b>. It changes tokens/cost, never the plan or call counts — so the cheapest model (Haiku 4.5, $1/$5) fits. Compare with <code>ovb models</code>.'],
  ['Mock mode','var(--ok)','Deterministic fake narration, generated instantly and fully offline. No API key, no network, no cost. The call counts, writes and gate behaviour are REAL (from the harness); only the model\'s prose is stubbed. Best for understanding the topologies.'],
- ['Cassette mode','var(--now)','Replays a recorded REAL run offline. The outputs, token counts and dollar costs are the actual Claude responses captured earlier with <code>ovb bench --real --cassette</code> — so you see real numbers with <b>no API key and no spend</b>. The committed recording is GPU tier 4, budget $1000.'],
+ ['Cassette mode','var(--now)','Replays a recorded REAL run offline. The outputs, token counts and dollar costs are the actual Claude responses captured earlier with <code>ovb bench --real --cassette</code> — so you see real numbers with <b>no API key and no spend</b>. The committed recording is 15 guests, budget $600.'],
  ['Real API mode','var(--hybrid)','Live <b>streaming</b> Claude calls over the real Messages API. <span class="warn">Needs ANTHROPIC_API_KEY (from a local .env) and actually costs tokens/money.</span> Paced by model latency, not the speed slider.'],
 ];
 function glossaryHTML(){return `<div class="card"><h2>Glossary</h2>
@@ -671,14 +671,14 @@ $('segX').onclick=()=>{$('segX').classList.add('on');$('segE').classList.remove(
 // expand a clamped agent message (inline onclick → must be global)
 window.expandMsg=function(e,i){if(S[e]&&S[e].talk[i]){S[e].talk[i].expanded=true;render();}};
 // live "expected plan" recompute — mirrors domain/task.py exactly
-function recalcTarget(){const want=Math.max(1,Math.min(4,+$('gpu').value||1));const cap=Math.max(1,+$('budget').value||1);
- const g=Math.min(want,Math.floor(cap/300));const watts=g*150+100,cost=g*300;
- const perf=g>=4?'ultra':g===3?'high':g===2?'medium':'low';
- $('hf').textContent=want;$('hb').textContent=cap;$('tgt').textContent=`tier ${g} GPU · $${cost} · ${watts}W · ${perf} FPS`;}
-$('gpu').addEventListener('input',recalcTarget);$('budget').addEventListener('input',recalcTarget);recalcTarget();
+function recalcTarget(){const want=Math.max(1,Math.min(50,+$('guests').value||1));const cap=Math.max(1,+$('budget').value||1);
+ const g=Math.min(want,Math.floor(cap/50));const cost=g*50,pizzas=Math.ceil(g/3);
+ const vibe=g>12?'wild':g>8?'lively':'chill';
+ $('hf').textContent=want;$('hb').textContent=cap;$('tgt').textContent=`${g} guests · $${cost} · ${pizzas} pizzas · ${vibe} vibe`;}
+$('guests').addEventListener('input',recalcTarget);$('budget').addEventListener('input',recalcTarget);recalcTarget();
 // optional auto-run from URL params (shareable links & screenshots)
 (function(){const q=new URLSearchParams(location.search);
- ['gpu','budget','mode','model','delay'].forEach(k=>{if(q.has(k))$(k).value=q.get(k);});
+ ['guests','budget','mode','model','delay'].forEach(k=>{if(q.has(k))$(k).value=q.get(k);});
  if(q.get('view')){view=q.get('view');syncTabs();}
  if(q.get('auto'))run();})();
 </script>

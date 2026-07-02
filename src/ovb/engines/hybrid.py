@@ -4,10 +4,11 @@ Scheduling discipline: the supervisor keeps top-level control but delegates the
 *tightly-coupled* sub-problem to a bounded blackboard, then finishes the
 *independent* tail linearly.
 
-For the PC build the tight cycle is GPU ↔ Budget (a budget cap forces a GPU-tier
-drop, which changes the cost, …). Power and Performance only *read* the settled
-tier, so they need no re-triggering — running them once, after the core settles,
-avoids the pure blackboard's "Performance fires at ultra, then re-fires at high" churn.
+For the party plan the tight cycle is Guests ↔ Budget (a budget cap trims the
+guest list, which changes the cost, …). Food and Vibe only *read* the settled
+headcount, so they need no re-triggering — running them once, after the core
+settles, avoids the pure blackboard's "Vibe fires at wild, then re-fires at
+lively" churn.
 
 Honest note: the hybrid's edge here comes from *encoding the dependency structure*
 (the architect knows which agents form the cycle). That knowledge is the price of
@@ -21,8 +22,8 @@ from collections import deque
 from ..contracts import EngineResult
 from ..core.harness import Harness
 
-CORE = {"GPU", "Budget"}         # the tightly-coupled cycle (want-vs-afford)
-TAIL = ("Power", "Performance")  # independent, downstream-only
+CORE = {"Guests", "Budget"}      # the tightly-coupled cycle (want-vs-afford)
+TAIL = ("Food", "Vibe")          # independent, downstream-only
 
 
 class HybridHarness(Harness):
@@ -32,7 +33,7 @@ class HybridHarness(Harness):
         self._start()
         steps = 0
 
-        # Phase A — bounded blackboard over the coupled core {GPU, Budget}
+        # Phase A — bounded blackboard over the coupled core {Guests, Budget}
         subs = self.registry.subscription_index(only=CORE)
         queue: deque[tuple[str, str]] = deque()
         queued: set[str] = set()
@@ -43,7 +44,7 @@ class HybridHarness(Harness):
                     queue.append((n, why))
                     queued.add(n)
 
-        enqueue(subs.get("gpu", []), "seed: gpu posted (core)")
+        enqueue(subs.get("guests", []), "seed: guest list posted (core)")
         while queue and steps < self.config.hybrid_cap:
             steps += 1
             name, why = queue.popleft()

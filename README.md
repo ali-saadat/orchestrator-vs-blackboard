@@ -31,26 +31,27 @@ Share it on your network (no tunnel — works on managed/corporate Macs):
 ./run.sh --lan           # prints an http://<your-ip>:8000/ URL for the same Wi-Fi/VPN
 ```
 
-## The demo: build a gaming PC that fits a budget
+## The demo: plan a birthday party that fits a budget
 
-Four specialist agents agree on one build. Their choices are **interdependent**:
+Four friends agree on one party plan. Their choices are **interdependent**:
 
 | Agent | Owns | Rule |
 |---|---|---|
-| **GPU** | the tier (you want 4) | drop the tier if the budget won't allow it |
-| **Budget** | cost + the affordable tier | cost = tier × $300; cap $1000 ⇒ tier 3 max |
-| **Power** | PSU watts | watts = tier × 150 + 100 |
-| **Performance** | FPS class | follows the tier (4→ultra, 3→high, …) |
+| **Guests** | the guest list (you'd love 15) | trim the list if the budget won't allow it |
+| **Budget** | cost + the affordable headcount | cost = guests × $50; cap $600 ⇒ 12 max |
+| **Food** | pizzas | one pizza feeds 3 → 15→5, 12→4 |
+| **Vibe** | the party's feel | >12 wild · >8 lively · else chill |
 
-You want a tier-4 GPU, but it blows the $1000 budget — so it drops to tier 3, and the
-wattage and FPS drop with it. All three control models reach the **same** build
-(`tier 3 · $900 · 550W · high`); they differ only in how much coordination it takes:
+You want 15 people, but at $50 a head that's $750 — over the $600 budget. Trim to 12,
+and the pizza order and the vibe change with it. All three control models reach the
+**same** plan (`12 guests · $600 · 4 pizzas · lively`); they differ only in how much
+coordination it takes:
 
 ```
               agent calls   wasted (no-op)   tokens (Haiku, real)
-orchestrator       12             5                 2,988
-blackboard          7             0                 1,863   ← 1.71× fewer calls
-hybrid              5             0                 1,367
+orchestrator       12             5                 2,676
+blackboard          7             0                 1,510   ← 1.71× fewer calls
+hybrid              5             0                 1,049
 ```
 
 ## The three control models (harnesses)

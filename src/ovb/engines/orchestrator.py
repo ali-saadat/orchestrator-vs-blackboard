@@ -18,7 +18,7 @@ from __future__ import annotations
 from ..contracts import EngineResult
 from ..core.harness import Harness
 
-ORDER = ("GPU", "Budget", "Power", "Performance")
+ORDER = ("Guests", "Budget", "Food", "Vibe")
 
 
 class OrchestratorHarness(Harness):

@@ -13,7 +13,7 @@ from ovb.domain import agents, task  # noqa: E402
 from ovb.eval.compare import FairnessContract  # noqa: E402
 from ovb.eval.runner import run_all  # noqa: E402
 
-EXPECTED = {"gpu": 3, "max_gpu": 3, "cost": 900, "watts": 550, "perf": "high"}
+EXPECTED = {"guests": 12, "max_guests": 12, "cost": 600, "pizzas": 4, "vibe": "lively"}
 
 
 def _run():
@@ -58,9 +58,9 @@ def test_fairness_contract_holds():
 
 
 def test_ownership_reducer_blocks_out_of_scope_writes():
-    st = PlanState(gpu=4)
+    st = PlanState(guests=15)
     try:
-        apply_patch(st, {"perf": "high"}, owner="Budget", owns=("cost", "max_gpu"))
+        apply_patch(st, {"vibe": "wild"}, owner="Budget", owns=("cost", "max_guests"))
         assert False, "expected OwnershipError"
     except OwnershipError:
         pass
@@ -68,7 +68,7 @@ def test_ownership_reducer_blocks_out_of_scope_writes():
 
 def test_gate_predicate():
     assert task.is_consistent(PlanState(**EXPECTED))
-    assert not task.is_consistent(PlanState(**{**EXPECTED, "gpu": 4}))
+    assert not task.is_consistent(PlanState(**{**EXPECTED, "guests": 15}))
 
 
 if __name__ == "__main__":

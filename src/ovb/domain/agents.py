@@ -1,11 +1,11 @@
 """The four specialists as KnowledgeSources — IDENTICAL for all three harnesses.
 
-Gaming-PC build. Rules close over `ScenarioParams`. Each `rule` is the
+Birthday-party planning. Rules close over `ScenarioParams`. Each `rule` is the
 deterministic decision authority; the LLM narrates/validates.
-  - GPU         owns `gpu`,   reacts to `max_gpu`  (drop the tier if the budget won't allow it)
-  - Budget      owns `cost`+`max_gpu`, reacts to `gpu`  (price it; cap the tier)
-  - Power       owns `watts`, reacts to `gpu`
-  - Performance owns `perf`,  reacts to `gpu`, `watts`
+  - Guests owns `guests`,  reacts to `max_guests`  (trim the list if the budget won't allow it)
+  - Budget owns `cost`+`max_guests`, reacts to `guests`  (price it; cap the list)
+  - Food   owns `pizzas`, reacts to `guests`
+  - Vibe   owns `vibe`,   reacts to `guests`, `pizzas`
 """
 from __future__ import annotations
 
@@ -17,47 +17,47 @@ from .task import ScenarioParams
 def build_registry(params: "ScenarioParams | None" = None) -> AgentRegistry:
     p = params or ScenarioParams()
 
-    def gpu_rule(s):
-        if s.max_gpu is not None and s.gpu > s.max_gpu:
-            return {"gpu": s.max_gpu}
+    def guests_rule(s):
+        if s.max_guests is not None and s.guests > s.max_guests:
+            return {"guests": s.max_guests}
         return {}
 
     def budget_rule(s):
-        cost = s.gpu * p.gpu_price
+        cost = s.guests * p.price_per_guest
         patch = {"cost": cost}
         if cost > p.budget_cap:
-            patch["max_gpu"] = p.budget_cap // p.gpu_price
+            patch["max_guests"] = p.budget_cap // p.price_per_guest
         else:
-            patch["max_gpu"] = s.gpu
+            patch["max_guests"] = s.guests
         return patch
 
-    def power_rule(s):
-        return {"watts": task.watts_for(s.gpu, p)}
+    def food_rule(s):
+        return {"pizzas": task.pizzas_for(s.guests, p)}
 
-    def perf_rule(s):
-        return {"perf": task.perf_for(s.gpu)}
+    def vibe_rule(s):
+        return {"vibe": task.vibe_for(s.guests)}
 
     return AgentRegistry(
         sources=(
             KnowledgeSource(
-                "GPU", ("gpu",), ("max_gpu",),
-                "You own the GPU tier. Keep it within the tier the budget allows.",
-                gpu_rule,
+                "Guests", ("guests",), ("max_guests",),
+                "You own the guest list. Keep it within what the budget allows.",
+                guests_rule,
             ),
             KnowledgeSource(
-                "Budget", ("cost", "max_gpu"), ("gpu",),
-                "You own the Budget. Price the build and cap the affordable GPU tier.",
+                "Budget", ("cost", "max_guests"), ("guests",),
+                "You own the Budget. Price the party and cap the affordable guest count.",
                 budget_rule,
             ),
             KnowledgeSource(
-                "Power", ("watts",), ("gpu",),
-                "You own the PSU. Wattage scales with the GPU tier.",
-                power_rule,
+                "Food", ("pizzas",), ("guests",),
+                "You own the Food. One pizza feeds three guests.",
+                food_rule,
             ),
             KnowledgeSource(
-                "Performance", ("perf",), ("gpu", "watts"),
-                "You own Performance. The FPS class follows the GPU tier.",
-                perf_rule,
+                "Vibe", ("vibe",), ("guests", "pizzas"),
+                "You own the Vibe. The party's feel follows the headcount.",
+                vibe_rule,
             ),
         )
     )

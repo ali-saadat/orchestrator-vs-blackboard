@@ -42,7 +42,7 @@ code level all three share one `PlanState` via `harness.invoke`; the real differ
   Sonnet 5 $2/$10 (intro), Opus 4.8 $5/$25, Fable 5 $10/$50.
 - **CLI** (`ovb ...`): `serve`, `bench`, `run`, `models`, `doctor`.
 - **Live dashboard** (`viz/live.py`, stdlib SSE, no build step) — see §4.
-- **Cassette** `cassettes/demo.json`: real recorded calls for 3 models (Haiku/Sonnet5/Opus) at gpu=4/budget=1000.
+- **Cassette** `cassettes/demo.json`: real recorded calls for 3 models (Haiku/Sonnet5/Opus) at guests=15/budget=600.
 - **Docs**: HARNESS, WHEN-TO-USE, EXAMPLE, PLAN, RESEARCH, architecture, this handover.
 - **Tests**: `tests/` (10 pass, deterministic, no network).
 
@@ -115,14 +115,15 @@ hard-fails if roster/gate/sampling/start differ or engines diverge on the final 
 
 ## 8. The demo task & how to change it
 
-Current task = **gaming-PC build** (`domain/task.py`): agents **GPU, Budget, Power,
-Performance** reconcile `gpu/max_gpu/cost/watts/perf` to a fixpoint (defaults → tier 3 ·
-$900 · 550W · high). It's interdependent (budget caps the GPU tier → power & FPS re-check),
-which is what makes the blackboard win. GPU↔Budget is the coupled core; Power/Performance the tail.
+Current task = **birthday party** (`domain/task.py`): agents **Guests, Budget, Food,
+Vibe** reconcile `guests/max_guests/cost/pizzas/vibe` to a fixpoint (defaults → 12 guests ·
+$600 · 4 pizzas · lively). It's interdependent (budget caps the guest list → food & vibe
+re-check), which is what makes the blackboard win. Guests↔Budget is the coupled core;
+Food/Vibe the tail. Chosen for the non-technical audience (universally tangible).
 
 **To swap the task** (e.g. another domain), touch:
 1. `domain/task.py` — `ScenarioParams`, constants, `initial_state`, `is_consistent` (the gate),
-   `perf_for`/`watts_for`, `scenario_text`.
+   `vibe_for`/`pizzas_for`, `scenario_text`.
 2. `domain/agents.py` — agent names, `owns`/`subscribes`, `rule` functions.
 3. `core/state.py` — `PlanState` fields.
 4. `tests/test_smoke.py` — `EXPECTED` final state + headline call counts.

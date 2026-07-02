@@ -1,16 +1,16 @@
-"""Scenario — build a gaming PC that fits a budget.
+"""Scenario — plan a birthday party that fits a budget.
 
-Four specialists agree on one build:
-  - GPU        = the graphics card tier (1–4). You want the top tier.
-  - Budget     = the money; a hard cap. Cost = tier × $/tier, so a higher tier
-                 may not fit — Budget then caps the tier you can afford.
-  - Power      = the PSU wattage; it scales with the GPU tier.
-  - Performance= the FPS class; it follows the GPU tier.
+Four friends agree on one party plan:
+  - Guests = the guest list. You'd love to invite 15 people.
+  - Budget = the money; a hard cap. Cost = guests × $50/head, so a long guest
+             list may not fit — Budget then caps how many you can afford.
+  - Food   = the pizzas; one pizza feeds 3 guests.
+  - Vibe   = the feel of the party; it follows the headcount.
 
-Interdependence (why the shared board helps): the GPU tier drives everything.
-Dropping it to fit the budget also lowers the wattage and the FPS class, so a
-change ripples — but only to the agents that depend on the tier. The tightly
-coupled pair is GPU ↔ Budget (want-vs-afford); Power and Performance just follow.
+Interdependence (why the shared board helps): the guest list drives everything.
+Trimming it to fit the budget also changes the pizza order and the vibe, so a
+change ripples — but only to the friends who depend on the headcount. The tightly
+coupled pair is Guests ↔ Budget (want-vs-afford); Food and Vibe just follow.
 """
 from __future__ import annotations
 
@@ -19,20 +19,18 @@ from dataclasses import dataclass
 from ..core.state import PlanState
 
 # defaults (used when no ScenarioParams is supplied)
-GPU_PRICE = 300          # $ per GPU tier
-BUDGET_CAP = 1000        # $ hard cap
-WATTS_PER_TIER = 150     # PSU watts added per tier
-WATTS_BASE = 100         # PSU baseline watts
-TOP_TIER = 4             # highest GPU tier on offer
+PRICE_PER_GUEST = 50     # $ per guest (food, drinks, favors)
+BUDGET_CAP = 600         # $ hard cap
+GUESTS_PER_PIZZA = 3     # one pizza feeds 3
+WANTED_GUESTS = 15       # the wish-list headcount
 
 
 @dataclass(frozen=True)
 class ScenarioParams:
-    wanted_gpu: int = TOP_TIER      # the tier you'd like (the "ask")
-    budget_cap: int = BUDGET_CAP    # the hard $ cap
-    gpu_price: int = GPU_PRICE
-    watts_per_tier: int = WATTS_PER_TIER
-    watts_base: int = WATTS_BASE
+    wanted_guests: int = WANTED_GUESTS   # how many you'd love to invite (the "ask")
+    budget_cap: int = BUDGET_CAP         # the hard $ cap
+    price_per_guest: int = PRICE_PER_GUEST
+    guests_per_pizza: int = GUESTS_PER_PIZZA
 
 
 def _p(params: "ScenarioParams | None") -> ScenarioParams:
@@ -42,10 +40,11 @@ def _p(params: "ScenarioParams | None") -> ScenarioParams:
 def scenario_text(params: "ScenarioParams | None" = None) -> str:
     p = _p(params)
     return (
-        f"Build a gaming PC. You want a tier-{p.wanted_gpu} GPU, but there is a hard "
-        f"budget cap of ${p.budget_cap} (each GPU tier costs ${p.gpu_price}); the PSU "
-        f"wattage and the FPS class both follow the GPU tier. GPU, Budget, Power and "
-        "Performance are interdependent — find the best build that fits the budget."
+        f"Plan a birthday party. You want to invite {p.wanted_guests} guests, but "
+        f"there is a hard budget cap of ${p.budget_cap} (each guest costs "
+        f"${p.price_per_guest}); one pizza feeds {p.guests_per_pizza} guests, and "
+        "the vibe follows the headcount. Guests, Budget, Food and Vibe are "
+        "interdependent — find the best party that fits the budget."
     )
 
 
@@ -54,36 +53,35 @@ SCENARIO = scenario_text()
 
 
 def initial_state(params: "ScenarioParams | None" = None) -> PlanState:
-    return PlanState(gpu=_p(params).wanted_gpu)
+    return PlanState(guests=_p(params).wanted_guests)
 
 
-def perf_for(gpu):
-    """FPS class that follows the GPU tier."""
-    if gpu is None:
+def vibe_for(guests):
+    """The party vibe that follows the headcount."""
+    if guests is None:
         return None
-    if gpu >= 4:
-        return "ultra"
-    if gpu == 3:
-        return "high"
-    if gpu == 2:
-        return "medium"
-    return "low"
+    if guests > 12:
+        return "wild"
+    if guests > 8:
+        return "lively"
+    return "chill"
 
 
-def watts_for(gpu, params: "ScenarioParams | None" = None):
+def pizzas_for(guests, params: "ScenarioParams | None" = None):
+    """One pizza feeds `guests_per_pizza` people (round up so nobody goes hungry)."""
     p = _p(params)
-    return None if gpu is None else gpu * p.watts_per_tier + p.watts_base
+    return None if guests is None else -(-guests // p.guests_per_pizza)
 
 
 def is_consistent(state: PlanState, params: "ScenarioParams | None" = None) -> bool:
-    """The gate: is this a valid, self-consistent build?"""
+    """The gate: is this a valid, self-consistent party plan?"""
     p = _p(params)
-    g = state.gpu
+    g = state.guests
     return all(
         [
             state.cost is not None and state.cost <= p.budget_cap,
-            state.max_gpu is not None and g <= state.max_gpu,
-            state.watts == watts_for(g, p),
-            state.perf == perf_for(g),
+            state.max_guests is not None and g <= state.max_guests,
+            state.pizzas == pizzas_for(g, p),
+            state.vibe == vibe_for(g),
         ]
     )
