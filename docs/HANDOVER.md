@@ -1,6 +1,6 @@
 # ovb — Handover & project memory
 
-_Last updated: 2026-07-02 · repo is **local-only** (not pushed) · latest commit `fe4f69c`._
+_Last updated: 2026-07-02 · **published: [github.com/ali-saadat/orchestrator-vs-blackboard](https://github.com/ali-saadat/orchestrator-vs-blackboard)** (CI: Ubuntu+Windows, offline)._
 
 This is the "pick it up cold" doc: what the project is, how to run it, how it's built,
 what's done, what's next, and the gotchas. For the concept read [HARNESS.md](HARNESS.md);
