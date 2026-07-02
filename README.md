@@ -1,168 +1,106 @@
-# ovb — Orchestrator vs Blackboard vs Hybrid
+<div align="center">
 
-**Watch three multi-agent control models solve the *same* task, side by side — and see
-which one wastes the fewest agent calls.** A runnable, instrumented lab for anyone
-deciding how to coordinate LLM agents.
+# 🎭 Orchestrator vs Blackboard
 
-Same agents, same task, same deterministic done-check. Only the **control loop** differs.
-Everything is measured: agent calls, tokens, real $ cost, and a full audit log.
+**Four AI agents negotiate one job offer. Three coordination patterns. Same deal — very different bills.**
 
-![Orchestrator vs Blackboard vs Hybrid](docs/images/topologies.svg)
+[![ci](https://github.com/ali-saadat/orchestrator-vs-blackboard/actions/workflows/ci.yml/badge.svg)](https://github.com/ali-saadat/orchestrator-vs-blackboard/actions/workflows/ci.yml)
+![python](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)
+![demo](https://img.shields.io/badge/demo-no%20API%20key%20needed-3ecf8e)
+![deps](https://img.shields.io/badge/dashboard-zero%20dependencies-4f8dfd)
+[![license](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
+
+*All three reach the identical deal — **$110k + $8k bonus + 4 remote days** — but:*
+
+| | 👔 Orchestrator | 📋 Blackboard | 🤝 Hybrid |
+|---|:---:|:---:|:---:|
+| **agent turns** | 24 | 14 | **13** |
+| **wasted turns** | 🔴 10 | 🟢 0 | 🟢 0 |
+| **real cost** (Haiku) | $0.031 | $0.018 | **$0.015** |
+
+</div>
 
 ---
 
-## Run it — one click
+## 🚀 Run it — no API key needed
+
+The demo **replays real recorded Claude calls** (real words, tokens, and cost — zero spend, works offline).
+
+| 🍎 macOS / 🐧 Linux | 🪟 Windows |
+|---|---|
+| `./run.sh` | `run.bat` |
+| or double-click `run.command` (Finder) | or double-click `run.bat` (Explorer) |
+
+<sub>Both use [`uv`](https://docs.astral.sh/uv/) if installed, else create a local `.venv` automatically. Manual: `pip install -e . && ovb serve`. Share on your network: `./run.sh --lan`.</sub>
+
+**🔑 Want live AI calls?** Copy `.env.example` → `.env`, add your `ANTHROPIC_API_KEY`, then `ovb bench --real` or pick **Real API** in the dashboard. Never commit `.env`.
+
+## 🎬 What you'll see
+
+A 4-scene, gamified story (simple English, built for non-technical viewers too):
+**① the problem** (a $30k salary gap + hidden rules) → **② three ways to talk** + a guess-the-winner game → **③ the race** — three lanes with a from→to message ledger, value pills flying along the arrows, and video-style controls → **④ the winner** — podium, confetti, and the score. Experts: one click to the **`/expert`** dashboard (flow diagrams, WORM log, comparison table, model picker).
+
+## 🧠 The three patterns
+
+```mermaid
+flowchart LR
+    subgraph O["👔 ORCHESTRATOR — hub & spoke"]
+        SUP((Boss)) --> A1[🙋] & A2[🧑‍💼] & A3[📋] & A4[💰]
+    end
+    subgraph B["📋 BLACKBOARD — shared state"]
+        B1[🙋] & B2[🧑‍💼] & B3[📋] & B4[💰] <--> BB[(Board)]
+    end
+    subgraph H["🤝 HYBRID — bounded board + tail"]
+        C1[🙋] & C2[🧑‍💼] & C3[📋] <--> BB2[(Board)] --> SUP2((Boss)) --> C4[💰]
+    end
+    style O fill:#8a94a615,stroke:#8a94a6
+    style B fill:#63c75015,stroke:#63c750
+    style H fill:#e0a72b15,stroke:#e0a72b
+```
+
+- 👔 **Orchestrator** — a supervisor polls every agent in fixed sweeps. No shared state, no reactivity: it re-asks idle agents every round **and** pays a full no-op lap to confirm it is done. That is the 10 wasted turns (the *hub tax*).
+- 📋 **Blackboard** — one shared board; **a write wakes only its subscribers**. HR & Finance sleep through the haggle and wake exactly when the deal lands. Work ∝ what changes.
+- 🤝 **Hybrid** — the live negotiation shares the board; the sign-off runs once at the end. Wins by encoding structure you already know — and breaks if you get that structure wrong.
+
+**The one-liner:** *the orchestrator pays per agent per round; the blackboard pays per change.*
+
+Same agents, same deterministic done-check, same LLM — only the **control loop** differs, so the gap is attributable to nothing else. Decisions are rule-based (the model narrates), which also means **the model choice never changes the outcome, only the cost** — compare with `ovb models`.
+
+## 🛠 CLI & structure
 
 ```bash
-git clone <this-repo> && cd ovb
-./run.sh                 # opens the live dashboard in your browser
+ovb serve      # the story + /expert   (--lan to share · --ngrok for a public URL)
+ovb export     # ONE self-contained demo.html — replays with no server, host anywhere
+ovb bench      # CLI comparison        ovb models   # Haiku vs Sonnet vs Opus, same result
+ovb run blackboard --ask 140 --band 115             # one engine, your numbers
 ```
 
-- **macOS:** or just **double-click `run.command`** in Finder.
-- Also: `make run`, or `uv run ovb serve`, or `pip install -e . && ovb serve`.
-
-**No API key needed.** The dashboard ships with **recorded real Claude calls** you can
-replay offline (real tokens & cost, zero spend). `./run.sh` uses [`uv`](https://docs.astral.sh/uv/)
-if present, otherwise it creates a local `.venv` on first run.
-
-Share it on your network (no tunnel — works on managed/corporate Macs):
-
-```bash
-./run.sh --lan           # prints an http://<your-ip>:8000/ URL for the same Wi-Fi/VPN
+```
+src/ovb/  core/ (harness · state · gate · llm · trace)   ← shared kernel, fairness in code
+          engines/ (orchestrator · blackboard · hybrid)  ← ONLY the scheduling differs
+          domain/ (the negotiation)  viz/ (story UI + expert)  eval/ (fairness contract)
+cassettes/demo.json   recorded real Claude runs (the no-key replay)
+docs/     TEACHING · WHEN-TO-USE · HARNESS · EXAMPLE · HANDOVER · RESEARCH
 ```
 
-## The demo: negotiate a job offer
+## 📚 Learn & teach
 
-Four people close one deal — a genuine multi-round **negotiation**, not arithmetic
-(you cannot eyeball the answer):
+| | |
+|---|---|
+| 🎓 [TEACHING.md](docs/TEACHING.md) | classroom lesson plan — the three journeys narrated from real traces |
+| 🧭 [WHEN-TO-USE.md](docs/WHEN-TO-USE.md) | task shape → pattern: tree ⇒ orchestrator · graph ⇒ blackboard · visible split ⇒ hybrid |
+| ⚙️ [HARNESS.md](docs/HARNESS.md) | the organizing idea: *agent = model + harness*; these are three harnesses |
+| 🔬 [EXAMPLE.md](docs/EXAMPLE.md) | the real recorded numbers, reproducible offline |
+| 📖 [RESEARCH.md](docs/RESEARCH.md) | cited state-of-the-art survey (169 sources) |
 
-| Agent | Owns | Strategy / rule |
-|---|---|---|
-| **Candidate** | the ask (opens $130k) | concede ~15% of the gap per turn; accept the band when it's final |
-| **Manager** | the offer + the deal (opens $100k) | go up step by step, never above HR's band |
-| **HR** | the band ($110k) + remote days | announce the band mid-talk; 1 remote day per $5k conceded |
-| **Finance** | the total cap ($124k) + bonus | sign the bonus once the base lands (up to $8k, if room) |
+## 🔗 References
 
-The ask comes down, the offer goes up, HR's band re-anchors both mid-flight — and the
-deal emerges: **$110k + $8k bonus + 4 remote days**, identical from all three control
-models. The destination is provably unique (the concession protocol is clamped), so
-only the coordination cost differs:
+**Blackboard architecture** · [Blackboard system — Wikipedia](https://en.wikipedia.org/wiki/Blackboard_system) · [Nii, *Blackboard Systems* (1986)](https://ojs.aaai.org/aimagazine/index.php/aimagazine/article/view/537) — the classic: knowledge sources + shared board + control shell (Hearsay-II lineage).
 
-```
-              agent calls   wasted (no-op)   tokens (Haiku, real)
-orchestrator       24            10                 8,464
-blackboard         14             0                 4,875   ← 1.71× fewer calls
-hybrid             13             0                 4,123
-```
+**Multi-agent orchestration** · [Anthropic — Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) (the orchestrator-workers pattern) · [Anthropic — How we built our multi-agent research system](https://www.anthropic.com/engineering/built-multi-agent-research-system) (real production numbers) · [LangGraph — multi-agent concepts](https://langchain-ai.github.io/langgraph/concepts/multi_agent/) · [Microsoft — Magentic-One](https://www.microsoft.com/en-us/research/articles/magentic-one-a-generalist-multi-agent-system-for-solving-complex-tasks/).
 
-The orchestrator polls HR and Finance on **every** haggling round (they have nothing
-new to say) and pays a full confirming sweep — 10 wasted calls you can watch happen.
+**The counterpoint (read it!)** · [Cognition — Don't build multi-agents](https://cognition.ai/blog/dont-build-multi-agents) — start with one agent; escalate to a topology only when interdependence or parallelism demands it.
 
-## The three control models (harnesses)
+## 📄 License
 
-- **Orchestrator** — a supervisor calls each agent in a fixed order, looping until stable,
-  plus a confirming no-op sweep. No shared board, no reactivity. The most turns ("hub tax").
-- **Blackboard** — all agents read/write one shared board; a write re-triggers only the
-  agents that depend on the changed field. Fewer wasted turns.
-- **Hybrid** — a bounded blackboard for the live negotiation (Candidate ↔ Manager ↔ HR),
-  then a supervisor tail (Finance signs once).
-
-They're the **same agents** behind one **harness** (control loop); only the *scheduling*
-differs — see [docs/HARNESS.md](docs/HARNESS.md).
-
-## The story journey (default UI)
-
-`./run.sh` opens a **4-scene, gamified story** written in simple English (A2 level) —
-built for people who do not code:
-
-1. **The problem** 💼 — an animated intro: four people, a $30k gap, and hidden rules (the band, the cap).
-2. **Three ways** 💬 — "The Boss Way / The Whiteboard Way / The Mix Way" as animated
-   cards, plus a **make-your-guess** game (which way needs the least talk?).
-3. **The race** 🏁 — three lanes run side by side with **moving dots along the arrows**,
-   live boards, turn/wasted/cost counters, and video-style controls
-   (pause · one step · slow/normal/fast/max). Watch all three, or **one alone**.
-4. **The winner** 🏆 — an animated podium, medals, **confetti**, your-guess payoff, and a
-   simple score table. Same deal — different amounts of talk.
-
-It replays **recorded real Claude calls** by default (free, offline, no key). A **word
-list** explains every term in one line.
-
-## The expert dashboard (`/expert`)
-
-One click from the story (🧠 Expert view): flow diagrams, state boards, agent narration,
-play-by-play log, the consolidated comparison table, Glossary, light/dark, and
-**modes** — Mock (offline), Cassette (replay real recorded calls), Real API (live
-streaming Claude) — plus a **model picker** defaulting to the cheapest (Haiku 4.5).
-
-## Ship it anywhere (`ovb export`)
-
-```bash
-ovb export        # → examples/demo.html
-```
-
-One **self-contained HTML file** (~140 KB) that replays the recorded real run with **no
-server and no install** — open it from a file, email it, or host it on any static page
-(GitHub Pages, S3, …).
-
-## CLI
-
-```bash
-ovb serve                 # the story journey + /expert  (--lan to share, --ngrok for public)
-ovb export                # one-file demo.html — no server, host anywhere
-ovb bench                 # all 3 harnesses, mock, + a comparison + output/report.html
-ovb models                # compare Haiku/Sonnet/Opus — same result, different cost
-ovb run blackboard        # one harness, print its trace
-ovb bench --real          # live Claude calls (needs ANTHROPIC_API_KEY in .env, and the
-                          #   `real` extra: uv run --extra real ovb …  /  pip install -e '.[real]')
-ovb doctor                # what mode am I in?
-```
-
-Because decisions are rule-based (the model only *narrates*), the model choice never
-changes the plan — only tokens/cost. So use the cheapest that fits. See
-[docs/EXAMPLE.md](docs/EXAMPLE.md) for the real 3-model numbers.
-
-## Project structure
-
-```
-run.sh · run.command       one-click launchers
-pyproject.toml             package + deps (uv/pip); entry point: `ovb`
-src/ovb/
-  contracts.py             canonical Usage / Event / Engine types
-  config.py · pricing.py   run config; dated Claude prices → real $
-  core/                    harness.py (the control-loop primitives) · state · registry ·
-                           gate · llm (mock/streaming/cassette) · trace (WORM log)
-  engines/                 orchestrator · blackboard · hybrid   (scheduling only)
-  domain/                  task.py (the job-offer scenario + gate) · agents.py
-  eval/                    runner · compare (fairness contract + table)
-  viz/                     live.py (server + expert page) · static/ (the story journey:
-                           index.html, style.css, app.js) · report.py (static HTML)
-  cli.py                   `ovb` command line (serve, export, bench, models, …)
-tests/                     deterministic, no network
-cassettes/demo.json        recorded real Claude calls (replay offline)
-docs/                      HARNESS · WHEN-TO-USE · EXAMPLE · HANDOVER · PLAN · RESEARCH · architecture
-```
-
-## Development
-
-```bash
-pip install -e ".[dev]"    # or: uv run --extra dev …
-make test                  # pytest (deterministic, no network)
-make bench                 # regenerate output/report.html
-```
-
-New to the code? Start with [docs/HANDOVER.md](docs/HANDOVER.md), then
-[docs/HARNESS.md](docs/HARNESS.md).
-
-## Documentation
-
-- **[docs/HARNESS.md](docs/HARNESS.md)** — the harness concept + how the three topologies map to code.
-- **[docs/TEACHING.md](docs/TEACHING.md)** — a classroom lesson plan: the three journeys
-  narrated from real traces, when to use which, discussion questions.
-- **[docs/WHEN-TO-USE.md](docs/WHEN-TO-USE.md)** — decision guide: which control model to pick.
-- **[docs/EXAMPLE.md](docs/EXAMPLE.md)** — real-Claude worked example (3 models), reproducible offline.
-- **[docs/HANDOVER.md](docs/HANDOVER.md)** — cold-start handover & project state.
-- **[docs/PLAN.md](docs/PLAN.md)** · **[docs/RESEARCH.md](docs/RESEARCH.md)** · **[docs/architecture.md](docs/architecture.md)**.
-
-## License
-
-MIT — see [LICENSE](LICENSE).
+MIT © [Ali Saadat](https://github.com/ali-saadat)

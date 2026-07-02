@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ovb"
-version = "0.2.0"
+version = "0.3.0"
 description = "Orchestrator vs Blackboard vs Hybrid — three agent-harness topologies over identical agents, instrumented for real token/cost/latency"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -15,6 +15,10 @@ dependencies = [
   "pydantic>=2.6",   # typed shared state + reducers + validated events
   "typer>=0.12",     # CLI
 ]
+
+[project.urls]
+Homepage = "https://github.com/ali-saadat/orchestrator-vs-blackboard"
+Repository = "https://github.com/ali-saadat/orchestrator-vs-blackboard"
 
 [project.optional-dependencies]
 real = ["anthropic>=0.42"]                 # --real: live streaming Claude calls
