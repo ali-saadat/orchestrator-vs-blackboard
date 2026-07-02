@@ -170,7 +170,7 @@ b{color:var(--fg)}
 @keyframes clIn{0%{opacity:.3;transform:translateY(4px)}100%{opacity:1;transform:none}}
 svg.topo{width:300px;height:150px;background:var(--feed);border:1px solid var(--line);border-radius:10px}
 svg.topo .tn rect{fill:var(--card);stroke-width:2}
-svg.topo .tn text.nm{fill:var(--fg);font-size:8.6px;font-weight:800;text-anchor:middle}
+svg.topo .tn text.nm{fill:var(--fg);font-size:8.2px;font-weight:800;text-anchor:middle}
 svg.topo .tn text.val{fill:var(--mut);font-size:8px;font-weight:600;text-anchor:middle;font-variant-numeric:tabular-nums}
 svg.topo .tn.speak rect{animation:speakGlow .9s infinite}
 @keyframes speakGlow{50%{stroke-width:4;filter:drop-shadow(0 0 7px currentColor)}}
@@ -403,12 +403,12 @@ const FRIENDC = { Candidate: '#6ea8fe', Manager: '#4fd1c5', HR: '#d3a6ff', Finan
 const FRIENDE = { Candidate: '🙋', Manager: '🧑\u200d💼', HR: '📋', Finance: '💰' };
 const CHIPS = [['ask', '🙋 Ask $k'], ['offer', '🧑\u200d💼 Offer $k'], ['salary', '🤝 Salary $k'],
                ['bonus', '💰 Bonus $k'], ['remote', '📋 Remote days']];
-const TOPO = {
-  orchestrator: { nodes: { SUP: [150, 22], Candidate: [48, 108], Manager: [116, 108], HR: [184, 108], Finance: [252, 108] },
+const TOPO = {   // 300x150 canvas; agent nodes 68px, hub nodes 72px wide — no overlaps
+  orchestrator: { nodes: { SUP: [150, 22], Candidate: [40, 112], Manager: [114, 112], HR: [188, 112], Finance: [262, 112] },
     edges: [['SUP', 'Candidate'], ['SUP', 'Manager'], ['SUP', 'HR'], ['SUP', 'Finance']] },
-  blackboard: { nodes: { BB: [150, 70], Candidate: [50, 24], Manager: [250, 24], HR: [50, 116], Finance: [250, 116] },
+  blackboard: { nodes: { BB: [150, 75], Candidate: [50, 24], Manager: [250, 24], HR: [50, 126], Finance: [250, 126] },
     edges: [['BB', 'Candidate'], ['BB', 'Manager'], ['BB', 'HR'], ['BB', 'Finance']] },
-  hybrid: { nodes: { BB: [80, 70], Candidate: [40, 30], Manager: [40, 112], HR: [120, 118], SUP: [192, 70], Finance: [256, 70] },
+  hybrid: { nodes: { Candidate: [40, 22], Manager: [40, 75], HR: [40, 128], BB: [118, 75], SUP: [230, 40], Finance: [230, 112] },
     edges: [['BB', 'Candidate'], ['BB', 'Manager'], ['BB', 'HR'], ['BB', 'SUP'], ['SUP', 'Finance']] },
 };
 const DOTC = { msg: '#4f8dfd', write: '#2dd4bf', retrig: '#c792ea' };
@@ -593,7 +593,7 @@ function buildTopo(e) {
   for (const name in t.nodes) {
     const [x, y] = t.nodes[name];
     const hub = name === 'SUP' || name === 'BB';
-    const w = hub ? 72 : 74;
+    const w = hub ? 72 : 68;
     const g = mk('g', { class: 'tn', id: `ng-${e}-${name}` });
     const color = name === 'BB' ? 'var(--bb)' : name === 'SUP' ? NICE[e].cvar : (FRIENDC[name] || '#888');
     g.setAttribute('style', `color:${color}`);
@@ -667,6 +667,12 @@ function hubOf(e, agent) {
 }
 function hubLabel(e, agent) { return hubOf(e, agent) === 'BB' ? '📋 <b>Board</b>' : '👔 <b>Boss</b>'; }
 function who(agent) { return `${FRIENDE[agent] || ''} <b>${esc(agent)}</b>`; }
+const FIELDWORD = { band_max: 'the band', total_cap: 'the cap', salary: 'the deal',
+                    offer: 'the offer', ask: 'the ask', bonus: 'the bonus', remote: 'remote days' };
+function pretty(t) {
+  return String(t).replace(/band_max|total_cap|salary|offer|bonus|remote|ask/g, (m) => FIELDWORD[m] || m)
+    .replace(/\s*\(core\)/, '');
+}
 
 /* ---------- playback ---------- */
 function setSpeed(ms, btn) {
@@ -805,7 +811,7 @@ function handle(ev) {
       const trg = a.trigger || '';
       let why = 'your turn.';
       if (trg.startsWith('seed')) why = 'the talk starts — go.';
-      else if (trg.includes('changed')) why = `🔔 ${esc(trg)} — react.`;
+      else if (trg.includes('changed')) why = `🔔 ${esc(pretty(trg))} — react.`;
       else if (trg.includes('sweep')) why = `your turn (${esc(trg)}).`;
       say(e, `${hubLabel(e, ev.agent)} <span class="dir">→</span> ${who(ev.agent)}: ${why}`);
       break;

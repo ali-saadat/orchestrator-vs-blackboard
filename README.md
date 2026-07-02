@@ -156,6 +156,8 @@ New to the code? Start with [docs/HANDOVER.md](docs/HANDOVER.md), then
 ## Documentation
 
 - **[docs/HARNESS.md](docs/HARNESS.md)** — the harness concept + how the three topologies map to code.
+- **[docs/TEACHING.md](docs/TEACHING.md)** — a classroom lesson plan: the three journeys
+  narrated from real traces, when to use which, discussion questions.
 - **[docs/WHEN-TO-USE.md](docs/WHEN-TO-USE.md)** — decision guide: which control model to pick.
 - **[docs/EXAMPLE.md](docs/EXAMPLE.md)** — real-Claude worked example (3 models), reproducible offline.
 - **[docs/HANDOVER.md](docs/HANDOVER.md)** — cold-start handover & project state.
