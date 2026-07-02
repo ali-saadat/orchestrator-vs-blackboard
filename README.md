@@ -31,28 +31,32 @@ Share it on your network (no tunnel — works on managed/corporate Macs):
 ./run.sh --lan           # prints an http://<your-ip>:8000/ URL for the same Wi-Fi/VPN
 ```
 
-## The demo: plan a birthday party that fits a budget
+## The demo: negotiate a job offer
 
-Four friends agree on one party plan. Their choices are **interdependent**:
+Four people close one deal — a genuine multi-round **negotiation**, not arithmetic
+(you cannot eyeball the answer):
 
-| Agent | Owns | Rule |
+| Agent | Owns | Strategy / rule |
 |---|---|---|
-| **Guests** | the guest list (you'd love 15) | trim the list if the budget won't allow it |
-| **Budget** | cost + the affordable headcount | cost = guests × $50; cap $600 ⇒ 12 max |
-| **Food** | pizzas | one pizza feeds 3 → 15→5, 12→4 |
-| **Chairs** | the chairs | one chair per guest → 15→15, 12→12 |
+| **Candidate** | the ask (opens $130k) | concede ~15% of the gap per turn; accept the band when it's final |
+| **Manager** | the offer + the deal (opens $100k) | go up step by step, never above HR's band |
+| **HR** | the band ($110k) + remote days | announce the band mid-talk; 1 remote day per $5k conceded |
+| **Finance** | the total cap ($124k) + bonus | sign the bonus once the base lands (up to $8k, if room) |
 
-You want 15 people, but at $50 a head that's $750 — over the $600 budget. Trim to 12,
-and the pizza order and the chair count change with it. All three control models reach
-the **same** plan (`12 guests · $600 · 4 pizzas · 12 chairs`); they differ only in how
-much coordination it takes:
+The ask comes down, the offer goes up, HR's band re-anchors both mid-flight — and the
+deal emerges: **$110k + $8k bonus + 4 remote days**, identical from all three control
+models. The destination is provably unique (the concession protocol is clamped), so
+only the coordination cost differs:
 
 ```
               agent calls   wasted (no-op)   tokens (Haiku, real)
-orchestrator       12             5                 2,678
-blackboard          7             0                 1,494   ← 1.71× fewer calls
-hybrid              5             0                   947
+orchestrator       24            10                 8,464
+blackboard         14             0                 4,875   ← 1.71× fewer calls
+hybrid             13             0                 4,123
 ```
+
+The orchestrator polls HR and Finance on **every** haggling round (they have nothing
+new to say) and pays a full confirming sweep — 10 wasted calls you can watch happen.
 
 ## The three control models (harnesses)
 
@@ -60,8 +64,8 @@ hybrid              5             0                   947
   plus a confirming no-op sweep. No shared board, no reactivity. The most turns ("hub tax").
 - **Blackboard** — all agents read/write one shared board; a write re-triggers only the
   agents that depend on the changed field. Fewer wasted turns.
-- **Hybrid** — a bounded blackboard for the tightly-coupled core (Guests ↔ Budget), then a
-  linear supervisor tail (Food, Chairs).
+- **Hybrid** — a bounded blackboard for the live negotiation (Candidate ↔ Manager ↔ HR),
+  then a supervisor tail (Finance signs once).
 
 They're the **same agents** behind one **harness** (control loop); only the *scheduling*
 differs — see [docs/HARNESS.md](docs/HARNESS.md).
@@ -71,14 +75,14 @@ differs — see [docs/HARNESS.md](docs/HARNESS.md).
 `./run.sh` opens a **4-scene, gamified story** written in simple English (A2 level) —
 built for people who do not code:
 
-1. **The problem** 🎉 — an animated intro: four friends, $600, a budget bar that overflows.
+1. **The problem** 💼 — an animated intro: four people, a $30k gap, and hidden rules (the band, the cap).
 2. **Three ways** 💬 — "The Boss Way / The Whiteboard Way / The Mix Way" as animated
    cards, plus a **make-your-guess** game (which way needs the least talk?).
 3. **The race** 🏁 — three lanes run side by side with **moving dots along the arrows**,
    live boards, turn/wasted/cost counters, and video-style controls
    (pause · one step · slow/normal/fast/max). Watch all three, or **one alone**.
 4. **The winner** 🏆 — an animated podium, medals, **confetti**, your-guess payoff, and a
-   simple score table. Same party — different amounts of talk.
+   simple score table. Same deal — different amounts of talk.
 
 It replays **recorded real Claude calls** by default (free, offline, no key). A **word
 list** explains every term in one line.
@@ -96,7 +100,7 @@ streaming Claude) — plus a **model picker** defaulting to the cheapest (Haiku 
 ovb export        # → examples/demo.html
 ```
 
-One **self-contained HTML file** (~74 KB) that replays the recorded real run with **no
+One **self-contained HTML file** (~140 KB) that replays the recorded real run with **no
 server and no install** — open it from a file, email it, or host it on any static page
 (GitHub Pages, S3, …).
 
@@ -128,7 +132,7 @@ src/ovb/
   core/                    harness.py (the control-loop primitives) · state · registry ·
                            gate · llm (mock/streaming/cassette) · trace (WORM log)
   engines/                 orchestrator · blackboard · hybrid   (scheduling only)
-  domain/                  task.py (the party scenario + gate) · agents.py
+  domain/                  task.py (the job-offer scenario + gate) · agents.py
   eval/                    runner · compare (fairness contract + table)
   viz/                     live.py (server + expert page) · static/ (the story journey:
                            index.html, style.css, app.js) · report.py (static HTML)

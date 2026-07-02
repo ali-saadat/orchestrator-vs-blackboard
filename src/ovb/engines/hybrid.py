@@ -4,11 +4,10 @@ Scheduling discipline: the supervisor keeps top-level control but delegates the
 *tightly-coupled* sub-problem to a bounded blackboard, then finishes the
 *independent* tail linearly.
 
-For the party plan the tight cycle is Guests ↔ Budget (a budget cap trims the
-guest list, which changes the cost, …). Food and Chairs only *read* the settled
-headcount, so they need no re-triggering — running them once, after the core
-settles, avoids the pure blackboard's "Chairs sets out 15, then re-sets to 12"
-churn.
+For the job offer the live negotiation is Candidate ↔ Manager with HR as the
+band referee (the band re-anchors both mid-talk), so those three share the board.
+Finance only *reads* the settled deal to sign off the cap and the bonus — running
+it once, after the core settles, avoids re-triggering it on every concession.
 
 Honest note: the hybrid's edge here comes from *encoding the dependency structure*
 (the architect knows which agents form the cycle). That knowledge is the price of
@@ -22,8 +21,8 @@ from collections import deque
 from ..contracts import EngineResult
 from ..core.harness import Harness
 
-CORE = {"Guests", "Budget"}      # the tightly-coupled cycle (want-vs-afford)
-TAIL = ("Food", "Chairs")        # independent, downstream-only
+CORE = {"Candidate", "Manager", "HR"}   # the live negotiation (incl. the band referee)
+TAIL = ("Finance",)                     # signs off once, after the deal
 
 
 class HybridHarness(Harness):
@@ -44,7 +43,7 @@ class HybridHarness(Harness):
                     queue.append((n, why))
                     queued.add(n)
 
-        enqueue(subs.get("guests", []), "seed: guest list posted (core)")
+        enqueue([n for n in self.registry.names() if n in CORE], "seed: kickoff (core)")
         while queue and steps < self.config.hybrid_cap:
             steps += 1
             name, why = queue.popleft()

@@ -34,11 +34,11 @@ def test_pump_streams_all_three_engines():
 
 
 def test_pump_prompt_params_flow_to_all_engines():
-    # 9 guests fit the budget (9 × $50 = $450 ≤ $600) → list stays 9, plan consistent
-    evs = _collect(ScenarioParams(wanted_guests=9, budget_cap=600), ["blackboard"])
+    # a modest ask under the band: midpoint((116+100)/2)=108 ≤ band → deal at 108
+    evs = _collect(ScenarioParams(ask0=116, band_max=110), ["blackboard"])
     fin = [e for e in evs if e["kind"] == "run_finished" and e["engine"] == "blackboard"][0]
     assert fin["attrs"]["consistent"] is True
-    assert fin["attrs"]["state"]["guests"] == 9
+    assert fin["attrs"]["state"]["salary"] == 108
 
 
 def test_agent_talk_is_present_in_stream():

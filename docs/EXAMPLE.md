@@ -1,7 +1,7 @@
 # Worked example — real Claude calls, three harnesses, three models
 
-Real runs of all three harness topologies on the **birthday-party** task
-(`guests=15, budget=600`) using **live streaming Claude** across three models. Every
+Real runs of all three harness topologies on the **job-offer negotiation**
+(`ask=130, band=110`) using **live streaming Claude** across three models. Every
 call was recorded to [`../cassettes/demo.json`](../cassettes/demo.json), so you can
 **replay these exact real numbers offline, with no API key**:
 
@@ -13,18 +13,18 @@ ovb serve   # dashboard → mode = Cassette, pick a model
 
 ## The task
 
-Four friends plan one birthday party: **Guests** (you'd love 15), **Budget** (hard cap
-$600 at $50/head all-in → 12 max), **Food** (one pizza feeds 3), **Chairs** (one chair
-per guest). The guest list drives everything, so trimming it to fit the budget also
-shrinks the pizza order and the chair count — a change ripples, but only to the friends
-who depend on the headcount. All three harnesses reach the identical plan:
-**12 guests · $600 · 4 pizzas · 12 chairs**.
+Four people negotiate one job offer: the **Candidate** (asks $130k) and the **Manager**
+(offers $100k) concede ~15% of the gap per turn; **HR** announces the hard band ($110k)
+mid-talk — re-anchoring both — and grants remote days for the concession; **Finance**
+caps salary+bonus ($124k) and signs the bonus once the base lands. A genuine multi-round
+negotiation whose destination is provably unique: all three harnesses reach the identical
+deal — **$110k + $8k bonus + 4 remote days**.
 
 ## Two independent axes — read them separately
 
 **Axis 1 — control model (the harness).** Within any model, the blackboard/hybrid
 converge in fewer calls because they re-trigger only the affected agents instead of
-re-sweeping all four. Blackboard = **1.71× fewer calls** than the orchestrator.
+re-sweeping all four. Blackboard = **1.71× fewer calls** than the orchestrator (14 vs 24), with zero wasted turns vs 10.
 
 **Axis 2 — the LLM model.** Decisions are **rule-based** (the model only narrates), so
 the model choice never changes the plan or the call counts — **only tokens and cost**.
@@ -33,13 +33,13 @@ the model choice never changes the plan or the call counts — **only tokens and
 
 | Model | $/Mtok in/out | calls (orch/bb/hyb) | tokens (orch/bb/hyb) | cost USD (orch/bb/hyb) |
 |---|---|---|---|---|
-| **Haiku 4.5** ★ cheapest | 1 / 5 | 12 / 7 / 5 | 2678 / 1494 / 947 | **$0.0094 / $0.0051 / $0.0031** |
-| Sonnet 5 | 2 / 10 | 12 / 7 / 5 | 3970 / 2442 / 1638 | $0.0295 / $0.0184 / $0.0121 |
-| Opus 4.8 | 5 / 25 | 12 / 7 / 5 | 3646 / 2216 / 1570 | $0.0656 / $0.0405 / $0.0286 |
+| **Haiku 4.5** ★ cheapest | 1 / 5 | 24 / 14 / 13 | 8464 / 4875 / 4123 | **$0.0312 / $0.0181 / $0.0148** |
+| Sonnet 5 | 2 / 10 | 24 / 14 / 13 | 9554 / 5536 / 5124 | $0.0683 / $0.0397 / $0.0369 |
+| Opus 4.8 | 5 / 25 | 24 / 14 / 13 | 9209 / 5205 / 4798 | $0.1620 / $0.0911 / $0.0840 |
 
-**Every model reaches the identical plan** (`12 guests · $600 · 4 pizzas · 12 chairs`) and
-the **identical 12/7/5 call counts**. Only cost moves — a ~21× spread (Haiku hybrid
-$0.0031 → Opus orchestrator $0.066) for the same outcome.
+**Every model reaches the identical deal** (`$110k + $8k bonus · 4d remote`) and the
+**identical 24/14/13 call counts**. Only cost moves — a ~11× spread (Haiku hybrid
+$0.0148 → Opus orchestrator $0.162) for the same outcome.
 
 ### What to flag
 - **Use the cheapest model that fits: Haiku 4.5 ($1/$5).** For a narration workload it's
@@ -56,7 +56,7 @@ $0.0031 → Opus orchestrator $0.066) for the same outcome.
 echo 'ANTHROPIC_API_KEY=sk-ant-...' > .env      # .env is gitignored — never commit it
 ovb bench --real                                # default model = Haiku 4.5 (cheapest)
 ovb models --real                               # compare models live
-ovb bench --real --guests 9 --budget 500 --cassette cassettes/demo.json   # record another ask
+ovb bench --real --ask 120 --band 105 --cassette cassettes/demo.json      # record another ask
 ```
 
 Notes: `temperature` is not sent (reasoning models deprecate it). Replay wall-time is

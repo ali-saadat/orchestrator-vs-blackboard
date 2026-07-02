@@ -19,7 +19,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class PlanState(BaseModel):
-    """The typed party plan for the birthday-party scenario.
+    """The typed deal state for the job-offer negotiation scenario.
 
     In the blackboard and hybrid core this is the SHARED board all agents read and
     write (and re-trigger on); in the orchestrator it is the supervisor's
@@ -30,11 +30,13 @@ class PlanState(BaseModel):
     """
 
     model_config = ConfigDict(frozen=True)
-    guests: int                       # invited guests (owned by Guests)
-    max_guests: int | None = None     # most guests the budget allows (owned by Budget)
-    cost: int | None = None           # total party cost $ (owned by Budget)
-    pizzas: int | None = None         # pizzas to order (owned by Food)
-    chairs: int | None = None         # chairs to set out, one per guest (owned by Chairs)
+    ask: int                          # candidate's current salary ask, $k (owned by Candidate)
+    offer: int                        # manager's current salary offer, $k (owned by Manager)
+    band_max: int | None = None       # HR's hard cap on base salary, $k (owned by HR)
+    total_cap: int | None = None      # finance's cap on salary+bonus, $k (owned by Finance)
+    salary: int | None = None         # the agreed base, $k (owned by Manager, when ask==offer)
+    bonus: int | None = None          # signing bonus, $k (owned by Finance)
+    remote: int | None = None         # remote days per week (owned by HR)
 
     def fingerprint(self) -> str:
         return hashlib.sha256(self.model_dump_json().encode()).hexdigest()[:16]

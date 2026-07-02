@@ -1,18 +1,24 @@
-"""Scenario — plan a birthday party that fits a budget.
+"""Scenario — negotiate a job offer until everyone says yes.
 
-Four friends agree on one party plan:
-  - Guests = the guest list. You'd love to invite 15 people.
-  - Budget = the money; a hard cap. Cost = guests × $50/head (all-in: food,
-             drinks, cake), so a long list may not fit — Budget then caps
-             how many you can afford.
-  - Food   = the pizza order; one pizza feeds 3 guests.
-  - Chairs = the chairs to set out; every guest needs exactly one chair.
+Four people close one deal:
+  - Candidate = wants a high salary. Asks $130k, then comes down step by step.
+  - Manager   = wants to hire, but cheap. Offers $100k, then goes up step by
+                step — never above HR's band.
+  - HR        = announces the hard salary band (max $110k base) mid-talk, and
+                converts the candidate's concession into remote days
+                (1 day per $5k they came down, 1–5).
+  - Finance   = announces the total-pay cap ($124k) and signs off the signing
+                bonus once the base is agreed (up to $8k, if there is room).
 
-Interdependence (why the shared board helps): the guest list drives everything.
-Trimming it to fit the budget also changes the pizza order and the chair count,
-so a change ripples — but only to the friends who depend on the headcount. The
-tightly coupled pair is Guests ↔ Budget (want-vs-afford); Food and Chairs just
-follow the final number.
+This is a real NEGOTIATION, not arithmetic: the two sides concede a fraction of
+the gap each turn, HR's band lands mid-flight and re-anchors both, and the deal
+emerges over many rounds — you cannot eyeball the final number.
+
+Determinism (why the 3-way comparison stays fair): both sides converge toward
+`target = min(midpoint(ask0, offer0), band_max)`. The manager's offer is clamped
+at the target; when the offer reaches it, the candidate accepts ("that is their
+final number"). So the DESTINATION is unique regardless of who speaks when —
+only the number of turns differs, which is exactly what we measure.
 """
 from __future__ import annotations
 
@@ -20,19 +26,23 @@ from dataclasses import dataclass
 
 from ..core.state import PlanState
 
-# defaults (used when no ScenarioParams is supplied)
-PRICE_PER_GUEST = 50     # $ per guest (food, drinks, favors)
-BUDGET_CAP = 600         # $ hard cap
-GUESTS_PER_PIZZA = 3     # one pizza feeds 3
-WANTED_GUESTS = 15       # the wish-list headcount
+# defaults (used when no ScenarioParams is supplied) — all $ figures in $k
+ASK0 = 130          # candidate's opening ask
+OFFER0 = 100        # manager's opening offer
+BAND_MAX = 110      # HR's hard cap on base salary
+TOTAL_CAP = 124     # finance's cap on salary + bonus
+BONUS_MAX = 8       # biggest possible signing bonus
+STEP = 0.15         # each concession closes 15% of the current gap
+K_PER_REMOTE_DAY = 5  # 1 remote day per $5k conceded
 
 
 @dataclass(frozen=True)
 class ScenarioParams:
-    wanted_guests: int = WANTED_GUESTS   # how many you'd love to invite (the "ask")
-    budget_cap: int = BUDGET_CAP         # the hard $ cap
-    price_per_guest: int = PRICE_PER_GUEST
-    guests_per_pizza: int = GUESTS_PER_PIZZA
+    ask0: int = ASK0
+    offer0: int = OFFER0
+    band_max: int = BAND_MAX
+    total_cap: int = TOTAL_CAP
+    bonus_max: int = BONUS_MAX
 
 
 def _p(params: "ScenarioParams | None") -> ScenarioParams:
@@ -42,11 +52,12 @@ def _p(params: "ScenarioParams | None") -> ScenarioParams:
 def scenario_text(params: "ScenarioParams | None" = None) -> str:
     p = _p(params)
     return (
-        f"Plan a birthday party. You want to invite {p.wanted_guests} guests, but "
-        f"there is a hard budget cap of ${p.budget_cap} (each guest costs "
-        f"${p.price_per_guest} all-in); one pizza feeds {p.guests_per_pizza} guests, "
-        "and every guest needs one chair. Guests, Budget, Food and Chairs are "
-        "interdependent — find the best party that fits the budget."
+        f"Close a job offer. The candidate asks ${p.ask0}k; the manager offers "
+        f"${p.offer0}k. They concede step by step. HR's hard salary band tops out "
+        f"at ${p.band_max}k, and Finance caps salary+bonus at ${p.total_cap}k "
+        f"(bonus up to ${p.bonus_max}k). Remote days reward the candidate's "
+        "concession (1 day per $5k, 1-5). Candidate, Manager, HR and Finance are "
+        "interdependent — negotiate until every number agrees."
     )
 
 
@@ -55,29 +66,59 @@ SCENARIO = scenario_text()
 
 
 def initial_state(params: "ScenarioParams | None" = None) -> PlanState:
-    return PlanState(guests=_p(params).wanted_guests)
-
-
-def chairs_for(guests):
-    """Every guest needs exactly one chair."""
-    return None if guests is None else guests
-
-
-def pizzas_for(guests, params: "ScenarioParams | None" = None):
-    """One pizza feeds `guests_per_pizza` people (round up so nobody goes hungry)."""
     p = _p(params)
-    return None if guests is None else -(-guests // p.guests_per_pizza)
+    return PlanState(ask=p.ask0, offer=p.offer0)
+
+
+def target_salary(band_max, params: "ScenarioParams | None" = None) -> int:
+    """Where the haggle lands: the midpoint of the opening positions, clamped by
+    HR's band (once known)."""
+    p = _p(params)
+    mid = round((p.ask0 + p.offer0) / 2)
+    return mid if band_max is None else min(mid, band_max)
+
+
+def concede(current: int, toward: int, other: int) -> int:
+    """One negotiation step: close STEP of the current gap (at least $1k),
+    never crossing `toward` (the target)."""
+    gap = abs(current - other)
+    move = max(1, round(gap * STEP))
+    if current > toward:                 # candidate coming down
+        return max(toward, current - move)
+    if current < toward:                 # manager going up
+        return min(toward, current + move)
+    return current
+
+
+def remote_for(salary, params: "ScenarioParams | None" = None):
+    """1 remote day per $5k the candidate conceded from the opening ask (1-5)."""
+    p = _p(params)
+    if salary is None:
+        return None
+    return max(1, min(5, (p.ask0 - salary) // K_PER_REMOTE_DAY))
+
+
+def bonus_for(salary, total_cap, params: "ScenarioParams | None" = None):
+    """Signing bonus: up to bonus_max, if the total-pay cap leaves room."""
+    p = _p(params)
+    if salary is None or total_cap is None:
+        return None
+    return max(0, min(p.bonus_max, total_cap - salary))
 
 
 def is_consistent(state: PlanState, params: "ScenarioParams | None" = None) -> bool:
-    """The gate: is this a valid, self-consistent party plan?"""
+    """The gate: is the deal fully agreed and inside every rule?"""
     p = _p(params)
-    g = state.guests
     return all(
         [
-            state.cost is not None and state.cost <= p.budget_cap,
-            state.max_guests is not None and g <= state.max_guests,
-            state.pizzas == pizzas_for(g, p),
-            state.chairs == chairs_for(g),
+            state.salary is not None,
+            state.ask == state.offer == state.salary,
+            state.band_max is not None and state.salary is not None
+            and state.salary <= state.band_max,
+            state.total_cap is not None and state.bonus is not None
+            and state.salary is not None
+            and state.salary + state.bonus <= state.total_cap,
+            state.bonus == bonus_for(state.salary, state.total_cap, p),
+            state.remote == remote_for(state.salary, p),
         ]
     )

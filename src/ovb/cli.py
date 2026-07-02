@@ -29,8 +29,8 @@ app = typer.Typer(add_completion=False,
                   help="Orchestrator vs Blackboard vs Hybrid — harness topologies, measured.")
 
 
-def _params(guests: int, budget: int) -> ScenarioParams:
-    return ScenarioParams(wanted_guests=guests, budget_cap=budget)
+def _params(ask: int, band: int) -> ScenarioParams:
+    return ScenarioParams(ask0=ask, band_max=band)
 
 
 def _trace(result) -> str:
@@ -47,8 +47,8 @@ def _trace(result) -> str:
 
 @app.command()
 def bench(
-    guests: int = typer.Option(15, help="guests you'd love to invite (the shared 'ask')"),
-    budget: int = typer.Option(600, help="budget cap $"),
+    ask: int = typer.Option(130, help="candidate's opening salary ask, $k (the shared 'prompt')"),
+    band: int = typer.Option(110, help="HR's hard salary band cap, $k"),
     real: bool = typer.Option(False, help="live Anthropic calls"),
     model: str = typer.Option("claude-haiku-4-5-20251001"),
     cassette: str = typer.Option(None, help="record/replay path"),
@@ -58,7 +58,7 @@ def bench(
     """Run all three harnesses on the same task and compare."""
     config = RunConfig(real=real, model=model, cassette=cassette,
                        orch_early_exit=orch_early_exit)
-    params = _params(guests, budget)
+    params = _params(ask, band)
     results = asyncio.run(run_all(config, params))
 
     FairnessContract.assert_comparable(
@@ -81,12 +81,12 @@ def bench(
 
 @app.command()
 def run(engine: str = typer.Argument(..., help="orchestrator|blackboard|hybrid"),
-        guests: int = typer.Option(15), budget: int = typer.Option(600),
+        ask: int = typer.Option(130), band: int = typer.Option(110),
         real: bool = typer.Option(False), model: str = typer.Option("claude-haiku-4-5-20251001"),
         cassette: str = typer.Option(None)):
     """Run a single harness and print its trace."""
     config = RunConfig(real=real, model=model, cassette=cassette)
-    params = _params(guests, budget)
+    params = _params(ask, band)
     result = asyncio.run(run_engine(engine, config, params))
     typer.echo(task.scenario_text(params) + "\n")
     typer.echo(_trace(result))
@@ -94,7 +94,7 @@ def run(engine: str = typer.Argument(..., help="orchestrator|blackboard|hybrid")
 
 @app.command()
 def models(
-    guests: int = typer.Option(15), budget: int = typer.Option(600),
+    ask: int = typer.Option(130), band: int = typer.Option(110),
     real: bool = typer.Option(False, help="live calls (else replay from cassette)"),
     cassette: str = typer.Option("cassettes/demo.json"),
     models: str = typer.Option(
@@ -109,7 +109,7 @@ def models(
     """
     from .pricing import get_price, is_known
     model_ids = [m.strip() for m in models.split(",") if m.strip()]
-    params = _params(guests, budget)
+    params = _params(ask, band)
     rows = []
     for m in model_ids:
         cfg = RunConfig(real=real, model=m, cassette=(None if real else cassette))
@@ -143,7 +143,7 @@ def models(
         toks = f"{o.total_usage.total}/{b.total_usage.total}/{h.total_usage.total}"
         cost = f"${o.total_cost_usd:.4f}/${b.total_cost_usd:.4f}/${h.total_cost_usd:.4f}"
         st = res["blackboard"].state
-        plan = f"{st['guests']}ppl·${st['cost']}·{st['pizzas']}pz·{st['chairs']}ch"
+        plan = f"${st['salary']}k+{st['bonus']}k bonus·{st['remote']}d remote"
         plans.add(plan)
         calls_sets.add(calls)
         flag = " ★ cheapest" if m == cheapest else ""
@@ -184,14 +184,14 @@ def serve(host: str = typer.Option("127.0.0.1"), port: int = typer.Option(0, hel
 @app.command()
 def export(
     out: str = typer.Option("examples/demo.html", help="output file"),
-    guests: int = typer.Option(15), budget: int = typer.Option(600),
+    ask: int = typer.Option(130), band: int = typer.Option(110),
 ):
     """Build ONE self-contained demo.html — the full story journey replaying a
     recorded run with no server, no install (works from file:// or any static host)."""
     import json as _json
     from .viz.live import DEMO_CASSETTE, _STATIC_DIR
 
-    params = _params(guests, budget)
+    params = _params(ask, band)
     use_cassette = Path(DEMO_CASSETTE).exists()
     config = RunConfig(cassette=(DEMO_CASSETTE if use_cassette else None))
 
@@ -230,7 +230,7 @@ def export(
     js = (_STATIC_DIR / "app.js").read_text()
     preloaded = _json.dumps({
         "events": merged,
-        "info": {"cassette": use_cassette, "defaults": {"guests": guests, "budget": budget}},
+        "info": {"cassette": use_cassette, "defaults": {"ask": ask, "band": band}},
     })
     html = html.replace('<link rel="stylesheet" href="/static/style.css">',
                         "<style>\n" + css + "\n</style>")

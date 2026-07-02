@@ -13,7 +13,8 @@ from ovb.domain import agents, task  # noqa: E402
 from ovb.eval.compare import FairnessContract  # noqa: E402
 from ovb.eval.runner import run_all  # noqa: E402
 
-EXPECTED = {"guests": 12, "max_guests": 12, "cost": 600, "pizzas": 4, "chairs": 12}
+EXPECTED = {"ask": 110, "offer": 110, "band_max": 110, "total_cap": 124,
+            "salary": 110, "bonus": 8, "remote": 4}
 
 
 def _run():
@@ -29,9 +30,9 @@ def test_all_three_converge_to_same_state():
 
 def test_headline_call_counts():
     r = _run()
-    assert r["orchestrator"].recorder.n_calls == 12
-    assert r["blackboard"].recorder.n_calls == 7
-    assert r["hybrid"].recorder.n_calls == 5
+    assert r["orchestrator"].recorder.n_calls == 24
+    assert r["blackboard"].recorder.n_calls == 14
+    assert r["hybrid"].recorder.n_calls == 13
     assert r["blackboard"].recorder.n_calls < r["orchestrator"].recorder.n_calls
 
 
@@ -58,9 +59,9 @@ def test_fairness_contract_holds():
 
 
 def test_ownership_reducer_blocks_out_of_scope_writes():
-    st = PlanState(guests=15)
+    st = PlanState(ask=130, offer=100)
     try:
-        apply_patch(st, {"chairs": 15}, owner="Budget", owns=("cost", "max_guests"))
+        apply_patch(st, {"salary": 110}, owner="HR", owns=("band_max", "remote"))
         assert False, "expected OwnershipError"
     except OwnershipError:
         pass
@@ -68,7 +69,7 @@ def test_ownership_reducer_blocks_out_of_scope_writes():
 
 def test_gate_predicate():
     assert task.is_consistent(PlanState(**EXPECTED))
-    assert not task.is_consistent(PlanState(**{**EXPECTED, "guests": 15}))
+    assert not task.is_consistent(PlanState(**{**EXPECTED, "ask": 130}))
 
 
 if __name__ == "__main__":

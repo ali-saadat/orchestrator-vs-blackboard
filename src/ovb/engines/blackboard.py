@@ -32,8 +32,9 @@ class BlackboardHarness(Harness):
                     queue.append((n, why))
                     queued.add(n)
 
-        # seed: the wish lands on the board as `guests`, waking its subscribers
-        enqueue(subs.get("guests", []), "seed: guest list posted")
+        # seed: the kickoff — every agent hears the opening state once; after
+        # this, only writes re-trigger (and only their subscribers)
+        enqueue(self.registry.names(), "seed: kickoff")
 
         steps = 0
         while queue and steps < self.config.max_steps:   # control unit cap

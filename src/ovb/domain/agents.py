@@ -1,11 +1,15 @@
-"""The four specialists as KnowledgeSources — IDENTICAL for all three harnesses.
+"""The four negotiators as KnowledgeSources — IDENTICAL for all three harnesses.
 
-Birthday-party planning. Rules close over `ScenarioParams`. Each `rule` is the
-deterministic decision authority; the LLM narrates/validates.
-  - Guests owns `guests`,  reacts to `max_guests`  (trim the list if the budget won't allow it)
-  - Budget owns `cost`+`max_guests`, reacts to `guests`  (price it; cap the list)
-  - Food   owns `pizzas`, reacts to `guests`
-  - Chairs owns `chairs`, reacts to `guests`  (one chair per guest)
+Job-offer negotiation. Rules close over `ScenarioParams`. Each `rule` is the
+deterministic decision authority (a concession strategy); the LLM narrates.
+  - Candidate owns `ask`;             reacts to `offer`, `band_max`
+  - Manager   owns `offer`+`salary`;  reacts to `ask`, `band_max`
+  - HR        owns `band_max`+`remote`; reacts to `ask`, `salary`
+  - Finance   owns `total_cap`+`bonus`; reacts to `ask`, `salary`
+
+Concession protocol (deterministic, order-independent destination): both sides
+step toward `target = min(midpoint of openings, band)`; the offer is clamped at
+the target; when the offer reaches it, the candidate accepts the final number.
 """
 from __future__ import annotations
 
@@ -17,47 +21,71 @@ from .task import ScenarioParams
 def build_registry(params: "ScenarioParams | None" = None) -> AgentRegistry:
     p = params or ScenarioParams()
 
-    def guests_rule(s):
-        if s.max_guests is not None and s.guests > s.max_guests:
-            return {"guests": s.max_guests}
-        return {}
+    def candidate_rule(s):
+        if s.salary is not None or s.ask == s.offer:
+            return {}
+        tgt = task.target_salary(s.band_max, p)
+        if s.offer >= tgt:                       # their final number — accept it
+            return {"ask": s.offer}
+        new_ask = task.concede(s.ask, tgt, s.offer)
+        return {"ask": new_ask} if new_ask != s.ask else {}
 
-    def budget_rule(s):
-        cost = s.guests * p.price_per_guest
-        patch = {"cost": cost}
-        if cost > p.budget_cap:
-            patch["max_guests"] = p.budget_cap // p.price_per_guest
-        else:
-            patch["max_guests"] = s.guests
+    def manager_rule(s):
+        if s.salary is not None:
+            return {}
+        if s.ask == s.offer:                     # hands shaken — write the deal
+            return {"salary": s.ask}
+        tgt = task.target_salary(s.band_max, p)
+        new_offer = task.concede(s.offer, tgt, s.ask)
+        patch = {}
+        if new_offer != s.offer:
+            patch["offer"] = new_offer
+        if new_offer == s.ask:                   # we just met — close it now
+            patch["salary"] = new_offer
         return patch
 
-    def food_rule(s):
-        return {"pizzas": task.pizzas_for(s.guests, p)}
+    def hr_rule(s):
+        patch = {}
+        if s.band_max is None:
+            patch["band_max"] = p.band_max       # announce the hard band
+        if s.salary is not None and s.remote is None:
+            patch["remote"] = task.remote_for(s.salary, p)
+        return patch
 
-    def chairs_rule(s):
-        return {"chairs": task.chairs_for(s.guests)}
+    def finance_rule(s):
+        patch = {}
+        if s.total_cap is None:
+            patch["total_cap"] = p.total_cap     # announce the total-pay cap
+        if s.salary is not None and s.bonus is None:
+            cap = s.total_cap if s.total_cap is not None else p.total_cap
+            patch["bonus"] = task.bonus_for(s.salary, cap, p)
+        return patch
 
     return AgentRegistry(
         sources=(
             KnowledgeSource(
-                "Guests", ("guests",), ("max_guests",),
-                "You own the guest list. Keep it within what the budget allows.",
-                guests_rule,
+                "Candidate", ("ask",), ("offer", "band_max"),
+                "You are the Candidate. Negotiate the salary you deserve, "
+                "conceding step by step; accept the band cap when it is final.",
+                candidate_rule,
             ),
             KnowledgeSource(
-                "Budget", ("cost", "max_guests"), ("guests",),
-                "You own the Budget. Price the party and cap the affordable guest count.",
-                budget_rule,
+                "Manager", ("offer", "salary"), ("ask", "band_max"),
+                "You are the hiring Manager. Raise your offer step by step, "
+                "never above HR's band; close the deal when you meet.",
+                manager_rule,
             ),
             KnowledgeSource(
-                "Food", ("pizzas",), ("guests",),
-                "You own the Food. One pizza feeds three guests.",
-                food_rule,
+                "HR", ("band_max", "remote"), ("salary",),
+                "You are HR. Announce the hard salary band, and grant remote "
+                "days for the candidate's concession (1 day per $5k, 1-5).",
+                hr_rule,
             ),
             KnowledgeSource(
-                "Chairs", ("chairs",), ("guests",),
-                "You own the Chairs. Every guest needs exactly one chair.",
-                chairs_rule,
+                "Finance", ("total_cap", "bonus"), ("salary",),
+                "You are Finance. Announce the total-pay cap and approve the "
+                "signing bonus once the base is agreed (up to $8k, if room).",
+                finance_rule,
             ),
         )
     )

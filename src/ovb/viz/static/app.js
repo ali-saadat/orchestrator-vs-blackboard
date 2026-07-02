@@ -9,17 +9,17 @@ const NICE = {
   blackboard:   { name: 'The Whiteboard Way', tech: 'Blackboard', emoji: '📋', cvar: 'var(--bb)' },
   hybrid:       { name: 'The Mix Way', tech: 'Hybrid', emoji: '🤝', cvar: 'var(--hy)' },
 };
-const FRIENDC = { Guests: '#6ea8fe', Budget: '#4fd1c5', Food: '#d3a6ff', Chairs: '#ff8f8f' };
-const FRIENDE = { Guests: '😀', Budget: '💰', Food: '🍕', Chairs: '🪑' };
-const CHIPS = [['guests', '😀 Guests'], ['max_guests', '💰 Guests we can pay'], ['cost', 'Cost $'],
-               ['pizzas', '🍕 Pizzas'], ['chairs', '🪑 Chairs']];
+const FRIENDC = { Candidate: '#6ea8fe', Manager: '#4fd1c5', HR: '#d3a6ff', Finance: '#ff8f8f' };
+const FRIENDE = { Candidate: '🙋', Manager: '🧑\u200d💼', HR: '📋', Finance: '💰' };
+const CHIPS = [['ask', '🙋 Ask $k'], ['offer', '🧑\u200d💼 Offer $k'], ['salary', '🤝 Salary $k'],
+               ['bonus', '💰 Bonus $k'], ['remote', '📋 Remote days']];
 const TOPO = {
-  orchestrator: { nodes: { SUP: [150, 22], Guests: [48, 108], Budget: [116, 108], Food: [184, 108], Chairs: [252, 108] },
-    edges: [['SUP', 'Guests'], ['SUP', 'Budget'], ['SUP', 'Food'], ['SUP', 'Chairs']] },
-  blackboard: { nodes: { BB: [150, 70], Guests: [50, 24], Budget: [250, 24], Food: [50, 116], Chairs: [250, 116] },
-    edges: [['BB', 'Guests'], ['BB', 'Budget'], ['BB', 'Food'], ['BB', 'Chairs']] },
-  hybrid: { nodes: { BB: [74, 70], Guests: [34, 30], Budget: [34, 112], SUP: [188, 70], Food: [256, 42], Chairs: [256, 100] },
-    edges: [['BB', 'Guests'], ['BB', 'Budget'], ['BB', 'SUP'], ['SUP', 'Food'], ['SUP', 'Chairs']] },
+  orchestrator: { nodes: { SUP: [150, 22], Candidate: [48, 108], Manager: [116, 108], HR: [184, 108], Finance: [252, 108] },
+    edges: [['SUP', 'Candidate'], ['SUP', 'Manager'], ['SUP', 'HR'], ['SUP', 'Finance']] },
+  blackboard: { nodes: { BB: [150, 70], Candidate: [50, 24], Manager: [250, 24], HR: [50, 116], Finance: [250, 116] },
+    edges: [['BB', 'Candidate'], ['BB', 'Manager'], ['BB', 'HR'], ['BB', 'Finance']] },
+  hybrid: { nodes: { BB: [80, 70], Candidate: [40, 30], Manager: [40, 112], HR: [120, 118], SUP: [192, 70], Finance: [256, 70] },
+    edges: [['BB', 'Candidate'], ['BB', 'Manager'], ['BB', 'HR'], ['BB', 'SUP'], ['SUP', 'Finance']] },
 };
 const DOTC = { msg: '#4f8dfd', write: '#2dd4bf', retrig: '#c792ea' };
 
@@ -30,7 +30,7 @@ const md = (s) => esc(s).replace(/^\s*#{1,6}\s*/gm, '').replace(/^\s*[-*]\s+/gm,
   .replace(/\*\*([^*]+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+?)`/g, '<b>$1</b>');
 
 /* ---------- global state ---------- */
-let INFO = { cassette: false, defaults: { guests: 15, budget: 600 } };
+let INFO = { cassette: false, defaults: { ask: 130, band: 110 } };
 let MODE = 'mock';
 let GUESS = null;
 let raceEngines = [];
@@ -97,12 +97,13 @@ function zap(id) {
 function playChain() {
   $('chain').classList.add('show');
   const t = (ms, fn) => setTimeout(fn, ms);
-  t(300, () => { zap('cnMoney'); $('ca1').classList.add('pulse'); });
-  t(1300, () => { zap('cnGuests'); flipTo('chG', '12'); });                 // money cuts the list
-  t(2300, () => { $('ca1').classList.remove('pulse'); $('ca2').classList.add('pulse'); });
-  t(3100, () => { zap('cnPizzas'); flipTo('chP', '4'); });                  // the list sets the numbers
-  t(3700, () => { zap('cnChairs'); flipTo('chC', '12'); });
-  t(4900, () => { $('ca2').classList.remove('pulse'); });
+  t(300,  () => { $('ca1').classList.add('pulse'); $('ca2').classList.add('pulse'); });
+  t(900,  () => { zap('cnAsk');   flipTo('chA', '$126k'); });
+  t(1700, () => { zap('cnOffer'); flipTo('chO', '$104k'); });
+  t(2500, () => { zap('cnAsk');   flipTo('chA', '$123k'); });
+  t(3300, () => { zap('cnOffer'); flipTo('chO', '$107k'); });
+  t(4100, () => { zap('cnDeal'); });                                        // …and so on, toward the middle
+  t(4900, () => { $('ca1').classList.remove('pulse'); $('ca2').classList.remove('pulse'); });
 }
 function playStory() {
   storyPlayed = true;
@@ -135,17 +136,17 @@ function buildMini(svg, kind) {
     const pts = [[30, 88], [76, 88], [124, 88], [170, 88]];
     pts.forEach((p, i) => edge(100, 30, p[0], p[1] - 10, i, 4));
     node(100, 30, 'Boss', 'var(--orch)', 44);
-    ['😀', '💰', '🍕', '🪑'].forEach((e, i) => node(pts[i][0], pts[i][1], e, Object.values(FRIENDC)[i], 30));
+    ['🙋', '🧑\u200d💼', '📋', '💰'].forEach((e, i) => node(pts[i][0], pts[i][1], e, Object.values(FRIENDC)[i], 30));
   } else if (kind === 'board') {
     const pts = [[30, 25], [170, 25], [30, 90], [170, 90]];
     pts.forEach((p, i) => edge(100, 57, p[0], p[1], i, 4));
     node(100, 57, 'Board', 'var(--bb)', 50);
-    ['😀', '💰', '🍕', '🪑'].forEach((e, i) => node(pts[i][0], pts[i][1], e, Object.values(FRIENDC)[i], 30));
+    ['🙋', '🧑\u200d💼', '📋', '💰'].forEach((e, i) => node(pts[i][0], pts[i][1], e, Object.values(FRIENDC)[i], 30));
   } else {
     edge(52, 40, 52, 76, 0, 3); edge(70, 57, 118, 57, 1, 3); edge(140, 57, 168, 40, 2, 3);
-    node(52, 30, '😀', FRIENDC.Guests, 28); node(52, 86, '💰', FRIENDC.Budget, 28);
+    node(52, 30, '🙋', FRIENDC.Candidate, 28); node(52, 86, '🧑\u200d💼', FRIENDC.Manager, 28);
     node(94, 57, 'Board', 'var(--bb)', 44); node(150, 57, 'Boss', 'var(--orch)', 40);
-    node(178, 30, '🍕', FRIENDC.Food, 28); node(178, 86, '🪑', FRIENDC.Chairs, 28);
+    node(178, 30, '📋', FRIENDC.HR, 28); node(178, 86, '💰', FRIENDC.Finance, 28);
   }
 }
 document.querySelectorAll('.mini').forEach((svg) => buildMini(svg, svg.dataset.mini));
@@ -161,10 +162,8 @@ document.querySelectorAll('.guessbtns button').forEach((b) => {
 
 /* ---------- the race ---------- */
 function goalLine() {
-  const want = Math.max(1, Math.min(50, +$('inGuests').value || 15));
-  const cap = Math.max(1, +$('inBudget').value || 600);
-  const g = Math.min(want, Math.floor(cap / 50));
-  return `🎯 Goal: the best party the money can buy — ${g} guests · $${g * 50} · ${Math.ceil(g / 3)} pizzas · ${g} chairs`;
+  const ask = Math.max(90, Math.min(400, +$('inAsk').value || 130));
+  return `🎯 Goal: ONE deal all four say yes to. Ask $${ask}k vs offer $100k — where will they land? Watch…`;
 }
 
 function blankS() { return { turns: 0, wasted: 0, cost: 0, done: false, board: {}, finishedAt: null }; }
@@ -277,8 +276,8 @@ function startRace(engines) {
   clearTimeout(winTimer); winTimer = null;
   raceEngines = engines.slice();
   Qs = {}; rr = 0; S = {}; allDoneSeen = false; raceFinished = false; finishedShown = false;
-  const want = +$('inGuests').value || 15, cap = +$('inBudget').value || 600;
-  engines.forEach((e) => { S[e] = blankS(); S[e].board.guests = want; Qs[e] = []; });
+  const ask0 = +$('inAsk').value || 130, band = +$('inBand').value || 110;
+  engines.forEach((e) => { S[e] = blankS(); S[e].board.ask = ask0; S[e].board.offer = 100; Qs[e] = []; });
   $('lanes').innerHTML = engines.map(laneHTML).join('');
   engines.forEach(buildTopo);
   $('goal').textContent = goalLine();
@@ -290,8 +289,8 @@ function startRace(engines) {
   } else {
     // the recording only covers the default party — other numbers replay as demo talk
     const mode = (MODE === 'cassette' &&
-      (want !== INFO.defaults.guests || cap !== INFO.defaults.budget)) ? 'mock' : MODE;
-    const q = `guests=${want}&budget=${cap}&engines=${engines.join(',')}&delay=0&mode=${mode}`;
+      (ask0 !== INFO.defaults.ask || band !== INFO.defaults.band)) ? 'mock' : MODE;
+    const q = `ask=${ask0}&band=${band}&engines=${engines.join(',')}&delay=0&mode=${mode}`;
     es = new EventSource('/run?' + q);
     es.onmessage = (m) => {
       const ev = JSON.parse(m.data);
@@ -325,21 +324,25 @@ function say(e, html) {
   el.classList.remove('say'); void el.offsetWidth; el.classList.add('say');
 }
 function narrateWrite(e, a, s) {
-  const cap = +$('inBudget').value || 600;
-  const g = s.board.guests;
   switch (a.field) {
-    case 'cost':
-      return a.new > cap
-        ? `💰 <b>Budget:</b> ${g} guests cost <b>$${a.new}</b>. That is too much! We only have $${cap}.`
-        : `💰 <b>Budget:</b> now it costs <b>$${a.new}</b>. That fits our $${cap}! ✅`;
-    case 'max_guests':
-      return `💰 <b>Budget:</b> the money is enough for <b>${a.new} guests</b>, not more.`;
-    case 'guests':
-      return `😀 <b>Guests:</b> OK, I cut the list — <b>${a.old} → ${a.new} guests</b>.`;
-    case 'pizzas':
-      return `🍕 <b>Food:</b> ${g} guests need <b>${a.new} pizzas</b> (1 pizza for 3 guests).`;
-    case 'chairs':
-      return `🪑 <b>Chairs:</b> ${g} guests need <b>${a.new} chairs</b> — one for each person.`;
+    case 'ask':
+      return a.new === s.board.offer
+        ? `🙋 <b>Candidate:</b> OK — <b>$${a.new}k</b>. That is your final number. Deal! 🤝`
+        : `🙋 <b>Candidate:</b> I can come down… <b>$${a.old}k → $${a.new}k</b>.`;
+    case 'offer':
+      return (s.board.band_max != null && a.new === s.board.band_max)
+        ? `🧑\u200d💼 <b>Manager:</b> <b>$${a.new}k</b> — the top of the band. My final offer.`
+        : `🧑\u200d💼 <b>Manager:</b> I can go up… <b>$${a.old}k → $${a.new}k</b>.`;
+    case 'band_max':
+      return `📋 <b>HR:</b> the salary band stops at <b>$${a.new}k</b>. No base pay above that.`;
+    case 'total_cap':
+      return `💰 <b>Finance:</b> salary + bonus together must stay under <b>$${a.new}k</b>.`;
+    case 'salary':
+      return `🤝 <b>Deal!</b> Base salary: <b>$${a.new}k</b>. Now HR and Finance finish the papers.`;
+    case 'bonus':
+      return `💰 <b>Finance:</b> there is room under the cap — signing bonus <b>$${a.new}k</b>. Approved.`;
+    case 'remote':
+      return `📋 <b>HR:</b> you came down a lot — that earns <b>${a.new} remote days</b> a week.`;
   }
   return '';
 }
@@ -392,7 +395,7 @@ function handle(ev) {
       say(e, `🔔 The plan changed — <b>${esc(ev.agent)}</b> must look again.`);
       break;
     case 'error':
-      s.done = true;
+      s.done = true; s.err = true;
       say(e, '⚠ Something went wrong here.');
       console.error(a.msg);
       break;
@@ -417,11 +420,17 @@ function showWinner() {
   if ($('s2').classList.contains('active')) go(3);   // don't yank users who navigated away
   const ranked = raceEngines.slice().sort((x, y) => S[x].turns - S[y].turns);
   const b = S[ranked[0]].board;
-  const plan = `${b.guests} guests, $${b.cost}, ${b.pizzas} pizzas, ${b.chairs} chairs`;
+  if (b.salary == null || ranked.some((e) => S[e].err)) {   // never celebrate a broken run
+    $('verdict').innerHTML = '⚠ Something went wrong — the talk did not finish. Please press <b>🔁 Race again</b>.';
+    $('guessresult').textContent = '';
+    $('podium').innerHTML = ''; $('score').innerHTML = '';
+    return;
+  }
+  const plan = `$${b.salary}k salary + $${b.bonus}k bonus + ${b.remote} remote days`;
 
   if (raceEngines.length === 1) {
     const e = raceEngines[0], n = NICE[e];
-    $('verdict').innerHTML = `${n.emoji} <b>${n.name}</b> found the party: <b>${plan}</b>.<br>
+    $('verdict').innerHTML = `${n.emoji} <b>${n.name}</b> closed the deal: <b>${plan}</b>.<br>
       It used <b>${S[e].turns} turns</b> (${S[e].wasted} wasted) and paid <b>$${S[e].cost.toFixed(3)}</b> for the talk.`;
     $('guessresult').textContent = '';
     $('podium').innerHTML = '';
@@ -432,10 +441,10 @@ function showWinner() {
   }
 
   const win = ranked[0], lose = ranked[ranked.length - 1];
-  $('verdict').innerHTML = `🎉 <b>Same party from all three:</b> ${plan}.<br>
+  $('verdict').innerHTML = `🎉 <b>Same deal from all three:</b> ${plan}.<br>
     ${NICE[win].emoji} <b style="color:${NICE[win].cvar}">${NICE[win].name}</b> needed only <b>${S[win].turns} turns</b>.
     ${NICE[lose].emoji} ${NICE[lose].name} needed <b>${S[lose].turns}</b>.<br>
-    <b>Less talk. Same party. That is the whole idea!</b>`;
+    <b>Less talk. Same deal. That is the whole idea!</b>`;
 
   if (GUESS) {
     $('guessresult').innerHTML = GUESS === win
@@ -490,7 +499,7 @@ function openParty() { $('partybox').classList.toggle('open'); }
 function openWords() { $('words').classList.add('open'); }
 function closeWords() { $('words').classList.remove('open'); }
 $('words').onclick = (ev) => { if (ev.target === $('words')) closeWords(); };
-['inGuests', 'inBudget'].forEach((id) => $(id).addEventListener('input', () => { $('goal').textContent = goalLine(); }));
+['inAsk', 'inBand'].forEach((id) => $(id).addEventListener('input', () => { $('goal').textContent = goalLine(); }));
 
 /* expose for inline onclick= */
 Object.assign(window, { go, startRace, restartRace, togglePlay, stepOne, toggleTalk, openParty, openWords, closeWords });
@@ -504,7 +513,7 @@ function applyInfo() {
 }
 if (PRE) {
   INFO = PRE.info || INFO;
-  if (INFO.defaults) { $('inGuests').value = INFO.defaults.guests; $('inBudget').value = INFO.defaults.budget; }
+  if (INFO.defaults) { $('inAsk').value = INFO.defaults.ask; $('inBand').value = INFO.defaults.band; }
   applyInfo();
   // no server: hide things that need one
   document.querySelectorAll('.expertlink,.btnlink').forEach((el) => { el.style.display = 'none'; });

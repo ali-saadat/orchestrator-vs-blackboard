@@ -19,8 +19,8 @@ control loop around the model. **Orchestrator, blackboard, and hybrid are three 
 only the *scheduling* differs. On an interdependent task the blackboard/hybrid converge in
 fewer calls because a change re-triggers only the affected agents instead of re-sweeping all.
 
-Headline (mock, deterministic): **orchestrator 12 calls · blackboard 7 · hybrid 5**, all
-reaching the *identical* plan.
+Headline (mock, deterministic): **orchestrator 24 calls · blackboard 14 · hybrid 13**, all
+reaching the *identical* deal ($110k + $8k bonus + 4 remote days); orchestrator wastes 10.
 
 **Wording rule (important):** the orchestrator has **no shared board and no re-triggering**
 — its state is supervisor-held, updated by fixed-order sweeps. Only the blackboard (and the
@@ -42,7 +42,7 @@ code level all three share one `PlanState` via `harness.invoke`; the real differ
   Sonnet 5 $2/$10 (intro), Opus 4.8 $5/$25, Fable 5 $10/$50.
 - **CLI** (`ovb ...`): `serve`, `bench`, `run`, `models`, `doctor`.
 - **Live dashboard** (`viz/live.py`, stdlib SSE, no build step) — see §4.
-- **Cassette** `cassettes/demo.json`: real recorded calls for 3 models (Haiku/Sonnet5/Opus) at guests=15/budget=600.
+- **Cassette** `cassettes/demo.json`: real recorded calls for 3 models (Haiku/Sonnet5/Opus) at ask=130/band=110.
 - **Docs**: HARNESS, WHEN-TO-USE, EXAMPLE, PLAN, RESEARCH, architecture, this handover.
 - **Tests**: `tests/` (10 pass, deterministic, no network).
 
@@ -129,17 +129,20 @@ hard-fails if roster/gate/sampling/start differ or engines diverge on the final 
 
 ## 8. The demo task & how to change it
 
-Current task = **birthday party** (`domain/task.py`): agents **Guests, Budget, Food,
-Chairs** reconcile `guests/max_guests/cost/pizzas/chairs` to a fixpoint (defaults →
-12 guests · $600 · 4 pizzas · 12 chairs). It's interdependent (budget caps the guest
-list → pizzas & chairs re-check; $50/head is ALL-IN, pizzas = shopping list 1-per-3,
-chairs = 1 per guest — all physically countable), which is what makes the blackboard
-win. Guests↔Budget is the coupled core; Food/Chairs the tail. Chairs replaced the
-earlier "Vibe" agent because a feeling wasn't countable — the dependency never clicked.
+Current task = **job-offer negotiation** (`domain/task.py`): agents **Candidate,
+Manager, HR, Finance** negotiate `ask/offer/band_max/total_cap/salary/bonus/remote` to
+a unique fixpoint (defaults → $110k + $8k bonus + 4 remote days; 24/14/13 calls). A
+REAL multi-round negotiation (replaced the party — too much like arithmetic): both
+sides concede 15% of the gap per turn toward target = min(midpoint, band); HR announces
+the band MID-TALK (re-anchor); the offer clamps at the target and the candidate accepts
+the final number (this clamped protocol is what makes the destination order-independent
+→ FairnessContract holds). Engines now seed with a generic KICKOFF (all agents once) —
+no domain field in the engines. Hybrid core = {Candidate, Manager, HR} (the band must be
+inside the core or the hybrid can't gate), tail = Finance.
 
 **To swap the task** (e.g. another domain), touch:
 1. `domain/task.py` — `ScenarioParams`, constants, `initial_state`, `is_consistent` (the gate),
-   `chairs_for`/`pizzas_for`, `scenario_text`.
+   `target_salary`/`concede`/`bonus_for`/`remote_for`, `scenario_text`.
 2. `domain/agents.py` — agent names, `owns`/`subscribes`, `rule` functions.
 3. `core/state.py` — `PlanState` fields.
 4. `tests/test_smoke.py` — `EXPECTED` final state + headline call counts.

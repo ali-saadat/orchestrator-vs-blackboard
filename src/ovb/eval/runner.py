@@ -32,7 +32,7 @@ def _make_llm(config: RunConfig):
 def build_gate(params: ScenarioParams) -> PredicateGate:
     return PredicateGate(
         lambda s: task.is_consistent(s, params),
-        spec=f"party/v1/cap={params.budget_cap}/price={params.price_per_guest}",
+        spec=f"joboffer/v1/band={params.band_max}/cap={params.total_cap}",
     )
 
 

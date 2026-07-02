@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Party Problem — three ways to agree</title>
+<title>The Job Offer — three ways to agree</title>
 <script>try{document.documentElement.dataset.theme=localStorage.getItem('ovb-story-theme')||'dark'}catch(e){}</script>
 <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -25,67 +25,64 @@
 
 <!-- ══════════ SCENE 1 — THE PROBLEM ══════════ -->
 <section class="scene active" id="s0">
-  <h1 class="pop">The Party Problem 🎉</h1>
+  <h1 class="pop">The Job Offer 💼</h1>
   <div class="friends" id="friends">
-    <div class="friend" style="--c:#6ea8fe"><span>😀</span>Guests<small>writes the guest list</small></div>
-    <div class="friend" style="--c:#4fd1c5"><span>💰</span>Budget<small>watches the money</small></div>
-    <div class="friend" style="--c:#d3a6ff"><span>🍕</span>Food<small>orders the pizzas</small></div>
-    <div class="friend" style="--c:#ff8f8f"><span>🪑</span>Chairs<small>counts the chairs</small></div>
+    <div class="friend" style="--c:#6ea8fe"><span>🙋</span>Candidate<small>asks for more</small></div>
+    <div class="friend" style="--c:#4fd1c5"><span>🧑&#8205;💼</span>Manager<small>offers less</small></div>
+    <div class="friend" style="--c:#d3a6ff"><span>📋</span>HR<small>keeps the rules</small></div>
+    <div class="friend" style="--c:#ff8f8f"><span>💰</span>Finance<small>signs the money</small></div>
   </div>
   <div class="story" id="story">
-    <p>Four friends plan a birthday party. Each friend has one job.</p>
-    <p>😀 <b>Guests</b> wants <b>15 people</b> on the list.</p>
-    <p>💰 <b>Budget</b> has <b>$600</b>. One guest costs <b>$50</b> — that pays for their food, drinks and cake.</p>
-    <p>15 guests × $50 = <b>$750</b>. That is more than $600. Problem! 😬</p>
-    <p>🍕 <b>Food</b> orders <b>1 pizza for every 3 guests</b>. 🪑 <b>Chairs</b> puts out <b>1 chair for every guest</b>.</p>
-    <p>So Food and Chairs must wait for the <b>final</b> guest number. One change moves everything.</p>
+    <p>A company wants to hire Sam. Four people must say yes to <b>one deal</b>.</p>
+    <p>🙋 <b>Sam</b> (the Candidate) asks for <b>$130k</b>.</p>
+    <p>🧑&#8205;💼 The <b>Manager</b> starts at <b>$100k</b>. That is a <b>$30k gap</b>. 😬</p>
+    <p>📋 <b>HR</b> has a rule: base salary can NOT go over the band. But nobody has said the band yet…</p>
+    <p>💰 <b>Finance</b> has a rule too: salary + bonus together have a hard cap.</p>
+    <p>Nobody can know the final deal now. They must <b>negotiate</b> — step by step, until all four say yes.</p>
   </div>
   <div class="budgetbar">
     <div class="bb-track"><div class="bb-have" id="bbHave"></div><div class="bb-over" id="bbOver"></div></div>
-    <div class="bb-labels"><span>✅ They have <b>$600</b></span><span class="bad">❌ They need <b>$750</b></span></div>
+    <div class="bb-labels"><span>🧑&#8205;💼 Offer <b>$100k</b></span><span class="bad">🙋 Ask <b>$130k</b> — a $30k gap</span></div>
   </div>
   <div class="chain" id="chain">
-    <div class="chain-title">One number rules everything:</div>
+    <div class="chain-title">How a deal is made:</div>
     <div class="chain-row">
-      <div class="cnode" style="--c:#4fd1c5" id="cnMoney">💰 Money<b>$600</b></div>
-      <div class="carrow" id="ca1"><span>cuts the list</span>▶</div>
-      <div class="cnode big" style="--c:#6ea8fe" id="cnGuests">😀 Guests<b id="chG">15</b></div>
-      <div class="carrow" id="ca2"><span>sets the numbers</span>▶</div>
-      <div class="cstack">
-        <div class="cnode" style="--c:#d3a6ff" id="cnPizzas">🍕 Pizzas<b id="chP">5</b></div>
-        <div class="cnode" style="--c:#ff8f8f" id="cnChairs">🪑 Chairs<b id="chC">15</b></div>
-      </div>
+      <div class="cnode" style="--c:#6ea8fe" id="cnAsk">🙋 Ask<b id="chA">$130k</b></div>
+      <div class="carrow" id="ca1"><span>comes down</span>▶</div>
+      <div class="cnode big" style="--c:#f5c542" id="cnDeal">🤝 Deal<b id="chD">?</b></div>
+      <div class="carrow" id="ca2"><span>goes up</span>◀</div>
+      <div class="cnode" style="--c:#4fd1c5" id="cnOffer">🧑&#8205;💼 Offer<b id="chO">$100k</b></div>
     </div>
-    <div class="chain-cap">Money cuts the guest list. The guest list sets the pizzas and the chairs.<br>The friends must <b>talk</b> until all the numbers agree.</div>
+    <div class="chain-cap">Step by step, the ask comes down and the offer goes up.<br>📋 HR&rsquo;s band and 💰 Finance&rsquo;s cap shape where they meet. <b>Watch the race to see the deal!</b></div>
   </div>
-  <button class="cta" onclick="go(1)">How do they fix it? →</button>
+  <button class="cta" onclick="go(1)">How do they close it? →</button>
 </section>
 
 <!-- ══════════ SCENE 2 — THREE WAYS ══════════ -->
 <section class="scene" id="s1">
   <h1>Three ways to talk 💬</h1>
-  <p class="sub">Same friends. Same problem. Three ways to talk together.</p>
+  <p class="sub">Same people. Same deal. Three ways to talk together.</p>
   <div class="ways">
     <div class="wcard" style="--e:var(--orch)">
       <div class="wh">👔 The Boss Way <small>(Orchestrator)</small></div>
       <svg class="mini" viewBox="0 0 200 110" data-mini="boss"></svg>
-      <p>One boss asks each friend. One by one. Again and again. At the end, the boss asks everyone one more time, just to check.</p>
+      <p>One boss asks each person. One by one. Again and again. At the end, the boss asks everyone one more time, just to check.</p>
       <button class="ghost" onclick="startRace(['orchestrator'])">▶ Watch only this way</button>
     </div>
     <div class="wcard" style="--e:var(--bb)">
       <div class="wh">📋 The Whiteboard Way <small>(Blackboard)</small></div>
       <svg class="mini" viewBox="0 0 200 110" data-mini="board"></svg>
-      <p>All friends share <b>one whiteboard</b>. When a number changes, only the right friends speak again.</p>
+      <p>All four share <b>one whiteboard</b>. When a number changes, only the right people speak again.</p>
       <button class="ghost" onclick="startRace(['blackboard'])">▶ Watch only this way</button>
     </div>
     <div class="wcard" style="--e:var(--hy)">
       <div class="wh">🤝 The Mix Way <small>(Hybrid)</small></div>
       <svg class="mini" viewBox="0 0 200 110" data-mini="mix"></svg>
-      <p>Guests and Budget fix the money problem first, together. Then Food and Chairs speak once.</p>
+      <p>Candidate, Manager and HR settle the salary together on the board. Then Finance signs once.</p>
       <button class="ghost" onclick="startRace(['hybrid'])">▶ Watch only this way</button>
     </div>
   </div>
-  <p class="keyline">⭐ All three find the <b>same party</b>. But more talk costs more time and more money.</p>
+  <p class="keyline">⭐ All three reach the <b>same deal</b>. But more talk costs more time and more money.</p>
   <div class="guess" id="guess">
     <p><b>Your guess:</b> which way needs the <b>least</b> talk?</p>
     <div class="guessbtns">
@@ -108,11 +105,11 @@
       <button data-sp="1600">🐢 Slow</button><button data-sp="900" class="on">▶ Normal</button><button data-sp="350">⚡ Fast</button><button data-sp="0">🚀 Fastest</button>
     </span>
     <button id="talkbtn" onclick="toggleTalk()">💬 Real AI words</button>
-    <button onclick="openParty()">🎛 Change the party</button>
+    <button onclick="openParty()">🎛 Change the numbers</button>
   </div>
   <div class="partybox" id="partybox">
-    <label>Guests <input type="number" id="inGuests" value="15" min="1" max="50"></label>
-    <label>Money $ <input type="number" id="inBudget" value="600" min="50" max="100000"></label>
+    <label>Ask $k <input type="number" id="inAsk" value="130" min="90" max="400"></label>
+    <label>Band $k <input type="number" id="inBand" value="110" min="90" max="400"></label>
     <button class="cta small" onclick="restartRace()">🔁 Race again</button>
   </div>
   <div class="lanes" id="lanes"></div>
@@ -127,7 +124,7 @@
   <table class="score" id="score"></table>
   <div class="endbtns">
     <button class="cta small" onclick="restartRace()">🔁 Race again</button>
-    <button class="ghost" onclick="openParty();go(2)">🎛 Change the party</button>
+    <button class="ghost" onclick="openParty();go(2)">🎛 Change the numbers</button>
     <button class="ghost" onclick="openWords()">📖 Word list</button>
     <a class="ghost btnlink" href="/expert">🧠 Expert view</a>
   </div>
@@ -138,14 +135,15 @@
   <div class="modal-card">
     <h2>Word list 📖</h2>
     <dl>
-      <dt>Turn</dt><dd>One friend speaks one time.</dd>
-      <dt>Wasted turn</dt><dd>A friend speaks, but changes nothing.</dd>
+      <dt>Turn</dt><dd>One person speaks one time.</dd>
+      <dt>Wasted turn</dt><dd>A person speaks, but changes nothing.</dd>
       <dt>Talk cost</dt><dd>The money paid to the AI for the talking.</dd>
-      <dt>Whiteboard / Board</dt><dd>One page that all friends can see and write on.</dd>
-      <dt>Chairs</dt><dd>Every guest needs one chair. 12 guests = 12 chairs.</dd>
-      <dt>Guests we can pay</dt><dd>The most guests the money can buy.</dd>
-      <dt>Boss</dt><dd>The one who asks each friend, one by one.</dd>
-      <dt>The race</dt><dd>All three ways solve the same problem. Fewer turns = better.</dd>
+      <dt>Whiteboard / Board</dt><dd>One page that all four people can see and write on.</dd>
+      <dt>Band</dt><dd>HR&rsquo;s rule: the highest base salary allowed.</dd>
+      <dt>Total cap</dt><dd>Finance&rsquo;s rule: salary + bonus together must stay under this.</dd>
+      <dt>Deal</dt><dd>When the ask and the offer meet at one number. 🤝</dd>
+      <dt>Boss</dt><dd>The one who asks each person, one by one.</dd>
+      <dt>The race</dt><dd>All three ways close the same deal. Fewer turns = better.</dd>
     </dl>
     <button class="cta small" onclick="closeWords()">OK, got it</button>
   </div>
