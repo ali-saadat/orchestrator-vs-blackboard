@@ -9,4 +9,4 @@ Read `docs/HARNESS.md` for the organizing idea: a multi-agent system is
 `agents + a harness`, and orchestrator / blackboard / hybrid are three harnesses.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"

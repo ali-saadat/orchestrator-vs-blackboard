@@ -148,19 +148,28 @@ b{color:var(--fg)}
 .lane-name small{color:var(--mut);font-weight:500;font-size:10.5px}
 .lane-live{margin-left:auto;display:flex;gap:16px;font-size:13px;color:var(--mut)}
 .lane-live b{color:var(--fg);font-size:16px;font-variant-numeric:tabular-nums}
-.lane-mid{display:grid;grid-template-columns:210px 1fr;gap:14px;align-items:center;margin-top:8px}
+.lane-mid{display:grid;grid-template-columns:300px 1fr;gap:14px;align-items:center;margin-top:8px}
 @media(max-width:760px){.lane-mid{grid-template-columns:1fr}.controls{position:static}}
-/* the narrator bubble — one simple sentence per event */
-.bubble{margin-top:9px;background:var(--feed);border:1px solid var(--line);
+/* the communication ledger — every line says WHO talks TO WHOM */
+.comm{margin-top:9px;background:var(--feed);border:1px solid var(--line);
   border-left:4px solid var(--e);border-radius:4px 12px 12px 12px;
-  padding:10px 13px;font-size:15px;min-height:42px}
-.bubble.say{animation:bubbleIn .35s ease-out}
-@keyframes bubbleIn{0%{opacity:.3;transform:translateY(4px)}100%{opacity:1;transform:none}}
-svg.topo{width:210px;height:110px;background:var(--feed);border:1px solid var(--line);border-radius:10px}
+  padding:7px 10px;height:150px;overflow:auto;scroll-behavior:smooth}
+.comm .cl{padding:2.5px 7px;font-size:12.5px;color:var(--mut);border-radius:6px}
+.comm .cl b{color:var(--fg)}
+.comm .cl .dir{color:var(--now);font-weight:800;padding:0 2px}
+.comm .cl:last-child{background:var(--feed2);border-left:3px solid var(--e);
+  color:var(--fg);font-size:14.5px;padding:7px 10px;margin-top:3px;animation:clIn .3s ease-out}
+@keyframes clIn{0%{opacity:.3;transform:translateY(4px)}100%{opacity:1;transform:none}}
+svg.topo{width:300px;height:150px;background:var(--feed);border:1px solid var(--line);border-radius:10px}
 svg.topo .tn rect{fill:var(--card);stroke-width:2}
-svg.topo .tn text{fill:var(--fg);font-size:8.6px;font-weight:700;text-anchor:middle}
-svg.topo .te{stroke:var(--mut);stroke-width:1.4;opacity:.4}
+svg.topo .tn text.nm{fill:var(--fg);font-size:8.6px;font-weight:800;text-anchor:middle}
+svg.topo .tn text.val{fill:var(--mut);font-size:8px;font-weight:600;text-anchor:middle;font-variant-numeric:tabular-nums}
+svg.topo .tn.speak rect{animation:speakGlow .9s infinite}
+@keyframes speakGlow{50%{stroke-width:4;filter:drop-shadow(0 0 7px currentColor)}}
+svg.topo .te{stroke:var(--edge,var(--mut));stroke-width:1.4;opacity:.5}
 svg.topo .dot{filter:drop-shadow(0 0 4px currentColor)}
+svg.topo .pillg rect{filter:drop-shadow(0 2px 5px rgba(0,0,0,.4))}
+svg.topo .pillg text{fill:#0b0d12;font-size:8.5px;font-weight:800;text-anchor:middle}
 .trackwrap{min-width:0}
 .track{display:flex;gap:5px;align-items:center;flex-wrap:wrap;min-height:30px}
 .step{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;

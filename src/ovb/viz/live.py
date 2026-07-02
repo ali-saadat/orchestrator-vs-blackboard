@@ -39,6 +39,8 @@ _DEFAULT_MODEL = "claude-haiku-4-5-20251001"   # cheapest; model only affects na
 # anchor to the repo root so `ovb serve` replays the committed cassette from any CWD
 DEMO_CASSETTE = str(Path(__file__).resolve().parents[3] / "cassettes" / "demo.json")
 
+SCENARIO_ID = "job-offer/v1"   # stamped on /info so a stale server is detectable
+
 # the immersive story UI lives in real files (lintable, formattable) — see static/
 _STATIC_DIR = Path(__file__).resolve().parent / "static"
 _STATIC_FILES = {  # allowlist => no path traversal
@@ -103,6 +105,8 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
+        # never let a browser cache a stale app.js/index against a newer server
+        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
 
@@ -122,8 +126,10 @@ class _Handler(BaseHTTPRequestHandler):
             # the full expert dashboard (unchanged)
             self._send(INDEX_HTML.encode("utf-8"), "text/html; charset=utf-8")
         elif parsed.path == "/info":
+            from .. import __version__
             info = {"cassette": os.path.exists(DEMO_CASSETTE),
-                    "defaults": {"ask": 130, "band": 110}}
+                    "defaults": {"ask": 130, "band": 110},
+                    "scenario": SCENARIO_ID, "version": __version__}
             self._send(json.dumps(info).encode("utf-8"),
                        "application/json; charset=utf-8")
         elif parsed.path == "/run":

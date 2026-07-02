@@ -40,6 +40,8 @@ let rr = 0;                 // round-robin cursor
 let es = null, timer = null, speed = 900, winTimer = null;
 let allDoneSeen = false, raceFinished = false, finishedShown = false;
 const PRE = window.PRELOADED || null;
+const EXPECT_SCENARIO = 'job-offer/v1';   // must match the server's /info stamp
+let lastErr = '';
 
 function qTotal() { return raceEngines.reduce((n, e) => n + (Qs[e] ? Qs[e].length : 0), 0); }
 function qPush(ev) { if (Qs[ev.engine]) Qs[ev.engine].push(ev); }
@@ -179,7 +181,7 @@ function laneHTML(e) {
       <span class="lane-live"><span>Turns <b id="t-${e}">0</b></span>
         <span>Wasted <b id="w-${e}">0</b></span>
         <span>Talk cost <b id="c-${e}">$0.000</b></span></span></div>
-    <div class="bubble" id="bub-${e}">The friends will start to talk…</div>
+    <div class="comm" id="bub-${e}"></div>
     <div class="lane-mid">
       <svg class="topo" id="topo-${e}" viewBox="0 0 300 150"></svg>
       <div class="trackwrap"><div class="track" id="track-${e}"></div>
@@ -200,15 +202,52 @@ function buildTopo(e) {
   });
   for (const name in t.nodes) {
     const [x, y] = t.nodes[name];
-    const w = name === 'SUP' ? 66 : name === 'BB' ? 56 : 48;
-    const g = mk('g', { class: 'tn' });
+    const hub = name === 'SUP' || name === 'BB';
+    const w = hub ? 72 : 74;
+    const g = mk('g', { class: 'tn', id: `ng-${e}-${name}` });
     const color = name === 'BB' ? 'var(--bb)' : name === 'SUP' ? NICE[e].cvar : (FRIENDC[name] || '#888');
-    g.appendChild(mk('rect', { x: x - w / 2, y: y - 9, width: w, height: 18, rx: 5, stroke: color }));
-    const txt = mk('text', { x, y: y + 3.2 });
-    txt.textContent = name === 'BB' ? 'Board' : name === 'SUP' ? 'Boss' : name;
-    g.appendChild(txt);
+    g.setAttribute('style', `color:${color}`);
+    g.appendChild(mk('rect', { x: x - w / 2, y: y - 13, width: w, height: 26, rx: 6, stroke: color }));
+    const nm = mk('text', { class: 'nm', x, y: y - 1.5 });
+    nm.textContent = name === 'BB' ? '📋 Board' : name === 'SUP' ? '👔 Boss' : `${FRIENDE[name] || ''} ${name}`;
+    g.appendChild(nm);
+    const val = mk('text', { class: 'val', x, y: y + 9.5, id: `nv-${e}-${name}` });
+    val.textContent = hub ? 'deal: ?' : (name === 'Candidate' ? 'asks $?' : name === 'Manager' ? 'offers $?' : '…');
+    g.appendChild(val);
     svg.appendChild(g);
   }
+  // seed the negotiators' opening numbers
+  setNodeVal(e, 'Candidate', `asks $${S[e].board.ask}k`);
+  setNodeVal(e, 'Manager', `offers $${S[e].board.offer}k`);
+}
+function setNodeVal(e, name, text) { const el = $(`nv-${e}-${name}`); if (el) el.textContent = text; }
+function setHubVal(e, text) { setNodeVal(e, 'BB', text); setNodeVal(e, 'SUP', text); }
+function speak(e, name, on) { const g = $(`ng-${e}-${name}`); if (g) g.classList.toggle('speak', on); }
+
+/* a labeled pill that travels along an edge — you SEE what is sent to whom */
+function travelMsg(e, from, to, text, type) {
+  const svg = $('topo-' + e); if (!svg) return;
+  const t = TOPO[e]; if (!t.nodes[from] || !t.nodes[to]) return;
+  const [x1, y1] = t.nodes[from], [x2, y2] = t.nodes[to];
+  const NS = 'http://www.w3.org/2000/svg';
+  const g = document.createElementNS(NS, 'g');
+  g.setAttribute('class', 'pillg');
+  const w = Math.max(30, text.length * 5.4 + 10);
+  const rect = document.createElementNS(NS, 'rect');
+  rect.setAttribute('width', w); rect.setAttribute('height', 14); rect.setAttribute('rx', 7);
+  rect.setAttribute('fill', DOTC[type] || DOTC.msg);
+  const txt = document.createElementNS(NS, 'text');
+  txt.setAttribute('x', w / 2); txt.setAttribute('y', 10);
+  txt.textContent = text;
+  g.appendChild(rect); g.appendChild(txt);
+  svg.appendChild(g);
+  const t0 = performance.now(), dur = Math.max(400, Math.min(900, speed * 1.2 || 500));
+  (function tick(now) {
+    const k = Math.min(1, (now - t0) / dur);
+    const x = x1 + (x2 - x1) * k - w / 2, y = y1 + (y2 - y1) * k - 7;
+    g.setAttribute('transform', `translate(${x},${y})`);
+    if (k < 1) requestAnimationFrame(tick); else setTimeout(() => g.remove(), 150);
+  })(t0);
 }
 
 /* a dot that travels along an edge — the "moving arrow" */
@@ -234,8 +273,10 @@ function travelDot(e, from, to, type) {
 function hubOf(e, agent) {
   if (e === 'orchestrator') return 'SUP';
   if (e === 'blackboard') return 'BB';
-  return (agent === 'Guests' || agent === 'Budget') ? 'BB' : 'SUP';
+  return (agent === 'Candidate' || agent === 'Manager' || agent === 'HR') ? 'BB' : 'SUP';
 }
+function hubLabel(e, agent) { return hubOf(e, agent) === 'BB' ? '📋 <b>Board</b>' : '👔 <b>Boss</b>'; }
+function who(agent) { return `${FRIENDE[agent] || ''} <b>${esc(agent)}</b>`; }
 
 /* ---------- playback ---------- */
 function setSpeed(ms, btn) {
@@ -317,32 +358,50 @@ function restartRace() { startRace(raceEngines.length ? raceEngines : ALL); }
 /* ---------- event → animation ---------- */
 function bump(id, val) { const el = $(id); if (el) el.textContent = val; }
 
-/* the narrator: ONE short, simple sentence per event, made from the real numbers */
+/* the communication ledger: every line says WHO talks TO WHOM, with the numbers */
 function say(e, html) {
   const el = $('bub-' + e); if (!el) return;
-  el.innerHTML = html;
-  el.classList.remove('say'); void el.offsetWidth; el.classList.add('say');
+  const d = document.createElement('div');
+  d.className = 'cl'; d.innerHTML = html;
+  el.appendChild(d);
+  while (el.children.length > 60) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
 }
-function narrateWrite(e, a, s) {
+function narrateWrite(e, a, s, agent) {
+  const to = hubLabel(e, agent);
+  const from = who(agent);
+  const arrow = `<span class="dir">→</span>`;
   switch (a.field) {
     case 'ask':
+      setNodeVal(e, 'Candidate', `asks $${a.new}k`);
+      travelMsg(e, 'Candidate', hubOf(e, 'Candidate'), `$${a.new}k`, 'write');
       return a.new === s.board.offer
-        ? `🙋 <b>Candidate:</b> OK — <b>$${a.new}k</b>. That is your final number. Deal! 🤝`
-        : `🙋 <b>Candidate:</b> I can come down… <b>$${a.old}k → $${a.new}k</b>.`;
+        ? `${from} ${arrow} ${to}: OK — <b>$${a.new}k</b>. That is your final number. Deal! 🤝`
+        : `${from} ${arrow} ${to}: ✏️ I come down — my ask is now <b>$${a.new}k</b>.`;
     case 'offer':
+      setNodeVal(e, 'Manager', `offers $${a.new}k`);
+      travelMsg(e, 'Manager', hubOf(e, 'Manager'), `$${a.new}k`, 'write');
       return (s.board.band_max != null && a.new === s.board.band_max)
-        ? `🧑\u200d💼 <b>Manager:</b> <b>$${a.new}k</b> — the top of the band. My final offer.`
-        : `🧑\u200d💼 <b>Manager:</b> I can go up… <b>$${a.old}k → $${a.new}k</b>.`;
+        ? `${from} ${arrow} ${to}: ✏️ <b>$${a.new}k</b> — the top of the band. My final offer.`
+        : `${from} ${arrow} ${to}: ✏️ I go up — my offer is now <b>$${a.new}k</b>.`;
     case 'band_max':
-      return `📋 <b>HR:</b> the salary band stops at <b>$${a.new}k</b>. No base pay above that.`;
+      setNodeVal(e, 'HR', `band $${a.new}k`);
+      travelMsg(e, 'HR', hubOf(e, 'HR'), `band $${a.new}k`, 'write');
+      return `${from} ${arrow} ${to}: ✏️ the salary band stops at <b>$${a.new}k</b>. No base pay above it.`;
     case 'total_cap':
-      return `💰 <b>Finance:</b> salary + bonus together must stay under <b>$${a.new}k</b>.`;
+      setNodeVal(e, 'Finance', `cap $${a.new}k`);
+      travelMsg(e, 'Finance', hubOf(e, 'Finance'), `cap $${a.new}k`, 'write');
+      return `${from} ${arrow} ${to}: ✏️ salary + bonus must stay under <b>$${a.new}k</b>.`;
     case 'salary':
-      return `🤝 <b>Deal!</b> Base salary: <b>$${a.new}k</b>. Now HR and Finance finish the papers.`;
+      setHubVal(e, `deal: $${a.new}k`);
+      travelMsg(e, agent, hubOf(e, agent), `deal $${a.new}k`, 'write');
+      return `🤝 <b>DEAL!</b> Ask = offer = <b>$${a.new}k</b>. HR and Finance, finish the papers.`;
     case 'bonus':
-      return `💰 <b>Finance:</b> there is room under the cap — signing bonus <b>$${a.new}k</b>. Approved.`;
+      travelMsg(e, 'Finance', hubOf(e, 'Finance'), `+$${a.new}k`, 'write');
+      return `${from} ${arrow} ${to}: ✏️ there is room under the cap — bonus <b>$${a.new}k</b>. Approved.`;
     case 'remote':
-      return `📋 <b>HR:</b> you came down a lot — that earns <b>${a.new} remote days</b> a week.`;
+      travelMsg(e, 'HR', hubOf(e, 'HR'), `${a.new} days`, 'write');
+      return `${from} ${arrow} ${to}: ✏️ the candidate came down a lot — <b>${a.new} remote days</b>.`;
   }
   return '';
 }
@@ -350,25 +409,32 @@ function handle(ev) {
   const e = ev.engine, a = ev.attrs || {}, s = S[e];
   if (!s) return;
   switch (ev.kind) {
-    case 'agent_activated':
+    case 'agent_activated': {
       travelDot(e, hubOf(e, ev.agent), ev.agent, 'msg');
-      say(e, `${FRIENDE[ev.agent] || '🎤'} <b>${esc(ev.agent)}</b> is thinking…`);
+      speak(e, ev.agent, true);
+      const trg = a.trigger || '';
+      let why = 'your turn.';
+      if (trg.startsWith('seed')) why = 'the talk starts — go.';
+      else if (trg.includes('changed')) why = `🔔 ${esc(trg)} — react.`;
+      else if (trg.includes('sweep')) why = `your turn (${esc(trg)}).`;
+      say(e, `${hubLabel(e, ev.agent)} <span class="dir">→</span> ${who(ev.agent)}: ${why}`);
       break;
+    }
     case 'gen_ai.client.call.finished': {
       s.turns++; if (!a.changed) s.wasted++;
       s.cost += a.cost_usd || 0;
       bump('t-' + e, s.turns); bump('w-' + e, s.wasted);
       bump('c-' + e, '$' + s.cost.toFixed(3));
-      if (!a.changed) say(e, `✅ <b>${esc(ev.agent)}:</b> all good. Nothing to change.`);
+      speak(e, ev.agent, false);
+      if (!a.changed) {
+        say(e, `${who(ev.agent)} <span class="dir">→</span> ${hubLabel(e, ev.agent)}: ✅ nothing to change.`);
+        travelDot(e, ev.agent, hubOf(e, ev.agent), 'msg');
+      }
       const step = document.createElement('div');
       step.className = 'step' + (a.changed ? '' : ' noop');
       step.textContent = FRIENDE[ev.agent] || '·';
       step.title = `${ev.agent}: ` + (a.changed ? 'changed the plan' : 'nothing to change (wasted turn)');
       $('track-' + e).appendChild(step);
-      if (a.changed) {
-        const core = e !== 'orchestrator' && hubOf(e, ev.agent) === 'BB';
-        travelDot(e, ev.agent, hubOf(e, ev.agent), core ? 'write' : 'msg');
-      }
       if (a.message) {
         const d = document.createElement('div');
         d.className = 'm'; d.style.setProperty('--c', FRIENDC[ev.agent] || '#888');
@@ -378,7 +444,7 @@ function handle(ev) {
       break;
     }
     case 'state_write': {
-      const line = narrateWrite(e, a, s);   // uses the OLD board (e.g. guest count before a cut)
+      const line = narrateWrite(e, a, s, ev.agent);   // reads the OLD board (pre-write)
       s.board[a.field] = a.new;
       if (line) say(e, line);
       const chip = $(`chip-${e}-${a.field}`);
@@ -396,6 +462,7 @@ function handle(ev) {
       break;
     case 'error':
       s.done = true; s.err = true;
+      lastErr = a.msg || 'engine error';
       say(e, '⚠ Something went wrong here.');
       console.error(a.msg);
       break;
@@ -409,7 +476,7 @@ function handle(ev) {
       flag.className = 'step flag'; flag.textContent = '🏁🎉';
       $('track-' + e).appendChild(flag);
       $('lane-' + e).classList.add('finished');
-      say(e, `🏁 <b>Done in ${s.turns} turns!</b> The plan fits the money.`);
+      say(e, `🏁 <b>Done in ${s.turns} turns!</b> All four said yes.`);
       break;
     }
   }
@@ -421,7 +488,8 @@ function showWinner() {
   const ranked = raceEngines.slice().sort((x, y) => S[x].turns - S[y].turns);
   const b = S[ranked[0]].board;
   if (b.salary == null || ranked.some((e) => S[e].err)) {   // never celebrate a broken run
-    $('verdict').innerHTML = '⚠ Something went wrong — the talk did not finish. Please press <b>🔁 Race again</b>.';
+    $('verdict').innerHTML = '⚠ Something went wrong — the talk did not finish. Please press <b>🔁 Race again</b>.'
+      + (lastErr ? `<br><small style="color:var(--mut)">detail: ${esc(lastErr).slice(0, 160)} — if this repeats, restart the server (Ctrl-C, then ./run.sh).</small>` : '');
     $('guessresult').textContent = '';
     $('podium').innerHTML = ''; $('score').innerHTML = '';
     return;
@@ -510,6 +578,13 @@ function applyInfo() {
   $('liveinfo').textContent = INFO.cassette
     ? '🎙 Real AI talk — recorded. Free to watch.'
     : '🤖 Pretend AI talk — no internet needed.';
+  if (INFO.version) $('liveinfo').title = 'ovb v' + INFO.version;
+  if (INFO.scenario && INFO.scenario !== EXPECT_SCENARIO) {
+    document.body.insertAdjacentHTML('afterbegin',
+      '<div style="position:sticky;top:0;z-index:99;background:var(--bad);color:#fff;' +
+      'padding:10px 16px;text-align:center;font-weight:700">⚠ The server is running OLD code ' +
+      '(' + esc(INFO.scenario) + '). Stop it (Ctrl-C) and start it again: ./run.sh</div>');
+  }
 }
 if (PRE) {
   INFO = PRE.info || INFO;

@@ -189,7 +189,7 @@ def export(
     """Build ONE self-contained demo.html — the full story journey replaying a
     recorded run with no server, no install (works from file:// or any static host)."""
     import json as _json
-    from .viz.live import DEMO_CASSETTE, _STATIC_DIR
+    from .viz.live import DEMO_CASSETTE, SCENARIO_ID, _STATIC_DIR
 
     params = _params(ask, band)
     use_cassette = Path(DEMO_CASSETTE).exists()
@@ -230,7 +230,8 @@ def export(
     js = (_STATIC_DIR / "app.js").read_text()
     preloaded = _json.dumps({
         "events": merged,
-        "info": {"cassette": use_cassette, "defaults": {"ask": ask, "band": band}},
+        "info": {"cassette": use_cassette, "defaults": {"ask": ask, "band": band},
+                 "scenario": SCENARIO_ID},
     })
     html = html.replace('<link rel="stylesheet" href="/static/style.css">',
                         "<style>\n" + css + "\n</style>")
