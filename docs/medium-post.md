@@ -1,132 +1,68 @@
 <!--
-  MEDIUM POST — ready to paste into the Medium editor.
+  MEDIUM POST — ready to paste into the Medium editor (~750 words, ~4 min read).
   Images live in docs/images/post/ — upload them at the marked spots.
   Cover image: 01-hero.png
-  Suggested tags: AI Agents, Multi-Agent Systems, Software Architecture, LLM, Anthropic
+  Suggested tags: AI Agents, Multi-Agent Systems, Artificial Intelligence, Software Architecture, Small Business
 -->
 
-# Same Agents. Same Deal. One Pattern Paid Double.
+# The Boss and the Whiteboard: The Two Classic Ways to Run a Team of AI Agents
 
-### I raced three multi-agent architectures on the exact same job-offer negotiation — with real Claude calls, a live scoreboard, and one uncomfortable bill.
+### Supervisor or blackboard? A four-minute guide to the most important multi-agent decision — with examples from businesses like yours.
 
-![Hero — Same agents. Same deal. One way pays double.](images/post/01-hero.png)
-*Four AI agents, one job offer, three coordination patterns. The deal is identical every time. The bill is not.*
+![The Boss and the Whiteboard](images/post/01-hero.png)
 
-Everyone is arguing about **which model** to use.
+Every multi-agent AI system ever built is secretly one of two offices. And you've worked in both.
 
-Almost nobody is measuring **how their agents take turns**.
+Here's the first one. Rana runs a fourteen-person online furniture shop. Monday, 9 a.m., status meeting. She goes around the table: marketing reports, she decides; ops reports, she decides; finance reports, she decides. Nobody speaks unless spoken to. It takes ninety minutes and half the room spends it waiting — yet nothing slips, and if a decision goes sideways, everyone knows exactly where it was made.
 
-So I built an experiment that removes every variable except one. Four AI agents negotiate one job offer. Same agents. Same rules. Same finish line. The only thing that changes is the *control loop* — the piece of code that decides **who speaks next**.
+Now the second. Thursday, 2 a.m., the payment provider dies mid-checkout. Nobody calls a meeting. Someone posts on the team board. The developer sees it and switches to the backup provider. Support sees the developer's note and updates the status page. Finance sees support's note and pauses automatic refunds. Nobody assigned anything to anyone. **The problem itself did the assigning.**
 
-The result: one pattern closed the deal in **13 turns**. Another needed **24 turns** — and 10 of them were pure waste. Same deal, same $110k salary, same $8k bonus, same 4 remote days.
+Those two mornings have names in AI architecture — and picking the wrong one is the most common way multi-agent projects quietly fail.
 
-**Double the cost, for the privilege of a worse architecture.**
+## The supervisor: one boss, many hands
 
-Here's the whole experiment — and a simple rule for when to use each pattern. Everything is open source, and you can replay the real recorded AI runs on your laptop **without an API key**: 👉 [**github.com/ali-saadat/orchestrator-vs-blackboard**](https://github.com/ali-saadat/orchestrator-vs-blackboard)
+The [supervisor (or orchestrator) pattern](https://www.anthropic.com/engineering/building-effective-agents) is Rana's meeting. One coordinator agent decides which specialist works, in what order, and reads every result before choosing the next move. Hub-and-spoke: the agents never talk to each other; everything flows through the boss.
 
----
+That buys you three precious things: predictability, auditability, debuggability. When something breaks, you replay the boss's decisions like meeting minutes.
 
-## The setup: a negotiation nobody can shortcut
+The bill: in the classic loop, the boss checks on every agent, every round — turns, tokens and latency in AI terms; time and money in yours. Most check-ins come back "no update, boss." You're billed anyway. And the boss is a bottleneck: nothing moves faster than the chair.
 
-Meet the cast:
+## The blackboard: no boss, one board
 
-- 🙋 **Candidate** — Sam asks for **$130k**.
-- 🧑‍💼 **Manager** — starts at **$100k**. That's a $30k gap. 😬
-- 📋 **HR** — has a rule: base salary can't go over the salary band. But nobody has announced the band yet…
-- 💰 **Finance** — has a rule too: salary + bonus together have a hard cap.
+The [blackboard pattern](https://en.wikipedia.org/wiki/Blackboard_(design_pattern)) — the AI world's name for the shared team whiteboard — is the 2 a.m. rescue. No coordinator. One board everyone can see. Specialist agents watch it and wake only when something relevant to them appears. Their output lands back on the board, which may wake someone else. Nobody knows the sequence in advance; **the board discovers the sequence.**
 
-![The Job Offer — the problem scene](images/post/03-story.png)
-*The problem, as the interactive demo tells it: a $30k gap, two hidden constraints, and four people who all must say yes.*
+The bill is different here. "Who decided that?" has no clean answer. There's no single point of control. And the wake-up triggers need real design work — a blackboard without well-designed triggers is just an expensive argument.
 
-Nobody can compute the final deal alone. The ask has to come down step by step, the offer has to come up, HR drops the band bombshell *mid-negotiation*, and Finance signs off at the end. It's a genuinely interdependent problem — the kind multi-agent systems exist for.
+![Two ways to run the same team](images/post/02-two-ways.png)
 
-One more thing that makes this a fair experiment: the agents' *decisions* are deterministic rules, and a deterministic gate decides when the deal is done. The LLM narrates each move (real Claude calls, recorded and replayable), but it never gets to change the math. That means **every difference you see below comes from the coordination pattern — nothing else.**
+## Match the pattern to the shape of the work
 
-## The three ways to run the same meeting
+**Supervisor-shaped work** is any process you could draw as a flowchart before it starts.
 
-An agent isn't just a model. It's a **model plus a harness** — the loop around it that decides who runs, when, and what they see. These are the three classic harnesses:
+- **Invoice processing:** intake → extract → validate → approve → pay. Same steps every time — and when the accountant asks why invoice #4127 was paid, the supervisor's log is the answer.
+- **Customer onboarding at a lender:** identity check, sanctions screen, credit pull, decision — in that order, with a paper trail a regulator can actually read.
+- **Content production:** draft → brand check → legal check → publish. Nothing ships without every gate passing, provably.
 
-![Three ways to run the same meeting](images/post/02-patterns.png)
-*Same four agents, same rules, same "done" check — only the control loop changes.*
+**Blackboard-shaped work** is a situation, not a sequence — you can't know in advance who must act, or in what order.
 
-**👔 The Orchestrator (hub & spoke).** A boss polls every agent, every round, in a fixed order. There is no shared board — agents only hear the boss. The run ends after a full lap where nobody changes anything. Predictable, auditable, easy to debug. But it pays *per agent × per round*, whether that agent had anything to say or not. I call this **the hub tax**.
+- **Fraud watching at an e-commerce shop:** an odd order lands on the board; the address checker, the velocity checker and the device-fingerprint agent each wake only if the case smells like their specialty.
+- **IT incident response:** is it the network, the database, or the update from an hour ago? The evidence decides who works.
+- **Supply-chain disruption:** a port closes. Logistics reroutes, procurement hunts for alternates, sales warns the big accounts — and who moves first depends entirely on what broke.
 
-**📋 The Blackboard (shared state).** Everyone reads and writes one shared board. A write wakes *only the agents subscribed to that field*. HR and Finance literally sleep through the salary haggling and wake up the moment a salary number lands. Nobody polls anybody. It pays *per change*.
+## The pocket checklist
 
-**🤝 The Hybrid (bounded board + tail).** The hot loop — Candidate, Manager, HR — shares the board. Finance runs once, at the end, as a deterministic sign-off step. This wins by encoding structure you already know… and breaks if you encode it wrong.
+**Pick the supervisor if:** the steps are known before you start; someone — a regulator, an auditor, your accountant — will ask "why?"; a wrong step costs more than a slow one.
 
-## The race 🏁
+**Pick the blackboard if:** you can't script who acts or when; events arrive on their own schedule; reaction speed beats tidy minutes; your specialists are mostly idle until *their* moment comes.
 
-The demo runs all three engines **concurrently on the same problem** and streams every message, every write, every wake-up, side by side. This is mid-race:
+Still torn? Default to the supervisor. Boring and auditable beats clever and unexplainable — right up until your problem stops being a sequence.
 
-![The race — three lanes, live ledgers](images/post/04-race.png)
-*Mid-race. Look at the Boss Way's ledger: "HR → Boss: ✅ nothing to change." "Finance → Boss: ✅ nothing to change." That's the hub tax, live on screen — 2 turns wasted already, while the other two lanes have zero.*
+![The 30-second decision](images/post/03-cheatsheet.png)
 
-Watch what each pattern *does* with its turns:
+Most real systems end up a mix: a supervisor running the regulated core, a blackboard wrapped around it watching for surprises. That's not indecision — it's the same reason your company has both standing meetings and a group chat.
 
-- The **orchestrator** asks HR and Finance for input on **every single haggling round** — while the only thing happening is Candidate and Manager trading numbers. Six wasted turns. Then, when the deal is done, it pays for **one more full lap** of "nothing to change" just to learn it's finished. Four more.
-- The **blackboard** wakes HR exactly once — when the first salary number hits the board — and Finance exactly once, at the end. Zero waste.
-- The **hybrid** does the same, minus even the kickoff call for Finance. It already *knows* Finance is a tail step.
-
-## The scoreboard
-
-All three land on the **identical deal**: $110k salary + $8k bonus + 4 remote days. Real recorded runs on Claude Haiku 4.5:
-
-![The scoreboard](images/post/06-scoreboard.png)
-*Identical outcome. 2× the turns, 2× the tokens, 2× the bill.*
-
-| Pattern | Turns | Wasted | Tokens | Real cost |
-|---|---|---|---|---|
-| 🥇 Hybrid | **13** | 0 | 4,123 | **$0.015** |
-| 🥈 Blackboard | **14** | 0 | 4,875 | $0.018 |
-| 🥉 Orchestrator | **24** | **10** | 8,464 | $0.031 |
-
-![The winner — podium](images/post/05-winner.png)
-*Less talk. Same deal. That's the whole idea.*
-
-Three cents doesn't sound scary. But this is four agents and one tiny negotiation on the cheapest model. The hub tax scales with **agents × rounds** — it's the *shape* of the curve that should worry you, not the absolute number. At production scale (more agents, longer runs, bigger models), that 2× gap is real money and real latency.
-
-## So orchestrators are bad? No — and this is the important part.
-
-If I had raced a *different* task, the podium would flip. The orchestrator's "waste" is the price of three things that are sometimes worth everything:
-
-**Use an 👔 orchestrator when the path is known and accountability matters.** Pipelines with a fixed order (research → draft → review → publish), compliance flows where you must show *who was asked, when, in what order*, anything where a wrong step is expensive and you want one throat to choke. The wasted polls are an insurance premium. This is also why Anthropic's own [multi-agent research system](https://www.anthropic.com/engineering/built-multi-agent-research-system) uses an orchestrator at the top: the *task decomposition* is the known structure.
-
-**Use a 📋 blackboard when you don't know who needs to act, or when.** Reactive, event-driven problems: incident response, monitoring, sensor fusion, anything where specialists should stay quiet until their trigger fires. This is the original 1980s [blackboard architecture](https://en.wikipedia.org/wiki/Blackboard_(design_pattern)) insight — opportunistic problem-solving when no fixed schedule fits. The trade: harder to audit, and you must design subscriptions carefully or you get churn instead of silence.
-
-**Use a 🤝 hybrid when part of the structure is known and part isn't.** Bound the reactive board to the genuinely unpredictable hot loop, and run the predictable parts as deterministic steps. Cheapest and fastest here — *because* I knew Finance was a tail step. Encode the wrong structure and it breaks. Knowledge is leverage; wrong knowledge is debt.
-
-And a counterpoint worth reading before you build any of this: Cognition argues you often [shouldn't build multi-agents at all](https://cognition.ai/blog/dont-build-multi-agents) — a single agent with good context beats a committee more often than you'd think. The honest first question isn't "which pattern?" It's "do I need more than one agent?"
-
-## The one-sentence takeaway
-
-> **Your coordination pattern is a pricing model.** The orchestrator pays per agent per round. The blackboard pays per change. The hybrid pays per change where it can't predict, and ~zero where it can.
-
-Pick the pricing model that matches your problem's shape — *before* you pick your model.
-
-## Try it yourself (no API key needed)
-
-Everything above is reproducible in two commands:
-
-```
-git clone https://github.com/ali-saadat/orchestrator-vs-blackboard
-cd orchestrator-vs-blackboard && ./run.sh     # Windows: run.bat
-```
-
-That's it — your browser opens the story-driven demo and replays the **real recorded Claude runs** from a cassette file, offline, free. Add your own Anthropic API key later if you want to run it live, swap models (Haiku/Sonnet/Opus), or change the negotiation numbers and watch the three engines diverge.
-
-The repo is built for teaching: an A2-simple guided story for newcomers, an expert dashboard with full event streams, a [classroom guide](https://github.com/ali-saadat/orchestrator-vs-blackboard/blob/main/docs/TEACHING.md), and a [when-to-use decision guide](https://github.com/ali-saadat/orchestrator-vs-blackboard/blob/main/docs/WHEN-TO-USE.md).
-
-⭐ If this saved you a wasted sprint (or a wasted 10 turns), star the repo: [**github.com/ali-saadat/orchestrator-vs-blackboard**](https://github.com/ali-saadat/orchestrator-vs-blackboard)
+If you keep one line, keep this: **the supervisor bills you per meeting; the blackboard bills you per event. Processes have meetings. Emergencies don't.**
 
 ---
 
-### References & further reading
-
-- Nii, H.P. (1986) — [*Blackboard Systems*](https://ojs.aaai.org/aimagazine/index.php/aimagazine/article/view/537), AI Magazine — the original architecture.
-- [Blackboard design pattern](https://en.wikipedia.org/wiki/Blackboard_(design_pattern)) — Wikipedia.
-- Anthropic — [*Building Effective Agents*](https://www.anthropic.com/engineering/building-effective-agents) — workflows vs agents, orchestrator-workers.
-- Anthropic — [*How we built our multi-agent research system*](https://www.anthropic.com/engineering/built-multi-agent-research-system).
-- LangGraph — [multi-agent architectures](https://langchain-ai.github.io/langgraph/concepts/multi_agent/) — supervisor & network patterns in practice.
-- Microsoft — [Magentic-One](https://www.microsoft.com/en-us/research/articles/magentic-one-a-generalist-multi-agent-system-for-solving-complex-tasks/) — a production orchestrator design.
-- Cognition — [*Don't Build Multi-Agents*](https://cognition.ai/blog/dont-build-multi-agents) — the case for one good agent.
+*Want to see the difference instead of imagining it? I built an open-source playground where these two patterns (plus a hybrid) race on the same problem, turn by turn, with real measured costs: [github.com/ali-saadat/orchestrator-vs-blackboard](https://github.com/ali-saadat/orchestrator-vs-blackboard).*
