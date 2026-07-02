@@ -130,14 +130,16 @@ hard-fails if roster/gate/sampling/start differ or engines diverge on the final 
 ## 8. The demo task & how to change it
 
 Current task = **birthday party** (`domain/task.py`): agents **Guests, Budget, Food,
-Vibe** reconcile `guests/max_guests/cost/pizzas/vibe` to a fixpoint (defaults → 12 guests ·
-$600 · 4 pizzas · lively). It's interdependent (budget caps the guest list → food & vibe
-re-check), which is what makes the blackboard win. Guests↔Budget is the coupled core;
-Food/Vibe the tail. Chosen for the non-technical audience (universally tangible).
+Chairs** reconcile `guests/max_guests/cost/pizzas/chairs` to a fixpoint (defaults →
+12 guests · $600 · 4 pizzas · 12 chairs). It's interdependent (budget caps the guest
+list → pizzas & chairs re-check; $50/head is ALL-IN, pizzas = shopping list 1-per-3,
+chairs = 1 per guest — all physically countable), which is what makes the blackboard
+win. Guests↔Budget is the coupled core; Food/Chairs the tail. Chairs replaced the
+earlier "Vibe" agent because a feeling wasn't countable — the dependency never clicked.
 
 **To swap the task** (e.g. another domain), touch:
 1. `domain/task.py` — `ScenarioParams`, constants, `initial_state`, `is_consistent` (the gate),
-   `vibe_for`/`pizzas_for`, `scenario_text`.
+   `chairs_for`/`pizzas_for`, `scenario_text`.
 2. `domain/agents.py` — agent names, `owns`/`subscribes`, `rule` functions.
 3. `core/state.py` — `PlanState` fields.
 4. `tests/test_smoke.py` — `EXPECTED` final state + headline call counts.

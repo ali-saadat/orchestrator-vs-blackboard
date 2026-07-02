@@ -5,7 +5,7 @@ deterministic decision authority; the LLM narrates/validates.
   - Guests owns `guests`,  reacts to `max_guests`  (trim the list if the budget won't allow it)
   - Budget owns `cost`+`max_guests`, reacts to `guests`  (price it; cap the list)
   - Food   owns `pizzas`, reacts to `guests`
-  - Vibe   owns `vibe`,   reacts to `guests`, `pizzas`
+  - Chairs owns `chairs`, reacts to `guests`  (one chair per guest)
 """
 from __future__ import annotations
 
@@ -34,8 +34,8 @@ def build_registry(params: "ScenarioParams | None" = None) -> AgentRegistry:
     def food_rule(s):
         return {"pizzas": task.pizzas_for(s.guests, p)}
 
-    def vibe_rule(s):
-        return {"vibe": task.vibe_for(s.guests)}
+    def chairs_rule(s):
+        return {"chairs": task.chairs_for(s.guests)}
 
     return AgentRegistry(
         sources=(
@@ -55,9 +55,9 @@ def build_registry(params: "ScenarioParams | None" = None) -> AgentRegistry:
                 food_rule,
             ),
             KnowledgeSource(
-                "Vibe", ("vibe",), ("guests", "pizzas"),
-                "You own the Vibe. The party's feel follows the headcount.",
-                vibe_rule,
+                "Chairs", ("chairs",), ("guests",),
+                "You own the Chairs. Every guest needs exactly one chair.",
+                chairs_rule,
             ),
         )
     )

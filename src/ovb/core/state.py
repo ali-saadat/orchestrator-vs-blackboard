@@ -13,7 +13,7 @@ the reducer raises `OwnershipError`. (See docs/HARNESS.md → security.)
 from __future__ import annotations
 
 import hashlib
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
@@ -34,7 +34,7 @@ class PlanState(BaseModel):
     max_guests: int | None = None     # most guests the budget allows (owned by Budget)
     cost: int | None = None           # total party cost $ (owned by Budget)
     pizzas: int | None = None         # pizzas to order (owned by Food)
-    vibe: Literal["chill", "lively", "wild"] | None = None  # party vibe (owned by Vibe)
+    chairs: int | None = None         # chairs to set out, one per guest (owned by Chairs)
 
     def fingerprint(self) -> str:
         return hashlib.sha256(self.model_dump_json().encode()).hexdigest()[:16]

@@ -143,7 +143,7 @@ def models(
         toks = f"{o.total_usage.total}/{b.total_usage.total}/{h.total_usage.total}"
         cost = f"${o.total_cost_usd:.4f}/${b.total_cost_usd:.4f}/${h.total_cost_usd:.4f}"
         st = res["blackboard"].state
-        plan = f"{st['guests']}ppl·${st['cost']}·{st['pizzas']}pz·{st['vibe']}"
+        plan = f"{st['guests']}ppl·${st['cost']}·{st['pizzas']}pz·{st['chairs']}ch"
         plans.add(plan)
         calls_sets.add(calls)
         flag = " ★ cheapest" if m == cheapest else ""

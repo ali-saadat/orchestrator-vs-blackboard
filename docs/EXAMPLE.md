@@ -14,11 +14,11 @@ ovb serve   # dashboard → mode = Cassette, pick a model
 ## The task
 
 Four friends plan one birthday party: **Guests** (you'd love 15), **Budget** (hard cap
-$600 at $50/head → 12 max), **Food** (one pizza feeds 3), **Vibe** (>12 wild · >8
-lively · else chill). The guest list drives everything, so trimming it to fit the
-budget also shrinks the pizza order and calms the vibe — a change ripples, but only to
-the friends who depend on the headcount. All three harnesses reach the identical plan:
-**12 guests · $600 · 4 pizzas · lively**.
+$600 at $50/head all-in → 12 max), **Food** (one pizza feeds 3), **Chairs** (one chair
+per guest). The guest list drives everything, so trimming it to fit the budget also
+shrinks the pizza order and the chair count — a change ripples, but only to the friends
+who depend on the headcount. All three harnesses reach the identical plan:
+**12 guests · $600 · 4 pizzas · 12 chairs**.
 
 ## Two independent axes — read them separately
 
@@ -33,13 +33,13 @@ the model choice never changes the plan or the call counts — **only tokens and
 
 | Model | $/Mtok in/out | calls (orch/bb/hyb) | tokens (orch/bb/hyb) | cost USD (orch/bb/hyb) |
 |---|---|---|---|---|
-| **Haiku 4.5** ★ cheapest | 1 / 5 | 12 / 7 / 5 | 2676 / 1510 / 1049 | **$0.0092 / $0.0051 / $0.0035** |
-| Sonnet 5 | 2 / 10 | 12 / 7 / 5 | 4132 / 2491 / 1724 | $0.0309 / $0.0189 / $0.0130 |
-| Opus 4.8 | 5 / 25 | 12 / 7 / 5 | 3833 / 2366 / 1476 | $0.0699 / $0.0440 / $0.0263 |
+| **Haiku 4.5** ★ cheapest | 1 / 5 | 12 / 7 / 5 | 2678 / 1494 / 947 | **$0.0094 / $0.0051 / $0.0031** |
+| Sonnet 5 | 2 / 10 | 12 / 7 / 5 | 3970 / 2442 / 1638 | $0.0295 / $0.0184 / $0.0121 |
+| Opus 4.8 | 5 / 25 | 12 / 7 / 5 | 3646 / 2216 / 1570 | $0.0656 / $0.0405 / $0.0286 |
 
-**Every model reaches the identical plan** (`12 guests · $600 · 4 pizzas · lively`) and
-the **identical 12/7/5 call counts**. Only cost moves — a ~20× spread (Haiku hybrid
-$0.0035 → Opus orchestrator $0.070) for the same outcome.
+**Every model reaches the identical plan** (`12 guests · $600 · 4 pizzas · 12 chairs`) and
+the **identical 12/7/5 call counts**. Only cost moves — a ~21× spread (Haiku hybrid
+$0.0031 → Opus orchestrator $0.066) for the same outcome.
 
 ### What to flag
 - **Use the cheapest model that fits: Haiku 4.5 ($1/$5).** For a narration workload it's

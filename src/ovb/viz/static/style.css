@@ -63,6 +63,29 @@ b{color:var(--fg)}
 @keyframes overPulse{50%{filter:brightness(1.45)}}
 .bb-labels{display:flex;justify-content:space-between;margin-top:8px;font-size:14px}
 .bb-labels .bad{color:var(--bad)}
+/* the dependency chain — the INSIGHT as a picture */
+.chain{max-width:720px;margin:26px auto 0;opacity:0;transition:opacity .6s;
+  background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 20px}
+.chain.show{opacity:1}
+.chain-title{text-align:center;color:var(--mut);font-size:13px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+.chain-row{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+.cnode{display:flex;flex-direction:column;align-items:center;gap:2px;
+  background:var(--feed);border:2px solid var(--c);border-radius:12px;
+  padding:9px 16px;font-weight:700;font-size:14px;min-width:96px}
+.cnode b{font-size:22px;font-variant-numeric:tabular-nums;color:var(--c)}
+.cnode.big{transform:scale(1.08)}
+.cnode.zap{animation:zap .6s}
+@keyframes zap{0%{transform:scale(1.18);box-shadow:0 0 0 6px color-mix(in srgb,var(--c) 35%,transparent)}100%{}}
+.cnode b.flip{animation:flip .55s}
+@keyframes flip{0%{transform:rotateX(90deg);opacity:0}100%{transform:none;opacity:1}}
+.carrow{display:flex;flex-direction:column;align-items:center;color:var(--mut);
+  font-size:18px;font-weight:800}
+.carrow span{font-size:10.5px;font-weight:600}
+.carrow.pulse{color:var(--now);animation:arrowPulse 1.1s infinite}
+@keyframes arrowPulse{50%{transform:translateX(5px);opacity:.55}}
+.cstack{display:flex;flex-direction:column;gap:8px}
+.chain-cap{text-align:center;color:var(--mut);font-size:13px;margin-top:12px;line-height:1.5}
 .cta{display:block;margin:30px auto 0;background:linear-gradient(135deg,var(--now),var(--pop1));
   color:#fff;border:none;border-radius:14px;padding:15px 30px;font-size:18px;font-weight:800;
   cursor:pointer;box-shadow:0 8px 24px rgba(79,141,253,.35);transition:transform .15s}
@@ -139,11 +162,12 @@ svg.topo .tn text{fill:var(--fg);font-size:8.6px;font-weight:700;text-anchor:mid
 svg.topo .te{stroke:var(--mut);stroke-width:1.4;opacity:.4}
 svg.topo .dot{filter:drop-shadow(0 0 4px currentColor)}
 .trackwrap{min-width:0}
-.track{display:flex;gap:5px;align-items:center;flex-wrap:wrap;min-height:26px}
-.step{width:17px;height:17px;border-radius:50%;background:var(--e);
-  animation:pop .35s cubic-bezier(.2,1.6,.4,1)}
-.step.noop{background:none;border:2px solid var(--mut);opacity:.65}
-.step.flag{background:none;font-size:17px;width:auto;height:auto;animation:pop .5s}
+.track{display:flex;gap:5px;align-items:center;flex-wrap:wrap;min-height:30px}
+.step{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+  font-size:14px;background:color-mix(in srgb,var(--e) 22%,var(--feed));
+  border:2px solid var(--e);animation:pop .35s cubic-bezier(.2,1.6,.4,1)}
+.step.noop{background:none;border:2px dashed var(--mut);filter:grayscale(1);opacity:.55}
+.step.flag{background:none;border:none;font-size:17px;width:auto;height:auto;animation:pop .5s}
 .board5{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
 .chip{background:var(--feed);border:1px solid var(--line);border-radius:8px;
   padding:3px 9px;font-size:12.5px;color:var(--mut)}

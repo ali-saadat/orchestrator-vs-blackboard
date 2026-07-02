@@ -40,18 +40,18 @@ Four friends agree on one party plan. Their choices are **interdependent**:
 | **Guests** | the guest list (you'd love 15) | trim the list if the budget won't allow it |
 | **Budget** | cost + the affordable headcount | cost = guests × $50; cap $600 ⇒ 12 max |
 | **Food** | pizzas | one pizza feeds 3 → 15→5, 12→4 |
-| **Vibe** | the party's feel | >12 wild · >8 lively · else chill |
+| **Chairs** | the chairs | one chair per guest → 15→15, 12→12 |
 
 You want 15 people, but at $50 a head that's $750 — over the $600 budget. Trim to 12,
-and the pizza order and the vibe change with it. All three control models reach the
-**same** plan (`12 guests · $600 · 4 pizzas · lively`); they differ only in how much
-coordination it takes:
+and the pizza order and the chair count change with it. All three control models reach
+the **same** plan (`12 guests · $600 · 4 pizzas · 12 chairs`); they differ only in how
+much coordination it takes:
 
 ```
               agent calls   wasted (no-op)   tokens (Haiku, real)
-orchestrator       12             5                 2,676
-blackboard          7             0                 1,510   ← 1.71× fewer calls
-hybrid              5             0                 1,049
+orchestrator       12             5                 2,678
+blackboard          7             0                 1,494   ← 1.71× fewer calls
+hybrid              5             0                   947
 ```
 
 ## The three control models (harnesses)
@@ -60,8 +60,8 @@ hybrid              5             0                 1,049
   plus a confirming no-op sweep. No shared board, no reactivity. The most turns ("hub tax").
 - **Blackboard** — all agents read/write one shared board; a write re-triggers only the
   agents that depend on the changed field. Fewer wasted turns.
-- **Hybrid** — a bounded blackboard for the tightly-coupled core (GPU ↔ Budget), then a
-  linear supervisor tail (Power, Performance).
+- **Hybrid** — a bounded blackboard for the tightly-coupled core (Guests ↔ Budget), then a
+  linear supervisor tail (Food, Chairs).
 
 They're the **same agents** behind one **harness** (control loop); only the *scheduling*
 differs — see [docs/HARNESS.md](docs/HARNESS.md).
@@ -114,7 +114,7 @@ ovb doctor                # what mode am I in?
 ```
 
 Because decisions are rule-based (the model only *narrates*), the model choice never
-changes the build — only tokens/cost. So use the cheapest that fits. See
+changes the plan — only tokens/cost. So use the cheapest that fits. See
 [docs/EXAMPLE.md](docs/EXAMPLE.md) for the real 3-model numbers.
 
 ## Project structure
@@ -128,7 +128,7 @@ src/ovb/
   core/                    harness.py (the control-loop primitives) · state · registry ·
                            gate · llm (mock/streaming/cassette) · trace (WORM log)
   engines/                 orchestrator · blackboard · hybrid   (scheduling only)
-  domain/                  task.py (the PC-build scenario + gate) · agents.py
+  domain/                  task.py (the party scenario + gate) · agents.py
   eval/                    runner · compare (fairness contract + table)
   viz/                     live.py (server + expert page) · static/ (the story journey:
                            index.html, style.css, app.js) · report.py (static HTML)

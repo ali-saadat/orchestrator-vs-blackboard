@@ -13,7 +13,7 @@ from ovb.domain import agents, task  # noqa: E402
 from ovb.eval.compare import FairnessContract  # noqa: E402
 from ovb.eval.runner import run_all  # noqa: E402
 
-EXPECTED = {"guests": 12, "max_guests": 12, "cost": 600, "pizzas": 4, "vibe": "lively"}
+EXPECTED = {"guests": 12, "max_guests": 12, "cost": 600, "pizzas": 4, "chairs": 12}
 
 
 def _run():
@@ -60,7 +60,7 @@ def test_fairness_contract_holds():
 def test_ownership_reducer_blocks_out_of_scope_writes():
     st = PlanState(guests=15)
     try:
-        apply_patch(st, {"vibe": "wild"}, owner="Budget", owns=("cost", "max_guests"))
+        apply_patch(st, {"chairs": 15}, owner="Budget", owns=("cost", "max_guests"))
         assert False, "expected OwnershipError"
     except OwnershipError:
         pass

@@ -9,18 +9,17 @@ const NICE = {
   blackboard:   { name: 'The Whiteboard Way', tech: 'Blackboard', emoji: '📋', cvar: 'var(--bb)' },
   hybrid:       { name: 'The Mix Way', tech: 'Hybrid', emoji: '🤝', cvar: 'var(--hy)' },
 };
-const FRIENDC = { Guests: '#6ea8fe', Budget: '#4fd1c5', Food: '#d3a6ff', Vibe: '#ff8f8f' };
-const FRIENDE = { Guests: '😀', Budget: '💰', Food: '🍕', Vibe: '🎵' };
-const VIBE_NICE = { wild: 'loud', lively: 'fun', chill: 'quiet' };
+const FRIENDC = { Guests: '#6ea8fe', Budget: '#4fd1c5', Food: '#d3a6ff', Chairs: '#ff8f8f' };
+const FRIENDE = { Guests: '😀', Budget: '💰', Food: '🍕', Chairs: '🪑' };
 const CHIPS = [['guests', '😀 Guests'], ['max_guests', '💰 Guests we can pay'], ['cost', 'Cost $'],
-               ['pizzas', '🍕 Pizzas'], ['vibe', '🎵 Vibe']];
+               ['pizzas', '🍕 Pizzas'], ['chairs', '🪑 Chairs']];
 const TOPO = {
-  orchestrator: { nodes: { SUP: [150, 22], Guests: [48, 108], Budget: [116, 108], Food: [184, 108], Vibe: [252, 108] },
-    edges: [['SUP', 'Guests'], ['SUP', 'Budget'], ['SUP', 'Food'], ['SUP', 'Vibe']] },
-  blackboard: { nodes: { BB: [150, 70], Guests: [50, 24], Budget: [250, 24], Food: [50, 116], Vibe: [250, 116] },
-    edges: [['BB', 'Guests'], ['BB', 'Budget'], ['BB', 'Food'], ['BB', 'Vibe']] },
-  hybrid: { nodes: { BB: [74, 70], Guests: [34, 30], Budget: [34, 112], SUP: [188, 70], Food: [256, 42], Vibe: [256, 100] },
-    edges: [['BB', 'Guests'], ['BB', 'Budget'], ['BB', 'SUP'], ['SUP', 'Food'], ['SUP', 'Vibe']] },
+  orchestrator: { nodes: { SUP: [150, 22], Guests: [48, 108], Budget: [116, 108], Food: [184, 108], Chairs: [252, 108] },
+    edges: [['SUP', 'Guests'], ['SUP', 'Budget'], ['SUP', 'Food'], ['SUP', 'Chairs']] },
+  blackboard: { nodes: { BB: [150, 70], Guests: [50, 24], Budget: [250, 24], Food: [50, 116], Chairs: [250, 116] },
+    edges: [['BB', 'Guests'], ['BB', 'Budget'], ['BB', 'Food'], ['BB', 'Chairs']] },
+  hybrid: { nodes: { BB: [74, 70], Guests: [34, 30], Budget: [34, 112], SUP: [188, 70], Food: [256, 42], Chairs: [256, 100] },
+    edges: [['BB', 'Guests'], ['BB', 'Budget'], ['BB', 'SUP'], ['SUP', 'Food'], ['SUP', 'Chairs']] },
 };
 const DOTC = { msg: '#4f8dfd', write: '#2dd4bf', retrig: '#c792ea' };
 
@@ -85,7 +84,26 @@ document.querySelectorAll('#stepper button').forEach((b) => {
   };
 });
 
-/* scene 1: staggered story + budget bar */
+/* scene 1: staggered story + budget bar + the dependency chain */
+function flipTo(id, val) {
+  const el = $(id); if (!el) return;
+  el.textContent = val;
+  el.classList.remove('flip'); void el.offsetWidth; el.classList.add('flip');
+}
+function zap(id) {
+  const el = $(id); if (!el) return;
+  el.classList.remove('zap'); void el.offsetWidth; el.classList.add('zap');
+}
+function playChain() {
+  $('chain').classList.add('show');
+  const t = (ms, fn) => setTimeout(fn, ms);
+  t(300, () => { zap('cnMoney'); $('ca1').classList.add('pulse'); });
+  t(1300, () => { zap('cnGuests'); flipTo('chG', '12'); });                 // money cuts the list
+  t(2300, () => { $('ca1').classList.remove('pulse'); $('ca2').classList.add('pulse'); });
+  t(3100, () => { zap('cnPizzas'); flipTo('chP', '4'); });                  // the list sets the numbers
+  t(3700, () => { zap('cnChairs'); flipTo('chC', '12'); });
+  t(4900, () => { $('ca2').classList.remove('pulse'); });
+}
 function playStory() {
   storyPlayed = true;
   const lines = document.querySelectorAll('#story p');
@@ -96,6 +114,7 @@ function playStory() {
     const over = $('bbOver');
     over.style.left = '80%'; over.style.width = '20%';
   }, 900 + lines.length * 850);
+  setTimeout(playChain, 900 + lines.length * 850 + 1500);
 }
 
 /* scene 2: looping mini topologies */
@@ -116,17 +135,17 @@ function buildMini(svg, kind) {
     const pts = [[30, 88], [76, 88], [124, 88], [170, 88]];
     pts.forEach((p, i) => edge(100, 30, p[0], p[1] - 10, i, 4));
     node(100, 30, 'Boss', 'var(--orch)', 44);
-    ['😀', '💰', '🍕', '🎵'].forEach((e, i) => node(pts[i][0], pts[i][1], e, Object.values(FRIENDC)[i], 30));
+    ['😀', '💰', '🍕', '🪑'].forEach((e, i) => node(pts[i][0], pts[i][1], e, Object.values(FRIENDC)[i], 30));
   } else if (kind === 'board') {
     const pts = [[30, 25], [170, 25], [30, 90], [170, 90]];
     pts.forEach((p, i) => edge(100, 57, p[0], p[1], i, 4));
     node(100, 57, 'Board', 'var(--bb)', 50);
-    ['😀', '💰', '🍕', '🎵'].forEach((e, i) => node(pts[i][0], pts[i][1], e, Object.values(FRIENDC)[i], 30));
+    ['😀', '💰', '🍕', '🪑'].forEach((e, i) => node(pts[i][0], pts[i][1], e, Object.values(FRIENDC)[i], 30));
   } else {
     edge(52, 40, 52, 76, 0, 3); edge(70, 57, 118, 57, 1, 3); edge(140, 57, 168, 40, 2, 3);
     node(52, 30, '😀', FRIENDC.Guests, 28); node(52, 86, '💰', FRIENDC.Budget, 28);
     node(94, 57, 'Board', 'var(--bb)', 44); node(150, 57, 'Boss', 'var(--orch)', 40);
-    node(178, 30, '🍕', FRIENDC.Food, 28); node(178, 86, '🎵', FRIENDC.Vibe, 28);
+    node(178, 30, '🍕', FRIENDC.Food, 28); node(178, 86, '🪑', FRIENDC.Chairs, 28);
   }
 }
 document.querySelectorAll('.mini').forEach((svg) => buildMini(svg, svg.dataset.mini));
@@ -145,8 +164,7 @@ function goalLine() {
   const want = Math.max(1, Math.min(50, +$('inGuests').value || 15));
   const cap = Math.max(1, +$('inBudget').value || 600);
   const g = Math.min(want, Math.floor(cap / 50));
-  const vibe = g > 12 ? 'loud' : g > 8 ? 'fun' : 'quiet';
-  return `🎯 Goal: the best party the money can buy — ${g} guests · $${g * 50} · ${Math.ceil(g / 3)} pizzas · ${vibe} party`;
+  return `🎯 Goal: the best party the money can buy — ${g} guests · $${g * 50} · ${Math.ceil(g / 3)} pizzas · ${g} chairs`;
 }
 
 function blankS() { return { turns: 0, wasted: 0, cost: 0, done: false, board: {}, finishedAt: null }; }
@@ -320,8 +338,8 @@ function narrateWrite(e, a, s) {
       return `😀 <b>Guests:</b> OK, I cut the list — <b>${a.old} → ${a.new} guests</b>.`;
     case 'pizzas':
       return `🍕 <b>Food:</b> ${g} guests need <b>${a.new} pizzas</b> (1 pizza for 3 guests).`;
-    case 'vibe':
-      return `🎵 <b>Vibe:</b> ${g} people — that is a <b>${VIBE_NICE[a.new] || a.new}</b> party!`;
+    case 'chairs':
+      return `🪑 <b>Chairs:</b> ${g} guests need <b>${a.new} chairs</b> — one for each person.`;
   }
   return '';
 }
@@ -341,7 +359,8 @@ function handle(ev) {
       if (!a.changed) say(e, `✅ <b>${esc(ev.agent)}:</b> all good. Nothing to change.`);
       const step = document.createElement('div');
       step.className = 'step' + (a.changed ? '' : ' noop');
-      step.title = (a.changed ? 'changed the plan' : 'nothing to change');
+      step.textContent = FRIENDE[ev.agent] || '·';
+      step.title = `${ev.agent}: ` + (a.changed ? 'changed the plan' : 'nothing to change (wasted turn)');
       $('track-' + e).appendChild(step);
       if (a.changed) {
         const core = e !== 'orchestrator' && hubOf(e, ev.agent) === 'BB';
@@ -361,8 +380,7 @@ function handle(ev) {
       if (line) say(e, line);
       const chip = $(`chip-${e}-${a.field}`);
       if (chip) {
-        const shown = a.field === 'cost' ? '$' + a.new
-          : a.field === 'vibe' ? (VIBE_NICE[a.new] || a.new) : a.new;
+        const shown = a.field === 'cost' ? '$' + a.new : a.new;
         chip.querySelector('b').textContent = shown;
         chip.classList.remove('hit'); void chip.offsetWidth; chip.classList.add('hit');
       }
@@ -399,7 +417,7 @@ function showWinner() {
   if ($('s2').classList.contains('active')) go(3);   // don't yank users who navigated away
   const ranked = raceEngines.slice().sort((x, y) => S[x].turns - S[y].turns);
   const b = S[ranked[0]].board;
-  const plan = `${b.guests} guests, $${b.cost}, ${b.pizzas} pizzas, ${VIBE_NICE[b.vibe] || b.vibe} party`;
+  const plan = `${b.guests} guests, $${b.cost}, ${b.pizzas} pizzas, ${b.chairs} chairs`;
 
   if (raceEngines.length === 1) {
     const e = raceEngines[0], n = NICE[e];

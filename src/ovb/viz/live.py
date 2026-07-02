@@ -453,16 +453,16 @@ marker path{fill:var(--edge)}
   </div>
   <div id="probE" class="prob-body">
     <p class="prob-head">Four friends, one birthday party — which way wastes the least?</p>
-    <p>Four friends are planning one birthday party. Each owns a piece: the <b>guest list</b>, the <b>budget</b>, the <b>food</b>, and the <b>vibe</b>. Their choices fight each other: you want 15 people, but at $50 a head that's $750 — over the $600 budget. Trim the list to 12 and the pizza order and the vibe change too. They keep nudging the plan until it finally fits.</p>
-    <p class="prob-tip">In the panels below, the four friends are the agents <b>Guests · Budget · Food · Vibe</b>, and the “whiteboard” is the shared <b>Board</b>.</p>
+    <p>Four friends are planning one birthday party. Each owns a piece: the <b>guest list</b>, the <b>budget</b>, the <b>food</b>, and the <b>chairs</b>. Their choices fight each other: you want 15 people, but at $50 a head that's $750 — over the $600 budget. Trim the list to 12 and the pizza order and the chair count change too. They keep nudging the plan until it finally fits.</p>
+    <p class="prob-tip">In the panels below, the four friends are the agents <b>Guests · Budget · Food · Chairs</b>, and the “whiteboard” is the shared <b>Board</b>.</p>
   </div>
   <div id="probX" class="prob-body" style="display:none">
-    <p>Four specialist agents negotiate one party plan under coupled constraints: <b>guests</b> (want 15), <b>budget</b> (hard cap $600 ÷ $50/guest ⇒ 12 max), <b>pizzas</b> (⌈guests ÷ 3⌉), and <b>vibe</b> (from the headcount: &gt;12 wild, &gt;8 lively, else chill). The headcount drives everything, so trimming it to fit the budget also shrinks the pizza order and calms the vibe — agents re-fire until a fixed point: <b>12 guests · $600 · 4 pizzas · lively</b>. A <b>deterministic gate</b> (never the model) checks convergence and declares done.</p>
+    <p>Four specialist agents negotiate one party plan under coupled constraints: <b>guests</b> (want 15), <b>budget</b> (hard cap $600 ÷ $50/guest ⇒ 12 max), <b>pizzas</b> (⌈guests ÷ 3⌉), and <b>chairs</b> (= guests, one each). The headcount drives everything, so trimming it to fit the budget also shrinks the pizza order and the chair count — agents re-fire until a fixed point: <b>12 guests · $600 · 4 pizzas · 12 chairs</b>. A <b>deterministic gate</b> (never the model) checks convergence and declares done.</p>
     <p>All three schedules reach the same fixed point over a streaming API; they differ only in turn efficiency:</p>
     <ul>
     <li><b style="color:var(--orchestrator)">orchestrator</b> — a hub polls all four in fixed order, looping until stable, plus a confirming no-op sweep. That final all-quiet pass is the <b>hub tax</b>: maximum turns and tokens.</li>
     <li><b style="color:var(--blackboard)">blackboard</b> — a shared state store; a write only wakes the dependents of the changed field. Fewer no-op turns.</li>
-    <li><b style="color:var(--hybrid)">hybrid</b> — Guests and Budget (tightest coupling) share the blackboard; Food and Vibe each run once in order.</li>
+    <li><b style="color:var(--hybrid)">hybrid</b> — Guests and Budget (tightest coupling) share the blackboard; Food and Chairs each run once in order.</li>
     </ul>
     <p>Metrics: agent calls, no-op turns, tokens, dollar cost. Lower is more efficient.</p>
   </div>
@@ -472,7 +472,7 @@ marker path{fill:var(--edge)}
     <div class="way" style="--e:var(--blackboard)"><div class="way-h">Blackboard<span>· “one shared whiteboard”</span></div><div class="way-b">Everyone writes on one shared whiteboard. When a number changes, only the friends who care about that number chime back in. Far less wasted talk.</div></div>
     <div class="way" style="--e:var(--hybrid)"><div class="way-h">Hybrid<span>· “a bit of both”</span></div><div class="way-b">The two friends who clash the most (Guests &amp; Budget) settle it together on the whiteboard first; then the other two each speak just once. A tidy middle ground.</div></div>
   </div>
-  <p class="target">🎯 <b>Same party, every time.</b> For your ask (<b id="hf">15</b> guests, $<b id="hb">600</b>) all three reach the one plan that fits: <b id="tgt">12 guests · $600 · 4 pizzas · lively vibe</b>. The only difference is <b>how much talking and money</b> it took — that’s the comparison table below.</p>
+  <p class="target">🎯 <b>Same party, every time.</b> For your ask (<b id="hf">15</b> guests, $<b id="hb">600</b>) all three reach the one plan that fits: <b id="tgt">12 guests · $600 · 4 pizzas · 12 chairs</b>. The only difference is <b>how much talking and money</b> it took — that’s the comparison table below.</p>
 </section>
 <div class="bar">
   <label>guests <input type="number" id="guests" value="15" min="1" max="50"></label>
@@ -511,20 +511,20 @@ marker path{fill:var(--edge)}
 const ALL=['orchestrator','blackboard','hybrid'];
 const COLORS={orchestrator:'#8a94a6',blackboard:'#63c750',hybrid:'#e0a72b'};
 const CM={orchestrator:'hub · fixed order · no shared board',blackboard:'shared board · reactive',hybrid:'bounded board + supervisor tail'};
-const AGENTC={Guests:'#6ea8fe',Budget:'#4fd1c5',Food:'#d3a6ff',Vibe:'#ff8f8f'};
-const FIELDS=['guests','max_guests','cost','pizzas','vibe'];
+const AGENTC={Guests:'#6ea8fe',Budget:'#4fd1c5',Food:'#d3a6ff',Chairs:'#ff8f8f'};
+const FIELDS=['guests','max_guests','cost','pizzas','chairs'];
 const BOARD_LABEL={orchestrator:'supervisor state · fixed-order sweeps · no shared board, no re-triggering',blackboard:'shared blackboard · all agents read/write',hybrid:'shared board (Guests↔Budget core) + supervisor tail'};
 const FEED_LABEL={orchestrator:'activity · message passing',blackboard:'activity · shared memory',hybrid:'activity · core shared + tail messages'};
 const TOPO={
- orchestrator:{nodes:{SUP:[150,22],Guests:[48,108],Budget:[116,108],Food:[184,108],Vibe:[252,108]},
-   edges:[['SUP','Guests'],['SUP','Budget'],['SUP','Food'],['SUP','Vibe']],
+ orchestrator:{nodes:{SUP:[150,22],Guests:[48,108],Budget:[116,108],Food:[184,108],Chairs:[252,108]},
+   edges:[['SUP','Guests'],['SUP','Budget'],['SUP','Food'],['SUP','Chairs']],
    cap:'Supervisor calls each agent in fixed order · blue arrow = a message (no shared board)'},
- blackboard:{nodes:{BB:[150,70],Guests:[50,24],Budget:[250,24],Food:[50,116],Vibe:[250,116]},
-   edges:[['BB','Guests'],['BB','Budget'],['BB','Food'],['BB','Vibe']],
+ blackboard:{nodes:{BB:[150,70],Guests:[50,24],Budget:[250,24],Food:[50,116],Chairs:[250,116]},
+   edges:[['BB','Guests'],['BB','Budget'],['BB','Food'],['BB','Chairs']],
    cap:'All agents share one Board · teal = write to board · purple = board re-triggers an agent'},
- hybrid:{nodes:{BB:[74,70],Guests:[34,30],Budget:[34,112],SUP:[188,70],Food:[256,42],Vibe:[256,100]},
-   edges:[['BB','Guests'],['BB','Budget'],['BB','SUP'],['SUP','Food'],['SUP','Vibe']],
-   cap:'Board core (Guests↔Budget: teal/purple), then Supervisor tail (Food, Vibe: blue message)'}
+ hybrid:{nodes:{BB:[74,70],Guests:[34,30],Budget:[34,112],SUP:[188,70],Food:[256,42],Chairs:[256,100]},
+   edges:[['BB','Guests'],['BB','Budget'],['BB','SUP'],['SUP','Food'],['SUP','Chairs']],
+   cap:'Board core (Guests↔Budget: teal/purple), then Supervisor tail (Food, Chairs: blue message)'}
 };
 let view='compare', es=null, ran=[], S={};
 const $=id=>document.getElementById(id);
@@ -575,7 +575,7 @@ function panelHTML(e){const s=S[e];if(!s)return `<div class="panel" style="--e:$
    <div class="feed"><h4>Play-by-play<span class="fsub" title="🎤 a turn · ✏️ changed a number · ✅ nothing to change · 🔔 must re-check · 🏁 done-check">every turn &amp; change · hover for key ⓘ</span></h4><div class="log" id="log-${e}">${log}</div></div></div></div>`;}
 
 function fmtPlan(b){const g=k=>b[k]===undefined||b[k]===null?'—':b[k];
-  return `${g('guests')} guests · $${g('cost')} · ${g('pizzas')} pizzas · ${g('vibe')}`;}
+  return `${g('guests')} guests · $${g('cost')} · ${g('pizzas')} pizzas · ${g('chairs')} chairs`;}
 function ratio(base,val){if(!base||!val||val>=base)return '';return '<span class="marg">'+(base/val).toFixed(2)+'× fewer</span>';}
 function comparisonHTML(){
   const engines=(ran.length?ran:selected()).filter(e=>S[e]);
@@ -662,10 +662,10 @@ const GLOSS=[
  ['Harness','var(--now)','The deterministic program around the model — the control loop that calls the model, applies its result through the ownership reducer, and checks the gate. Orchestrator, blackboard and hybrid are three harnesses; only the scheduling differs.'],
  ['Orchestrator','var(--orchestrator)','Hub-and-spoke. A central <b>supervisor</b> invokes agents in a fixed order over its accumulated state. <span class="warn">No shared board and no re-triggering</span> — an agent never wakes because another wrote a field; coordination is only the supervisor\'s next sweep. Each call is a fresh model call over the supervisor\'s current state. Converges by re-sweeping the whole roster.'],
  ['Blackboard','var(--blackboard)','Shared-state. All agents read and write ONE shared board. A write <b>re-triggers</b> only the agents subscribed to the changed field, so work is proportional to the ripples, not roster × rounds.'],
- ['Hybrid','var(--hybrid)','A bounded blackboard over the tightly-coupled core (Guests↔Budget), then a linear supervisor tail (Food, Vibe). Gets shared-board reactivity where it helps and message-passing where it does not.'],
+ ['Hybrid','var(--hybrid)','A bounded blackboard over the tightly-coupled core (Guests↔Budget), then a linear supervisor tail (Food, Chairs). Gets shared-board reactivity where it helps and message-passing where it does not.'],
  ['Shared board (shared memory)','var(--blackboard)','The single board all agents read/write, with reactive <b>re-triggering</b>. <span class="warn">Exists only in the blackboard and the hybrid core.</span> The orchestrator has none — its state is supervisor-held and updated only by fixed-order sweeps (no reactive board).'],
  ['Supervisor','var(--orchestrator)','The central agent that routes work in a fixed order and holds the state in the orchestrator (and drives the hybrid tail).'],
- ['Knowledge source / agent','var(--now)','A specialist that owns fields and reacts to changes. Here: Guests, Budget, Food, Vibe. Identical across all three harnesses — only the harness (scheduling) differs.'],
+ ['Knowledge source / agent','var(--now)','A specialist that owns fields and reacts to changes. Here: Guests, Budget, Food, Chairs. Identical across all three harnesses — only the harness (scheduling) differs.'],
  ['Control unit','var(--hybrid)','The deterministic scheduler + iteration cap that drives the blackboard event loop (picks who fires next, bounds the run).'],
  ['Gate','var(--gate)','The deterministic "are we done?" check. The LLM <b>never</b> decides termination — code does.'],
  ['Re-trigger','var(--retrig)','On a shared board, a write wakes the agents subscribed to the changed field (purple arrow in the flow).'],
@@ -699,8 +699,7 @@ window.expandMsg=function(e,i){if(S[e]&&S[e].talk[i]){S[e].talk[i].expanded=true
 // live "expected plan" recompute — mirrors domain/task.py exactly
 function recalcTarget(){const want=Math.max(1,Math.min(50,+$('guests').value||1));const cap=Math.max(1,+$('budget').value||1);
  const g=Math.min(want,Math.floor(cap/50));const cost=g*50,pizzas=Math.ceil(g/3);
- const vibe=g>12?'wild':g>8?'lively':'chill';
- $('hf').textContent=want;$('hb').textContent=cap;$('tgt').textContent=`${g} guests · $${cost} · ${pizzas} pizzas · ${vibe} vibe`;}
+ $('hf').textContent=want;$('hb').textContent=cap;$('tgt').textContent=`${g} guests · $${cost} · ${pizzas} pizzas · ${g} chairs`;}
 $('guests').addEventListener('input',recalcTarget);$('budget').addEventListener('input',recalcTarget);recalcTarget();
 // optional auto-run from URL params (shareable links & screenshots)
 (function(){const q=new URLSearchParams(location.search);

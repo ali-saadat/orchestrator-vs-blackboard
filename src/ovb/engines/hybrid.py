@@ -5,10 +5,10 @@ Scheduling discipline: the supervisor keeps top-level control but delegates the
 *independent* tail linearly.
 
 For the party plan the tight cycle is Guests ↔ Budget (a budget cap trims the
-guest list, which changes the cost, …). Food and Vibe only *read* the settled
+guest list, which changes the cost, …). Food and Chairs only *read* the settled
 headcount, so they need no re-triggering — running them once, after the core
-settles, avoids the pure blackboard's "Vibe fires at wild, then re-fires at
-lively" churn.
+settles, avoids the pure blackboard's "Chairs sets out 15, then re-sets to 12"
+churn.
 
 Honest note: the hybrid's edge here comes from *encoding the dependency structure*
 (the architect knows which agents form the cycle). That knowledge is the price of
@@ -23,7 +23,7 @@ from ..contracts import EngineResult
 from ..core.harness import Harness
 
 CORE = {"Guests", "Budget"}      # the tightly-coupled cycle (want-vs-afford)
-TAIL = ("Food", "Vibe")          # independent, downstream-only
+TAIL = ("Food", "Chairs")        # independent, downstream-only
 
 
 class HybridHarness(Harness):

@@ -2,15 +2,17 @@
 
 Four friends agree on one party plan:
   - Guests = the guest list. You'd love to invite 15 people.
-  - Budget = the money; a hard cap. Cost = guests × $50/head, so a long guest
-             list may not fit — Budget then caps how many you can afford.
-  - Food   = the pizzas; one pizza feeds 3 guests.
-  - Vibe   = the feel of the party; it follows the headcount.
+  - Budget = the money; a hard cap. Cost = guests × $50/head (all-in: food,
+             drinks, cake), so a long list may not fit — Budget then caps
+             how many you can afford.
+  - Food   = the pizza order; one pizza feeds 3 guests.
+  - Chairs = the chairs to set out; every guest needs exactly one chair.
 
 Interdependence (why the shared board helps): the guest list drives everything.
-Trimming it to fit the budget also changes the pizza order and the vibe, so a
-change ripples — but only to the friends who depend on the headcount. The tightly
-coupled pair is Guests ↔ Budget (want-vs-afford); Food and Vibe just follow.
+Trimming it to fit the budget also changes the pizza order and the chair count,
+so a change ripples — but only to the friends who depend on the headcount. The
+tightly coupled pair is Guests ↔ Budget (want-vs-afford); Food and Chairs just
+follow the final number.
 """
 from __future__ import annotations
 
@@ -42,8 +44,8 @@ def scenario_text(params: "ScenarioParams | None" = None) -> str:
     return (
         f"Plan a birthday party. You want to invite {p.wanted_guests} guests, but "
         f"there is a hard budget cap of ${p.budget_cap} (each guest costs "
-        f"${p.price_per_guest}); one pizza feeds {p.guests_per_pizza} guests, and "
-        "the vibe follows the headcount. Guests, Budget, Food and Vibe are "
+        f"${p.price_per_guest} all-in); one pizza feeds {p.guests_per_pizza} guests, "
+        "and every guest needs one chair. Guests, Budget, Food and Chairs are "
         "interdependent — find the best party that fits the budget."
     )
 
@@ -56,15 +58,9 @@ def initial_state(params: "ScenarioParams | None" = None) -> PlanState:
     return PlanState(guests=_p(params).wanted_guests)
 
 
-def vibe_for(guests):
-    """The party vibe that follows the headcount."""
-    if guests is None:
-        return None
-    if guests > 12:
-        return "wild"
-    if guests > 8:
-        return "lively"
-    return "chill"
+def chairs_for(guests):
+    """Every guest needs exactly one chair."""
+    return None if guests is None else guests
 
 
 def pizzas_for(guests, params: "ScenarioParams | None" = None):
@@ -82,6 +78,6 @@ def is_consistent(state: PlanState, params: "ScenarioParams | None" = None) -> b
             state.cost is not None and state.cost <= p.budget_cap,
             state.max_guests is not None and g <= state.max_guests,
             state.pizzas == pizzas_for(g, p),
-            state.vibe == vibe_for(g),
+            state.chairs == chairs_for(g),
         ]
     )
