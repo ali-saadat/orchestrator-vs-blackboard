@@ -1,5 +1,8 @@
 name: ci
 
+env:
+  PYTHONUTF8: "1"   # Windows runners default to cp1252 — the traces are Unicode
+
 on:
   push:
     branches: [main]

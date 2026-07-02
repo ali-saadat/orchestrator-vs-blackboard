@@ -11,9 +11,19 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from pathlib import Path
 
 import typer
+
+# Windows consoles may use cp1252, which can't print the traces' arrows/emoji.
+# Degrade to '?' instead of crashing (PYTHONUTF8=1 gives full fidelity).
+for _stream in (sys.stdout, sys.stderr):
+    if _stream is not None and hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(errors="replace")
+        except Exception:
+            pass
 
 from .config import RunConfig
 from .dotenv import load_dotenv
