@@ -10,7 +10,9 @@ const NICE = {
   hybrid:       { name: 'The Mix Way', tech: 'Hybrid', emoji: '🤝', cvar: 'var(--hy)' },
 };
 const FRIENDC = { Guests: '#6ea8fe', Budget: '#4fd1c5', Food: '#d3a6ff', Vibe: '#ff8f8f' };
-const CHIPS = [['guests', '😀 Guests'], ['max_guests', '💰 Max guests'], ['cost', 'Cost $'],
+const FRIENDE = { Guests: '😀', Budget: '💰', Food: '🍕', Vibe: '🎵' };
+const VIBE_NICE = { wild: 'loud', lively: 'fun', chill: 'quiet' };
+const CHIPS = [['guests', '😀 Guests'], ['max_guests', '💰 Guests we can pay'], ['cost', 'Cost $'],
                ['pizzas', '🍕 Pizzas'], ['vibe', '🎵 Vibe']];
 const TOPO = {
   orchestrator: { nodes: { SUP: [150, 22], Guests: [48, 108], Budget: [116, 108], Food: [184, 108], Vibe: [252, 108] },
@@ -36,7 +38,7 @@ let raceEngines = [];
 let S = {};                 // per-engine live state
 let Qs = {};                // per-engine buffered event queues (drained round-robin → a real race)
 let rr = 0;                 // round-robin cursor
-let es = null, timer = null, speed = 300;
+let es = null, timer = null, speed = 900, winTimer = null;
 let allDoneSeen = false, raceFinished = false, finishedShown = false;
 const PRE = window.PRELOADED || null;
 
@@ -143,8 +145,8 @@ function goalLine() {
   const want = Math.max(1, Math.min(50, +$('inGuests').value || 15));
   const cap = Math.max(1, +$('inBudget').value || 600);
   const g = Math.min(want, Math.floor(cap / 50));
-  const vibe = g > 12 ? 'wild' : g > 8 ? 'lively' : 'chill';
-  return `🎯 Goal: find the party that fits — ${g} guests · $${g * 50} · ${Math.ceil(g / 3)} pizzas · ${vibe} party`;
+  const vibe = g > 12 ? 'loud' : g > 8 ? 'fun' : 'quiet';
+  return `🎯 Goal: the best party the money can buy — ${g} guests · $${g * 50} · ${Math.ceil(g / 3)} pizzas · ${vibe} party`;
 }
 
 function blankS() { return { turns: 0, wasted: 0, cost: 0, done: false, board: {}, finishedAt: null }; }
@@ -160,6 +162,7 @@ function laneHTML(e) {
       <span class="lane-live"><span>Turns <b id="t-${e}">0</b></span>
         <span>Wasted <b id="w-${e}">0</b></span>
         <span>Talk cost <b id="c-${e}">$0.000</b></span></span></div>
+    <div class="bubble" id="bub-${e}">The friends will start to talk…</div>
     <div class="lane-mid">
       <svg class="topo" id="topo-${e}" viewBox="0 0 300 150"></svg>
       <div class="trackwrap"><div class="track" id="track-${e}"></div>
@@ -243,15 +246,21 @@ function maybeFinish() {
   if (allDoneSeen && !qTotal() && !finishedShown) {
     finishedShown = true; raceFinished = true;
     stopTimer();
-    setTimeout(showWinner, 900);
+    winTimer = setTimeout(showWinner, 1600);
   }
 }
 
 /* ---------- run lifecycle ---------- */
 function startRace(engines) {
+  if (finishedShown) {           // a spent guess must not score the next race
+    GUESS = null;
+    document.querySelectorAll('.guessbtns button').forEach((x) => x.classList.remove('picked'));
+  }
+  clearTimeout(winTimer); winTimer = null;
   raceEngines = engines.slice();
   Qs = {}; rr = 0; S = {}; allDoneSeen = false; raceFinished = false; finishedShown = false;
-  engines.forEach((e) => { S[e] = blankS(); Qs[e] = []; });
+  const want = +$('inGuests').value || 15, cap = +$('inBudget').value || 600;
+  engines.forEach((e) => { S[e] = blankS(); S[e].board.guests = want; Qs[e] = []; });
   $('lanes').innerHTML = engines.map(laneHTML).join('');
   engines.forEach(buildTopo);
   $('goal').textContent = goalLine();
@@ -261,19 +270,28 @@ function startRace(engines) {
     PRE.events.forEach((ev) => { if (engines.includes(ev.engine)) qPush(ev); });
     allDoneSeen = true;           // the recording already contains the whole run
   } else {
-    const q = `guests=${+$('inGuests').value || 15}&budget=${+$('inBudget').value || 600}` +
-      `&engines=${engines.join(',')}&delay=0&mode=${MODE}`;
+    // the recording only covers the default party — other numbers replay as demo talk
+    const mode = (MODE === 'cassette' &&
+      (want !== INFO.defaults.guests || cap !== INFO.defaults.budget)) ? 'mock' : MODE;
+    const q = `guests=${want}&budget=${cap}&engines=${engines.join(',')}&delay=0&mode=${mode}`;
     es = new EventSource('/run?' + q);
     es.onmessage = (m) => {
       const ev = JSON.parse(m.data);
       if (ev.engine === '_meta') {
         if (ev.kind === 'all_done') { allDoneSeen = true; es.close(); es = null; }
-        if (ev.kind === 'error') $('liveinfo').textContent = '⚠ ' + (ev.attrs.msg || 'error');
+        if (ev.kind === 'error') {
+          $('liveinfo').textContent = '⚠ Something went wrong. Please try again.';
+          console.error(ev.attrs && ev.attrs.msg);
+        }
         return;
       }
       qPush(ev);
     };
-    es.onerror = () => { if (es) { es.close(); es = null; } allDoneSeen = true; };
+    es.onerror = () => {
+      if (es) { es.close(); es = null; }
+      if (raceEngines.every((e) => S[e].done)) allDoneSeen = true;
+      else $('liveinfo').textContent = '⚠ Connection lost — press "Race again".';
+    };
   }
   stopTimer(); play();
 }
@@ -281,18 +299,46 @@ function restartRace() { startRace(raceEngines.length ? raceEngines : ALL); }
 
 /* ---------- event → animation ---------- */
 function bump(id, val) { const el = $(id); if (el) el.textContent = val; }
+
+/* the narrator: ONE short, simple sentence per event, made from the real numbers */
+function say(e, html) {
+  const el = $('bub-' + e); if (!el) return;
+  el.innerHTML = html;
+  el.classList.remove('say'); void el.offsetWidth; el.classList.add('say');
+}
+function narrateWrite(e, a, s) {
+  const cap = +$('inBudget').value || 600;
+  const g = s.board.guests;
+  switch (a.field) {
+    case 'cost':
+      return a.new > cap
+        ? `💰 <b>Budget:</b> ${g} guests cost <b>$${a.new}</b>. That is too much! We only have $${cap}.`
+        : `💰 <b>Budget:</b> now it costs <b>$${a.new}</b>. That fits our $${cap}! ✅`;
+    case 'max_guests':
+      return `💰 <b>Budget:</b> the money is enough for <b>${a.new} guests</b>, not more.`;
+    case 'guests':
+      return `😀 <b>Guests:</b> OK, I cut the list — <b>${a.old} → ${a.new} guests</b>.`;
+    case 'pizzas':
+      return `🍕 <b>Food:</b> ${g} guests need <b>${a.new} pizzas</b> (1 pizza for 3 guests).`;
+    case 'vibe':
+      return `🎵 <b>Vibe:</b> ${g} people — that is a <b>${VIBE_NICE[a.new] || a.new}</b> party!`;
+  }
+  return '';
+}
 function handle(ev) {
   const e = ev.engine, a = ev.attrs || {}, s = S[e];
   if (!s) return;
   switch (ev.kind) {
     case 'agent_activated':
       travelDot(e, hubOf(e, ev.agent), ev.agent, 'msg');
+      say(e, `${FRIENDE[ev.agent] || '🎤'} <b>${esc(ev.agent)}</b> is thinking…`);
       break;
     case 'gen_ai.client.call.finished': {
       s.turns++; if (!a.changed) s.wasted++;
       s.cost += a.cost_usd || 0;
       bump('t-' + e, s.turns); bump('w-' + e, s.wasted);
       bump('c-' + e, '$' + s.cost.toFixed(3));
+      if (!a.changed) say(e, `✅ <b>${esc(ev.agent)}:</b> all good. Nothing to change.`);
       const step = document.createElement('div');
       step.className = 'step' + (a.changed ? '' : ' noop');
       step.title = (a.changed ? 'changed the plan' : 'nothing to change');
@@ -310,10 +356,14 @@ function handle(ev) {
       break;
     }
     case 'state_write': {
+      const line = narrateWrite(e, a, s);   // uses the OLD board (e.g. guest count before a cut)
       s.board[a.field] = a.new;
+      if (line) say(e, line);
       const chip = $(`chip-${e}-${a.field}`);
       if (chip) {
-        chip.querySelector('b').textContent = a.field === 'cost' ? '$' + a.new : a.new;
+        const shown = a.field === 'cost' ? '$' + a.new
+          : a.field === 'vibe' ? (VIBE_NICE[a.new] || a.new) : a.new;
+        chip.querySelector('b').textContent = shown;
         chip.classList.remove('hit'); void chip.offsetWidth; chip.classList.add('hit');
       }
       break;
@@ -321,6 +371,12 @@ function handle(ev) {
     case 'agent_retriggered':
       if (e === 'blackboard' || (e === 'hybrid' && (ev.agent === 'Guests' || ev.agent === 'Budget')))
         travelDot(e, 'BB', ev.agent, 'retrig');
+      say(e, `🔔 The plan changed — <b>${esc(ev.agent)}</b> must look again.`);
+      break;
+    case 'error':
+      s.done = true;
+      say(e, '⚠ Something went wrong here.');
+      console.error(a.msg);
       break;
     case 'run_finished': {
       s.done = true; s.finishedAt = s.turns;
@@ -332,6 +388,7 @@ function handle(ev) {
       flag.className = 'step flag'; flag.textContent = '🏁🎉';
       $('track-' + e).appendChild(flag);
       $('lane-' + e).classList.add('finished');
+      say(e, `🏁 <b>Done in ${s.turns} turns!</b> The plan fits the money.`);
       break;
     }
   }
@@ -339,10 +396,10 @@ function handle(ev) {
 
 /* ---------- winner scene ---------- */
 function showWinner() {
-  go(3);
+  if ($('s2').classList.contains('active')) go(3);   // don't yank users who navigated away
   const ranked = raceEngines.slice().sort((x, y) => S[x].turns - S[y].turns);
   const b = S[ranked[0]].board;
-  const plan = `${b.guests} guests, $${b.cost}, ${b.pizzas} pizzas, ${b.vibe} party`;
+  const plan = `${b.guests} guests, $${b.cost}, ${b.pizzas} pizzas, ${VIBE_NICE[b.vibe] || b.vibe} party`;
 
   if (raceEngines.length === 1) {
     const e = raceEngines[0], n = NICE[e];
@@ -425,10 +482,11 @@ function applyInfo() {
   MODE = INFO.cassette ? 'cassette' : 'mock';
   $('liveinfo').textContent = INFO.cassette
     ? '🎙 Real AI talk — recorded. Free to watch.'
-    : '🤖 Demo talk — offline.';
+    : '🤖 Pretend AI talk — no internet needed.';
 }
 if (PRE) {
   INFO = PRE.info || INFO;
+  if (INFO.defaults) { $('inGuests').value = INFO.defaults.guests; $('inBudget').value = INFO.defaults.budget; }
   applyInfo();
   // no server: hide things that need one
   document.querySelectorAll('.expertlink,.btnlink').forEach((el) => { el.style.display = 'none'; });

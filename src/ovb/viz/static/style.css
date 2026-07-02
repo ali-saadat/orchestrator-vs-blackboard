@@ -48,6 +48,7 @@ b{color:var(--fg)}
   box-shadow:0 6px 18px rgba(0,0,0,.25)}
 .friend:nth-child(1){animation-delay:.15s}.friend:nth-child(2){animation-delay:.35s}
 .friend:nth-child(3){animation-delay:.55s}.friend:nth-child(4){animation-delay:.75s}
+.friend small{color:var(--mut);font-weight:500;font-size:11px}
 .story{max-width:560px;margin:8px auto;text-align:center}
 .story p{opacity:0;transform:translateY(10px);transition:all .5s;margin:10px 0;font-size:17.5px}
 .story p.show{opacity:1;transform:none}
@@ -125,7 +126,13 @@ b{color:var(--fg)}
 .lane-live{margin-left:auto;display:flex;gap:16px;font-size:13px;color:var(--mut)}
 .lane-live b{color:var(--fg);font-size:16px;font-variant-numeric:tabular-nums}
 .lane-mid{display:grid;grid-template-columns:210px 1fr;gap:14px;align-items:center;margin-top:8px}
-@media(max-width:760px){.lane-mid{grid-template-columns:1fr}}
+@media(max-width:760px){.lane-mid{grid-template-columns:1fr}.controls{position:static}}
+/* the narrator bubble — one simple sentence per event */
+.bubble{margin-top:9px;background:var(--feed);border:1px solid var(--line);
+  border-left:4px solid var(--e);border-radius:4px 12px 12px 12px;
+  padding:10px 13px;font-size:15px;min-height:42px}
+.bubble.say{animation:bubbleIn .35s ease-out}
+@keyframes bubbleIn{0%{opacity:.3;transform:translateY(4px)}100%{opacity:1;transform:none}}
 svg.topo{width:210px;height:110px;background:var(--feed);border:1px solid var(--line);border-radius:10px}
 svg.topo .tn rect{fill:var(--card);stroke-width:2}
 svg.topo .tn text{fill:var(--fg);font-size:8.6px;font-weight:700;text-anchor:middle}

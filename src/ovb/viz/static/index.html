@@ -27,18 +27,19 @@
 <section class="scene active" id="s0">
   <h1 class="pop">The Party Problem 🎉</h1>
   <div class="friends" id="friends">
-    <div class="friend" style="--c:#6ea8fe"><span>😀</span>Guests</div>
-    <div class="friend" style="--c:#4fd1c5"><span>💰</span>Budget</div>
-    <div class="friend" style="--c:#d3a6ff"><span>🍕</span>Food</div>
-    <div class="friend" style="--c:#ff8f8f"><span>🎵</span>Vibe</div>
+    <div class="friend" style="--c:#6ea8fe"><span>😀</span>Guests<small>writes the guest list</small></div>
+    <div class="friend" style="--c:#4fd1c5"><span>💰</span>Budget<small>watches the money</small></div>
+    <div class="friend" style="--c:#d3a6ff"><span>🍕</span>Food<small>orders the pizzas</small></div>
+    <div class="friend" style="--c:#ff8f8f"><span>🎵</span>Vibe<small>picks the party style</small></div>
   </div>
   <div class="story" id="story">
-    <p>Four friends plan a birthday party.</p>
-    <p>😀 They want <b>15 guests</b>.</p>
-    <p>💰 Each guest costs <b>$50</b>. So 15 guests cost <b>$750</b>.</p>
-    <p>But they only have <b>$600</b>. Too much! 😬</p>
-    <p>🍕 The pizzas and 🎵 the music follow the guest list.</p>
-    <p>The friends must <b>talk</b> and change the plan — until it fits.</p>
+    <p>Four friends plan a birthday party. Each friend has one job.</p>
+    <p>😀 <b>Guests</b> wants <b>15 people</b> on the list.</p>
+    <p>💰 <b>Budget</b> has <b>$600</b>. One guest costs <b>$50</b> — that pays for their food, drinks and cake.</p>
+    <p>15 guests × $50 = <b>$750</b>. That is more than $600. Problem! 😬</p>
+    <p>🍕 <b>Food</b> must know the final list: they order <b>1 pizza for every 3 guests</b>.</p>
+    <p>🎵 <b>Vibe</b> must know it too: <b>many people = a big wild party</b>, few people = a small chill one.</p>
+    <p>So one change moves everything. The friends must <b>talk</b> until the whole plan fits the money.</p>
   </div>
   <div class="budgetbar">
     <div class="bb-track"><div class="bb-have" id="bbHave"></div><div class="bb-over" id="bbOver"></div></div>
@@ -50,24 +51,24 @@
 <!-- ══════════ SCENE 2 — THREE WAYS ══════════ -->
 <section class="scene" id="s1">
   <h1>Three ways to talk 💬</h1>
-  <p class="sub">Same friends. Same problem. Three ways to run the meeting.</p>
+  <p class="sub">Same friends. Same problem. Three ways to talk together.</p>
   <div class="ways">
     <div class="wcard" style="--e:var(--orch)">
       <div class="wh">👔 The Boss Way <small>(Orchestrator)</small></div>
       <svg class="mini" viewBox="0 0 200 110" data-mini="boss"></svg>
-      <p>One boss asks each friend. One by one. Again and again. Then one more round, just to check.</p>
+      <p>One boss asks each friend. One by one. Again and again. At the end, the boss asks everyone one more time, just to check.</p>
       <button class="ghost" onclick="startRace(['orchestrator'])">▶ Watch only this way</button>
     </div>
     <div class="wcard" style="--e:var(--bb)">
       <div class="wh">📋 The Whiteboard Way <small>(Blackboard)</small></div>
       <svg class="mini" viewBox="0 0 200 110" data-mini="board"></svg>
-      <p>All friends share <b>one whiteboard</b>. A number changes? Only the right friends speak again.</p>
+      <p>All friends share <b>one whiteboard</b>. When a number changes, only the right friends speak again.</p>
       <button class="ghost" onclick="startRace(['blackboard'])">▶ Watch only this way</button>
     </div>
     <div class="wcard" style="--e:var(--hy)">
       <div class="wh">🤝 The Mix Way <small>(Hybrid)</small></div>
       <svg class="mini" viewBox="0 0 200 110" data-mini="mix"></svg>
-      <p>Guests and Budget fix the money together first. Then Food and Vibe speak once.</p>
+      <p>Guests and Budget fix the money problem first, together. Then Food and Vibe speak once.</p>
       <button class="ghost" onclick="startRace(['hybrid'])">▶ Watch only this way</button>
     </div>
   </div>
@@ -91,9 +92,9 @@
     <button id="playbtn" onclick="togglePlay()">⏸ Pause</button>
     <button onclick="stepOne()">⏭ One step</button>
     <span class="speeds">
-      <button data-sp="600">🐢 Slow</button><button data-sp="300" class="on">▶ Normal</button><button data-sp="90">⚡ Fast</button><button data-sp="0">🚀 Max</button>
+      <button data-sp="1600">🐢 Slow</button><button data-sp="900" class="on">▶ Normal</button><button data-sp="350">⚡ Fast</button><button data-sp="0">🚀 Fastest</button>
     </span>
-    <button id="talkbtn" onclick="toggleTalk()">💬 Show the talk</button>
+    <button id="talkbtn" onclick="toggleTalk()">💬 Real AI words</button>
     <button onclick="openParty()">🎛 Change the party</button>
   </div>
   <div class="partybox" id="partybox">
@@ -128,6 +129,8 @@
       <dt>Wasted turn</dt><dd>A friend speaks, but changes nothing.</dd>
       <dt>Talk cost</dt><dd>The money paid to the AI for the talking.</dd>
       <dt>Whiteboard / Board</dt><dd>One page that all friends can see and write on.</dd>
+      <dt>Vibe</dt><dd>How the party feels: quiet, fun, or loud.</dd>
+      <dt>Guests we can pay</dt><dd>The most guests the money can buy.</dd>
       <dt>Boss</dt><dd>The one who asks each friend, one by one.</dd>
       <dt>The race</dt><dd>All three ways solve the same problem. Fewer turns = better.</dd>
     </dl>

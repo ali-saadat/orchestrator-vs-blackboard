@@ -195,17 +195,26 @@ def export(
     use_cassette = Path(DEMO_CASSETTE).exists()
     config = RunConfig(cassette=(DEMO_CASSETTE if use_cassette else None))
 
-    per_engine: dict[str, list] = {}
-    for name in ("orchestrator", "blackboard", "hybrid"):
-        events: list = []
+    def _collect(cfg) -> dict[str, list]:
+        out: dict[str, list] = {}
+        for name in ("orchestrator", "blackboard", "hybrid"):
+            events: list = []
 
-        def sink(ev, _n=name, _evs=events):
-            d = ev.model_dump()
-            d["engine"] = _n
-            _evs.append(d)
+            def sink(ev, _n=name, _evs=events):
+                d = ev.model_dump()
+                d["engine"] = _n
+                _evs.append(d)
 
-        asyncio.run(run_engine(name, config, params, event_sink=sink))
-        per_engine[name] = events
+            asyncio.run(run_engine(name, cfg, params, event_sink=sink))
+            out[name] = events
+        return out
+
+    try:
+        per_engine = _collect(config)
+    except Exception:
+        # e.g. cassette miss for non-default guests/budget → fall back to mock
+        use_cassette = False
+        per_engine = _collect(RunConfig())
 
     # round-robin interleave so the three lanes appear to run together
     merged: list = [{"engine": "_meta", "kind": "start", "attrs": {}}]
