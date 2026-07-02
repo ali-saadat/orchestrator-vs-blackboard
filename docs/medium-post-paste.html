@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Medium paste source — open in a browser, select all, copy, paste into the Medium editor</title>
+<style>
+  body{max-width:680px;margin:40px auto;padding:0 20px;font-family:Georgia,"Times New Roman",serif;
+       font-size:20px;line-height:1.58;color:#242424}
+  h1{font-size:40px;line-height:1.15;font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;margin-bottom:6px}
+  h3.subtitle{font-size:22px;font-weight:400;color:#6b6b6b;margin-top:0;font-family:Georgia,serif}
+  h2{font-size:26px;font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;margin-top:44px}
+  blockquote{border-left:3px solid #242424;margin-left:0;padding-left:20px;font-style:italic}
+  .marker{background:#fff3bf;border:2px dashed #e0a800;padding:10px 14px;font-family:-apple-system,sans-serif;
+          font-size:16px;font-weight:700}
+  em.footer{color:#6b6b6b}
+</style>
+</head>
+<body>
+
+<h1>Supervisor vs. Blackboard: Choosing the Right Multi-Agent AI Coordination Architecture for the Enterprise</h1>
+
+<h3 class="subtitle">Two coordination patterns that predate LLMs by decades still determine whether a multi-agent system can be audited, costed, and changed in production.</h3>
+
+<h2>What a multi-agent architecture actually is</h2>
+
+<p>Most of what I know about multi-agent systems comes from putting them into production at banks, insurers, health systems and manufacturers — and then operating them long enough to watch what breaks.</p>
+
+<p>A single AI agent runs into predictable limits. Its context window fills, and reasoning quality degrades as it does. One prompt cannot hold deep expertise in credit policy, fraud typologies and document extraction at the same time. And on long chains of tool calls, small per-step error rates compound into unacceptable ones. A multi-agent system addresses these limits by dividing the work: a set of specialized agents — each with a narrow role, its own tools and its own context — plus a coordination layer that decides who works, when, and how their outputs combine.</p>
+
+<p>Teams concentrate their effort on model selection and prompt tuning. In practice, the coordination model is the architecture decision that determines whether the system survives production: it governs cost, latency, auditability and failure behavior to a degree that prompt-level choices cannot.</p>
+
+<h2>The two approaches</h2>
+
+<p>Strip away the framework branding and most production topologies reduce to, or compose from, two patterns that predate large language models by decades: centralized orchestration, in which a supervisor assigns and collects work, and shared-state coordination, in which agents watch and write to a common blackboard. (Peer-to-peer handoffs and negotiation-based coordination exist, but they are the exceptions in enterprise deployments.) <a href="https://www.anthropic.com/engineering/building-effective-agents">Anthropic&rsquo;s guidance on building effective agents</a> describes the first as orchestrator-workers; the second originates in the <a href="https://en.wikipedia.org/wiki/Blackboard_system">blackboard systems</a> of 1970s&ndash;80s AI research and has been rediscovered, largely without attribution, by the event-driven agent frameworks of the past two years.</p>
+
+<h2>The supervisor: governance by design</h2>
+
+<p>A central coordinator receives the objective, decomposes it into tasks, routes each task to a specialist agent, evaluates what comes back, and aggregates the results. Control flow is explicit: it lives in the supervisor&rsquo;s plan. Specialists never communicate directly; everything passes through the hub. Structurally, it is a stage-gate process with an automated gatekeeper.</p>
+
+<p>The strengths align directly with what a risk function requires. Control paths are explicit and inspectable: the space of possible routes can be drawn before execution and verified from the trace afterwards — and made fully deterministic where routing is rule-based rather than model-decided. Every decision passes through one component, which gives a single natural point to instrument for end-to-end traceability, and a single choke point at which to sanitize inputs and enforce policy. Human checkpoints fall naturally between steps: pause before funds move, or before a denial goes out. Cost is boundable: with iteration caps and a fixed roster of specialists, the per-request envelope can be estimated and enforced.</p>
+
+<p>The limitations are structural, not incidental. The coordinator is a throughput bottleneck and a single point of failure. Every hand-off adds a round of latency and an extra model invocation; naive implementations also re-read the accumulated context at each routing decision, though prompt caching and state summarization blunt that cost. Context concentrates at the hub, and the hub&rsquo;s context window becomes the binding constraint. When reality deviates from the plan, replanning falls on the same bottleneck — and hard-coded orchestrations stall outright. One lesson from operating these systems: an LLM supervisor&rsquo;s routing decisions are not deterministic, and they drift across model upgrades. Production deployments need routing evaluations and rule-based fallbacks on high-stakes paths.</p>
+
+<p><strong>The trade, stated plainly: you are buying governance and predictability, and paying in latency, token overhead and flexibility.</strong></p>
+
+<h2>The blackboard: coordination without a script</h2>
+
+<p>The blackboard inverts the premise. The current state of the problem lives in a shared workspace that every agent can read and write. Specialist agents subscribe to the parts of that state relevant to their function and activate when a relevant change appears; their contributions land back on the board, which may in turn activate others. There is no pre-scripted sequence — although the classic blackboard systems (HEARSAY-II most famously) retained a thin control component to arbitrate which triggered specialist runs next. What disappears is the script, not all arbitration.</p>
+
+<p>The strengths mirror the supervisor&rsquo;s weaknesses. Concurrency is unplanned rather than planned: independent specialists react in parallel as the picture develops. Control coupling is loose: a specialist is added or retired by registering or removing a subscription, not by rewiring a flow — though every specialist remains coupled through the board&rsquo;s schema, so changing the state representation touches all subscribers. With event-driven triggers, compute tracks actual events rather than orchestration rounds; polling loops and model-evaluated triggers forfeit that economy. The pattern fits problems whose solution path cannot be specified before execution.</p>
+
+<p>The costs deserve equal precision. The board&rsquo;s history is a complete, ordered record of what happened — essentially event sourcing — so the audit weakness is not the absence of a record but ex-ante certifiability: you cannot show in advance what the system will do, which is a hard conversation with a certification body. The real engineering work is twofold, and routinely underestimated. First, trigger and subscription design: poorly specified triggers produce contention and activation cascades, with agents repeatedly re-triggering one another without converging. Second, state consistency: versioned, append-only board entries and an explicit conflict-resolution policy for when two specialists post contradictory findings. Shared state also concentrates security and privacy exposure — any writer can, in effect, place content into every subscriber&rsquo;s context, so a board carrying regulated data needs write validation and data segregation. And where regulation requires named human checkpoints, contributions can be held as quarantined hypotheses pending approval, or the board&rsquo;s output can feed a human work queue rather than act autonomously.</p>
+
+<p><strong>The trade: you are buying adaptability and scale, and paying in explainability and control.</strong></p>
+
+<h2>Head-to-head</h2>
+
+<p class="marker">🖼️ UPLOAD IMAGE HERE → docs/images/post/table-1-head-to-head.png &nbsp;(⊕ menu → image → after upload, use the second size option, &ldquo;outset&rdquo;, so the table gets extra width — then delete this yellow line)</p>
+
+<h2>Where each pattern fits</h2>
+
+<p>The choice is rarely about the sector; it is about the shape of the work, and the same institution usually needs both. In event-heavy domains, the blackboard operates as a reasoning layer over existing event infrastructure — correlation engines, outage management, forecasting systems — synthesizing across signals those systems already produce, not replacing them.</p>
+
+<p class="marker">🖼️ UPLOAD IMAGE HERE → docs/images/post/table-2-industry-fit.png &nbsp;(same as above: upload, set to &ldquo;outset&rdquo; width, delete this yellow line)</p>
+
+<h2>What I advise in practice</h2>
+
+<p>Three questions settle most architecture reviews. Can you specify the process before execution? If yes, orchestrate. Will an auditor, a regulator or opposing counsel ask why the system did what it did? If yes, the supervisor&rsquo;s explicit trace is worth its overhead. Do events arrive unpredictably, with the answer assembling itself from many partial signals? Then the blackboard earns its complexity.</p>
+
+<p>Mature deployments are usually hybrid: an orchestrated core owns the regulated path — the decisions that must be sequenced, checkpointed and signed off — while event-driven components sit at the perimeter, watching streams and feeding the core. Start with the simplest architecture that meets the requirement; a well-instrumented supervisor, or a single agent with good tools, is the right first system more often than not.</p>
+
+<p>Whichever pattern you choose, three disciplines are non-negotiable in production. Instrument from the first day: propagated trace IDs, per-agent token and latency accounting, and alerting on activation cascades. Enforce hard limits: per-run token budgets, activation caps, and a kill switch. And treat change management as part of the architecture: pin model and prompt versions per agent, gate every upgrade behind regression evaluations, and budget for re-certification when a model change shifts routing behavior.</p>
+
+<blockquote>Model choices change quarterly. The coordination architecture is the decision the system lives with.</blockquote>
+
+<p><em class="footer">Both patterns — plus a hybrid — run the same task with measured token cost in this open-source reference implementation: <a href="https://github.com/ali-saadat/orchestrator-vs-blackboard">orchestrator-vs-blackboard</a>.</em></p>
+
+</body>
+</html>

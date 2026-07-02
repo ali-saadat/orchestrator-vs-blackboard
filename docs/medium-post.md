@@ -1,5 +1,8 @@
 <!--
-  MEDIUM POST — ready to paste into the Medium editor. No images by design.
+  MEDIUM POST — canonical source (markdown; renders on GitHub).
+  Medium does NOT accept markdown or tables. To publish, follow docs/PUBLISH-TO-MEDIUM.md:
+  paste docs/medium-post-paste.html (rendered rich text) and insert the two table images
+  from docs/images/post/ (table-1-head-to-head.png, table-2-industry-fit.png).
   Suggested tags: AI Agents, Multi-Agent Systems, Enterprise AI, Software Architecture, Generative AI
 -->
 
