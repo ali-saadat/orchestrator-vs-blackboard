@@ -509,6 +509,13 @@ marker path{fill:var(--edge)}
     </select>
     <span class="info" tabindex="0" aria-label="mode help" title="Mock: deterministic fake outputs, instant, offline, no API key, no cost. Cassette: replays REAL recorded Claude calls offline — real outputs/tokens/cost, no key, no spend. Real API: live streaming Claude — needs ANTHROPIC_API_KEY, actually costs money.">i</span>
   </label>
+  <label>rules
+    <select id="rules">
+      <option value="hard">Hard rules — fair race</option>
+      <option value="free">Free talk — model decides, $</option>
+    </select>
+    <span class="info" tabindex="0" aria-label="rules help" title="Hard rules: deterministic rules decide every number, the model only narrates — all three ways provably reach the SAME deal; only turns/tokens/cost differ (the fair race). Free talk: NO hard rules — the model decides every move. Non-deterministic: the ways can land on different deals, or no deal at all (the deterministic gate still refuses invalid ones). Forces Real API mode — needs ANTHROPIC_API_KEY, costs money.">i</span>
+  </label>
   <label>model <select id="model">
     <option value="claude-haiku-4-5-20251001">Haiku 4.5 — $1/$5 (cheapest)</option>
     <option value="claude-sonnet-5">Sonnet 5 — $2/$10</option>
@@ -664,12 +671,14 @@ function run(){ran=selected(); if(!ran.length){alert('select at least one engine
  S={}; ran.forEach(e=>S[e]=blank());
  if(!['compare','glossary',...ran].includes(view))view='compare';
  syncTabs(); render();
+ const rules=$('rules').value;
+ if(rules==='free')$('mode').value='real';        // free talk = live model decides
  const mode=$('mode').value;
  recalcTarget();
- $('note').textContent = MODE_HELP[mode] || '';
+ $('note').textContent = (rules==='free' ? RULES_FREE_HELP + ' ' : '') + (MODE_HELP[mode] || '');
  if(es)es.close();
  const q=`ask=${+$('guests').value||130}&band=${+$('budget').value||110}&engines=${ran.join(',')}`
-   +`&delay=${(+$('delay').value)/1000}&mode=${mode}&model=${encodeURIComponent($('model').value)}`;
+   +`&delay=${(+$('delay').value)/1000}&mode=${mode}&model=${encodeURIComponent($('model').value)}&rules=${rules}`;
  es=new EventSource('/run?'+q);
  es.onmessage=m=>handle(JSON.parse(m.data));
  es.onerror=()=>{if(es){es.close();es=null;}
@@ -682,6 +691,7 @@ const MODE_HELP={
  mock:'Mock: deterministic fake narration — instant, offline, no API key, no cost. The plan, call counts and structure are identical to a real run; only the wording is stubbed.',
  cassette:'Cassette: replaying RECORDED real Claude calls — you see the real outputs, tokens and cost, but it runs offline with no API key and no new spend (recorded at ask $130k, band $110k; record other cases with: ovb bench --real --cassette '+CASS+').',
  real:'Real API: live STREAMING Claude — uses your ANTHROPIC_API_KEY and spends money. Paced by real model latency.'};
+const RULES_FREE_HELP='FREE TALK: no hard rules — the model decides every move, so runs are non-deterministic; the ways may land on DIFFERENT deals or none (the gate refuses invalid ones).';
 const GLOSS=[
  ['Harness','var(--now)','The deterministic program around the model — the control loop that calls the model, applies its result through the ownership reducer, and checks the gate. Orchestrator, blackboard and hybrid are three harnesses; only the scheduling differs.'],
  ['Orchestrator','var(--orchestrator)','Hub-and-spoke. A central <b>supervisor</b> invokes agents in a fixed order over its accumulated state. <span class="warn">No shared board and no re-triggering</span> — an agent never wakes because another wrote a field; coordination is only the supervisor\'s next sweep. Each call is a fresh model call over the supervisor\'s current state. Converges by re-sweeping the whole roster.'],
@@ -721,10 +731,18 @@ $('segX').onclick=()=>{$('segX').classList.add('on');$('segE').classList.remove(
 // expand a clamped agent message (inline onclick → must be global)
 window.expandMsg=function(e,i){if(S[e]&&S[e].talk[i]){S[e].talk[i].expanded=true;render();}};
 // live "expected plan" recompute — mirrors domain/task.py exactly
+const TGT_EL=document.querySelector('.target'); const TGT_HTML=TGT_EL.innerHTML;
 function recalcTarget(){const ask=Math.max(90,Math.min(400,+$('guests').value||130));const band=Math.max(90,Math.min(400,+$('budget').value||110));
+ if($('rules').value==='free'){
+  TGT_EL.innerHTML='🗣️ <b>Free talk — no promised deal.</b> The model decides every move: the three ways may land on <b>different deals</b>, or walk away with none. Run it twice — it can change. (Switch rules back to <b>Hard rules</b> for the provably-identical fair race.)';
+  return;}
+ if(!$('tgt'))TGT_EL.innerHTML=TGT_HTML;          // restore after free talk
+ $('hf').textContent=ask;$('hb').textContent=band;
  const tgt=Math.min(Math.round((ask+100)/2),band);const bonus=Math.max(0,Math.min(8,124-tgt));const remote=Math.max(1,Math.min(5,Math.floor((ask-tgt)/5)));
- $('hf').textContent=ask;$('hb').textContent=band;$('tgt').textContent=`$${tgt}k + $${bonus}k bonus · ${remote}d remote`;}
-$('guests').addEventListener('input',recalcTarget);$('budget').addEventListener('input',recalcTarget);recalcTarget();
+ $('tgt').textContent=`$${tgt}k + $${bonus}k bonus · ${remote}d remote`;}
+$('guests').addEventListener('input',recalcTarget);$('budget').addEventListener('input',recalcTarget);
+$('rules').addEventListener('change',()=>{if($('rules').value==='free')$('mode').value='real';recalcTarget();});
+recalcTarget();
 // optional auto-run from URL params (shareable links & screenshots)
 (function(){const q=new URLSearchParams(location.search);
  ['guests','budget','mode','model','delay'].forEach(k=>{if(q.has(k))$(k).value=q.get(k);});
