@@ -46,6 +46,10 @@ class Harness:
         self._price = get_price(config.model)
         self.rec = Recorder(self.control_model, run_id, sequencer, config.model,
                             on_event=event_sink)
+        # free-talk transcript: the agents' recent WORDS (not just numbers), so
+        # they can actually argue and convince each other. Only the numbers are
+        # state; the talk is context. Unused (empty) under hard rules.
+        self.talk: list[str] = []
 
     # ---- shared harness primitives -----------------------------------------
     async def invoke(self, source: KnowledgeSource, *, trigger: str) -> dict:
@@ -57,7 +61,8 @@ class Harness:
             await asyncio.sleep(self.config.step_delay)
         t0 = time.perf_counter()
         result = await source.act(view, self.llm, self.tools_exec,
-                                  free=self.config.free)
+                                  free=self.config.free,
+                                  talk=tuple(self.talk[-6:]))
         measured_ms = (time.perf_counter() - t0) * 1000.0
 
         new_state, changes = apply_patch(
@@ -66,6 +71,12 @@ class Harness:
         self.state = new_state
         for field, (old, new) in changes.items():
             self.rec.state_write(source.name, field, old, new)
+
+        if self.config.free and result.rationale:
+            from .registry import talk_line
+            line = talk_line(source.name, result.rationale)
+            if line:
+                self.talk.append(line)
 
         cost = result.usage.cost_usd(self._price)
         latency = measured_ms if self.config.real else result.usage.total / 10.0

@@ -607,19 +607,21 @@ function closeWords() { $('words').classList.remove('open'); }
 $('words').onclick = (ev) => { if (ev.target === $('words')) closeWords(); };
 ['inAsk', 'inBand'].forEach((id) => $(id).addEventListener('input', () => { $('goal').textContent = goalLine(); }));
 
-/* rules picker: hard rules (fair race) vs free talk (the AI decides — live key) */
-document.querySelectorAll('#rulepick button').forEach((b) => {
+/* rules pickers (scene 2 + the numbers panel): hard rules (fair race) vs
+   free talk (the AI decides — live key). All groups stay in sync. */
+function setRuleHints(t) { document.querySelectorAll('.rulehint').forEach((el) => { el.textContent = t; }); }
+document.querySelectorAll('.rulepick button').forEach((b) => {
   b.onclick = () => {
     const r = b.dataset.r;
     if (r === 'free' && INFO.real_key === false) {
-      $('rulehint').textContent = '🔑 Free talk needs your own AI key: put ANTHROPIC_API_KEY in .env (see the README), restart ./run.sh, and try again.';
+      setRuleHints('🔑 Free talk needs your own AI key: put ANTHROPIC_API_KEY in .env (see the README), restart ./run.sh, and try again.');
       return;
     }
     RULES = r;
-    document.querySelectorAll('#rulepick button').forEach((x) => x.classList.toggle('on', x === b));
-    $('rulehint').textContent = r === 'free'
-      ? '🗣️ No hard rules: the AI decides every move. Live API calls (a few cents per race). Every run can end differently — or in no deal. Press 🔁 Race again!'
-      : '';
+    document.querySelectorAll('.rulepick button').forEach((x) => x.classList.toggle('on', x.dataset.r === r));
+    setRuleHints(r === 'free'
+      ? '🗣️ No hard rules: the AI decides every move. Live API calls (a few cents per race). Every run can end differently — or in no deal.'
+      : '');
     $('goal').textContent = goalLine();
   };
 });
@@ -645,9 +647,10 @@ if (PRE) {
   INFO = PRE.info || INFO;
   if (INFO.defaults) { $('inAsk').value = INFO.defaults.ask; $('inBand').value = INFO.defaults.band; }
   applyInfo();
-  // no server: hide things that need one
+  // no server: hide things that need one (incl. free talk — it needs live calls)
   document.querySelectorAll('.expertlink,.btnlink').forEach((el) => { el.style.display = 'none'; });
   document.querySelectorAll('[onclick*="openParty"]').forEach((el) => { el.style.display = 'none'; });
+  document.querySelectorAll('.rulerow,.rulehint').forEach((el) => { el.style.display = 'none'; });
 } else {
   fetch('/info').then((r) => r.json()).then((d) => { INFO = d; applyInfo(); })
     .catch(() => applyInfo());

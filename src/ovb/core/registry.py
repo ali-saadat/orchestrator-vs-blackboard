@@ -36,7 +36,8 @@ class KnowledgeSource:
     rule: Callable[[Any], dict[str, Any]]       # (state) -> patch  (decision authority)
     tools: tuple[ToolSpec, ...] = ()
 
-    async def act(self, view, llm, tools_exec=None, free: bool = False) -> ActResult:
+    async def act(self, view, llm, tools_exec=None, free: bool = False,
+                  talk: tuple[str, ...] = ()) -> ActResult:
         """Deterministic decision (rule) + LLM narration/validation. The numeric
         patch is always the rule output; in real mode `comp.text` is the model's
         own words and the tokens are real. This purity — act returns a patch, the
@@ -51,7 +52,7 @@ class KnowledgeSource:
         if free:
             comp = await llm.complete(
                 system=self.role,
-                prompt=_decide_prompt(self, view),
+                prompt=_decide_prompt(self, view, talk),
                 expect="",
                 tools=self.tools,
                 tools_exec=tools_exec,
@@ -85,11 +86,28 @@ def _prompt(src: KnowledgeSource, view) -> str:
             "Apply your constraint and report the single change you make (if any).")
 
 
-def _decide_prompt(src: KnowledgeSource, view) -> str:
+def talk_line(name: str, text: str) -> str:
+    """One transcript line from an agent's reply: the words, minus the JSON
+    move (the numbers already live in the state), truncated to stay cheap."""
+    global _JSON_OBJ
+    import re
+    if _JSON_OBJ is None:
+        _JSON_OBJ = re.compile(r"\{[^{}]*\}")
+    words = _JSON_OBJ.sub("", text or "").strip()
+    if not words:
+        return ""
+    return f"{name}: {words[:220]}"
+
+
+def _decide_prompt(src: KnowledgeSource, view, talk: tuple[str, ...] = ()) -> str:
     """Free-talk mode: the model must DECIDE, not narrate. Whole $k integers;
-    a JSON object on the last line carries the move."""
+    a JSON object on the last line carries the move. `talk` carries the other
+    agents' recent words — the persuasion channel: without it every turn is a
+    stateless one-shot and nobody can convince anybody of anything."""
     state = view.model_dump() if hasattr(view, "model_dump") else view
+    transcript = ("Recent talk:\n" + "\n".join(talk) + "\n\n") if talk else ""
     return (
+        f"{transcript}"
         f"Live negotiation state: {state}. You may change ONLY your own fields: "
         f"{list(src.owns)}. Decide your next move toward closing the deal — "
         "concede, hold, announce a limit, or accept. A deal only counts once "

@@ -91,6 +91,14 @@
       <button data-g="hybrid" style="--e:var(--hy)">🤝 The Mix Way</button>
     </div>
   </div>
+  <div class="rulerow">
+    <span>Pick the rules first:</span>
+    <span class="rulepick">
+      <button class="on" data-r="hard" title="Fixed rules decide the numbers — fair race, free replay, no API key needed.">🧮 Hard rules</button>
+      <button data-r="free" title="No rules: the AI decides every move. Needs your own API key and spends a few cents per race. Every run can end differently — or in no deal.">🗣️ Free talk</button>
+    </span>
+  </div>
+  <p class="rulehint"></p>
   <button class="cta" onclick="startRace(['orchestrator','blackboard','hybrid'])">🏁 Start the race!</button>
 </section>
 
@@ -110,12 +118,12 @@
   <div class="partybox" id="partybox">
     <label>Ask $k <input type="number" id="inAsk" value="130" min="90" max="400"></label>
     <label>Band $k <input type="number" id="inBand" value="110" min="90" max="400"></label>
-    <span class="rulepick" id="rulepick">
+    <span class="rulepick">
       <button class="on" data-r="hard" title="Fixed rules decide the numbers — fair race, same deal every time.">🧮 Hard rules</button>
       <button data-r="free" title="No rules: the AI decides every move. Needs your own API key. Every run can end differently — or in no deal.">🗣️ Free talk</button>
     </span>
     <button class="cta small" onclick="restartRace()">🔁 Race again</button>
-    <p class="rulehint" id="rulehint"></p>
+    <p class="rulehint"></p>
   </div>
   <div class="lanes" id="lanes"></div>
 </section>

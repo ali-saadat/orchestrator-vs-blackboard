@@ -91,9 +91,11 @@ def test_free_mode_model_decides():
     class ScriptedLLM:
         def __init__(self, text):
             self.text = text
+            self.prompts = []
 
         async def complete(self, *, system, prompt, expect="", tools=(),
                            tools_exec=None):
+            self.prompts.append(prompt)
             assert "Decide your next move" in prompt      # decision prompt, not narration
             return Completion(text=self.text, usage=Usage(input_tokens=10, output_tokens=5))
 
@@ -102,6 +104,12 @@ def test_free_mode_model_decides():
     res = asyncio.run(cand.act(state, ScriptedLLM('Meet me closer. {"ask": 121}'),
                                None, free=True))
     assert res.patch == {"ask": 121}
+    # the persuasion channel: recent words reach the next agent's prompt
+    llm = ScriptedLLM('Fine — done. {"ask": 115}')
+    asyncio.run(cand.act(state, llm, None, free=True,
+                         talk=("Manager: 115 is my final number.",)))
+    assert "Recent talk:" in llm.prompts[0]
+    assert "Manager: 115 is my final number." in llm.prompts[0]
     # a move on a field the agent does not own is dropped at parse time...
     res2 = asyncio.run(cand.act(state, ScriptedLLM('{"salary": 999}'), None, free=True))
     assert res2.patch == {}

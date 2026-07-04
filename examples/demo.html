@@ -273,6 +273,10 @@ details.prompt pre{margin:10px 14px 14px;padding:12px 14px;background:var(--card
 .rulehint{flex-basis:100%;margin:6px 0 0;font-size:12.5px;color:var(--gold);text-align:center}
 .partybox.open{display:flex;flex-wrap:wrap}
 
+/* scene-2 rules row */
+.rulerow{display:flex;justify-content:center;align-items:center;gap:10px;
+  margin:16px 0 4px;color:var(--mut);font-size:13.5px}
+
 </style>
 </head>
 <body>
@@ -359,6 +363,14 @@ details.prompt pre{margin:10px 14px 14px;padding:12px 14px;background:var(--card
       <button data-g="hybrid" style="--e:var(--hy)">🤝 The Mix Way</button>
     </div>
   </div>
+  <div class="rulerow">
+    <span>Pick the rules first:</span>
+    <span class="rulepick">
+      <button class="on" data-r="hard" title="Fixed rules decide the numbers — fair race, free replay, no API key needed.">🧮 Hard rules</button>
+      <button data-r="free" title="No rules: the AI decides every move. Needs your own API key and spends a few cents per race. Every run can end differently — or in no deal.">🗣️ Free talk</button>
+    </span>
+  </div>
+  <p class="rulehint"></p>
   <button class="cta" onclick="startRace(['orchestrator','blackboard','hybrid'])">🏁 Start the race!</button>
 </section>
 
@@ -378,12 +390,12 @@ details.prompt pre{margin:10px 14px 14px;padding:12px 14px;background:var(--card
   <div class="partybox" id="partybox">
     <label>Ask $k <input type="number" id="inAsk" value="130" min="90" max="400"></label>
     <label>Band $k <input type="number" id="inBand" value="110" min="90" max="400"></label>
-    <span class="rulepick" id="rulepick">
+    <span class="rulepick">
       <button class="on" data-r="hard" title="Fixed rules decide the numbers — fair race, same deal every time.">🧮 Hard rules</button>
       <button data-r="free" title="No rules: the AI decides every move. Needs your own API key. Every run can end differently — or in no deal.">🗣️ Free talk</button>
     </span>
     <button class="cta small" onclick="restartRace()">🔁 Race again</button>
-    <p class="rulehint" id="rulehint"></p>
+    <p class="rulehint"></p>
   </div>
   <div class="lanes" id="lanes"></div>
 </section>
@@ -1060,19 +1072,21 @@ function closeWords() { $('words').classList.remove('open'); }
 $('words').onclick = (ev) => { if (ev.target === $('words')) closeWords(); };
 ['inAsk', 'inBand'].forEach((id) => $(id).addEventListener('input', () => { $('goal').textContent = goalLine(); }));
 
-/* rules picker: hard rules (fair race) vs free talk (the AI decides — live key) */
-document.querySelectorAll('#rulepick button').forEach((b) => {
+/* rules pickers (scene 2 + the numbers panel): hard rules (fair race) vs
+   free talk (the AI decides — live key). All groups stay in sync. */
+function setRuleHints(t) { document.querySelectorAll('.rulehint').forEach((el) => { el.textContent = t; }); }
+document.querySelectorAll('.rulepick button').forEach((b) => {
   b.onclick = () => {
     const r = b.dataset.r;
     if (r === 'free' && INFO.real_key === false) {
-      $('rulehint').textContent = '🔑 Free talk needs your own AI key: put ANTHROPIC_API_KEY in .env (see the README), restart ./run.sh, and try again.';
+      setRuleHints('🔑 Free talk needs your own AI key: put ANTHROPIC_API_KEY in .env (see the README), restart ./run.sh, and try again.');
       return;
     }
     RULES = r;
-    document.querySelectorAll('#rulepick button').forEach((x) => x.classList.toggle('on', x === b));
-    $('rulehint').textContent = r === 'free'
-      ? '🗣️ No hard rules: the AI decides every move. Live API calls (a few cents per race). Every run can end differently — or in no deal. Press 🔁 Race again!'
-      : '';
+    document.querySelectorAll('.rulepick button').forEach((x) => x.classList.toggle('on', x.dataset.r === r));
+    setRuleHints(r === 'free'
+      ? '🗣️ No hard rules: the AI decides every move. Live API calls (a few cents per race). Every run can end differently — or in no deal.'
+      : '');
     $('goal').textContent = goalLine();
   };
 });
@@ -1098,9 +1112,10 @@ if (PRE) {
   INFO = PRE.info || INFO;
   if (INFO.defaults) { $('inAsk').value = INFO.defaults.ask; $('inBand').value = INFO.defaults.band; }
   applyInfo();
-  // no server: hide things that need one
+  // no server: hide things that need one (incl. free talk — it needs live calls)
   document.querySelectorAll('.expertlink,.btnlink').forEach((el) => { el.style.display = 'none'; });
   document.querySelectorAll('[onclick*="openParty"]').forEach((el) => { el.style.display = 'none'; });
+  document.querySelectorAll('.rulerow,.rulehint').forEach((el) => { el.style.display = 'none'; });
 } else {
   fetch('/info').then((r) => r.json()).then((d) => { INFO = d; applyInfo(); })
     .catch(() => applyInfo());
