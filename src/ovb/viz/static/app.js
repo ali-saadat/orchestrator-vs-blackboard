@@ -6,7 +6,7 @@
 const ALL = ['orchestrator', 'blackboard', 'hybrid'];
 const NICE = {
   orchestrator: { name: 'The Boss Way', tech: 'Orchestrator', emoji: '👔', cvar: 'var(--orch)' },
-  blackboard:   { name: 'The Whiteboard Way', tech: 'Blackboard', emoji: '📋', cvar: 'var(--bb)' },
+  blackboard:   { name: 'The Blackboard Way', tech: 'Blackboard', emoji: '📋', cvar: 'var(--bb)' },
   hybrid:       { name: 'The Mix Way', tech: 'Hybrid', emoji: '🤝', cvar: 'var(--hy)' },
 };
 const FRIENDC = { Candidate: '#6ea8fe', Manager: '#4fd1c5', HR: '#d3a6ff', Finance: '#ff8f8f' };
@@ -76,22 +76,6 @@ function go(n) {
   });
   window.scrollTo({ top: 0 });
   if (n === 0 && !storyPlayed) playStory();
-
-/* shareable auto-start links (also used for headless screenshots):
-   /?auto=race&speed=300&ask=140&band=115  — starts the full race at that pace */
-(function () {
-  const q = new URLSearchParams(location.search);
-  if (q.get('ask') && $('inAsk')) $('inAsk').value = q.get('ask');
-  if (q.get('band') && $('inBand')) $('inBand').value = q.get('band');
-  if (q.get('auto') === 'race') {
-    const sp = q.get('speed');
-    if (sp !== null) {
-      const btn = [...document.querySelectorAll('.speeds button')].find((b) => +b.dataset.sp === +sp);
-      setSpeed(+sp || 0, btn);
-    }
-    startRace(ALL);
-  }
-})();
 }
 document.querySelectorAll('#stepper button').forEach((b) => {
   b.onclick = () => {

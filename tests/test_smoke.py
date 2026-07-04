@@ -72,6 +72,22 @@ def test_gate_predicate():
     assert not task.is_consistent(PlanState(**{**EXPECTED, "ask": 130}))
 
 
+def test_story_ui_prompt_explainer_in_sync():
+    """The scene-4 'why the same deal' explainer quotes the real prompts.
+    Guard against drift: every role string and the user-prompt template shown
+    in index.html must match the live Python source. Also enforce the naming
+    convention: the pattern is 'blackboard', never 'whiteboard'."""
+    html_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                             "src", "ovb", "viz", "static", "index.html")
+    with open(html_path, encoding="utf-8") as fh:
+        html = fh.read()
+    for src in agents.build_registry().sources:
+        assert src.role in html, f"role for {src.name} missing/stale in index.html"
+    assert ("Apply your constraint and report the single change you make "
+            "(if any).") in html, "user-prompt template stale in index.html"
+    assert "whiteboard" not in html.lower(), "naming: use 'blackboard', not 'whiteboard'"
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):

@@ -70,9 +70,9 @@
       <button class="ghost" onclick="startRace(['orchestrator'])">▶ Watch only this way</button>
     </div>
     <div class="wcard" style="--e:var(--bb)">
-      <div class="wh">📋 The Whiteboard Way <small>(Blackboard)</small></div>
+      <div class="wh">📋 The Blackboard Way <small>(shared board)</small></div>
       <svg class="mini" viewBox="0 0 200 110" data-mini="board"></svg>
-      <p>All four share <b>one whiteboard</b>. When a number changes, only the right people speak again.</p>
+      <p>All four share <b>one blackboard</b>. When a number changes, only the right people speak again.</p>
       <button class="ghost" onclick="startRace(['blackboard'])">▶ Watch only this way</button>
     </div>
     <div class="wcard" style="--e:var(--hy)">
@@ -87,7 +87,7 @@
     <p><b>Your guess:</b> which way needs the <b>least</b> talk?</p>
     <div class="guessbtns">
       <button data-g="orchestrator" style="--e:var(--orch)">👔 The Boss Way</button>
-      <button data-g="blackboard" style="--e:var(--bb)">📋 The Whiteboard Way</button>
+      <button data-g="blackboard" style="--e:var(--bb)">📋 The Blackboard Way</button>
       <button data-g="hybrid" style="--e:var(--hy)">🤝 The Mix Way</button>
     </div>
   </div>
@@ -122,6 +122,31 @@
   <p class="guessresult" id="guessresult"></p>
   <div class="podium" id="podium"></div>
   <table class="score" id="score"></table>
+
+  <details class="why">
+    <summary>🤔 Why is the deal always the same? Isn&rsquo;t AI random?</summary>
+    <div class="why-body">
+      <p>Good question — AI models <b>are</b> random. Ask twice, get different words. So why do all three ways always land on the exact same deal?</p>
+      <p>Because each agent here has <b>two parts</b>:</p>
+      <p>🧮 <b>A fixed rule</b> decides the numbers — come down a step, go up a step, stop at HR&rsquo;s band, sign the bonus. This is plain code. It gives the same answer every run, in any speaking order.</p>
+      <p>🗣️ <b>The AI model</b> only says the <b>words</b> for each move. Real calls, real tokens, real money — but the words never change the numbers.</p>
+      <p>A plain-code <b>gate</b> — never the model — checks &ldquo;is the deal done?&rdquo;. So the deal is fixed by design, and the three ways can differ in only one thing: <b>how much talk it took</b> — turns, tokens, money. That difference is the whole experiment. If the model also decided the numbers, you could not tell &ldquo;different way of talking&rdquo; from &ldquo;different luck&rdquo;.</p>
+      <details class="prompt">
+        <summary>📜 For experts: the real prompts each agent gets</summary>
+        <p class="pnote">Each turn = one streaming API call: the agent&rsquo;s persona is the <i>system prompt</i>, the live state is the <i>user prompt</i>, and the model narrates the move the rule already made. Replay mode (&ldquo;cassette&rdquo;) re-serves the recorded answers byte for byte, so the demo is reproducible offline. Source: <code>src/ovb/domain/agents.py</code> (roles + rules) and <code>src/ovb/core/registry.py</code> (prompt assembly).</p>
+        <pre>SYSTEM 🙋 Candidate: You are the Candidate. Negotiate the salary you deserve, conceding step by step; accept the band cap when it is final.
+
+SYSTEM 🧑‍💼 Manager: You are the hiring Manager. Raise your offer step by step, never above HR's band; close the deal when you meet.
+
+SYSTEM 📋 HR: You are HR. Announce the hard salary band, and grant remote days for the candidate's concession (1 day per $5k, 1-5).
+
+SYSTEM 💰 Finance: You are Finance. Announce the total-pay cap and approve the signing bonus once the base is agreed (up to $8k, if room).
+
+USER (every turn, per agent): Current plan state: {'ask': 126, 'offer': 104, 'band_max': 110, ...}. You own ['ask']. Apply your constraint and report the single change you make (if any).</pre>
+      </details>
+    </div>
+  </details>
+
   <div class="endbtns">
     <button class="cta small" onclick="restartRace()">🔁 Race again</button>
     <button class="ghost" onclick="openParty();go(2)">🎛 Change the numbers</button>
@@ -138,7 +163,7 @@
       <dt>Turn</dt><dd>One person speaks one time.</dd>
       <dt>Wasted turn</dt><dd>A person speaks, but changes nothing.</dd>
       <dt>Talk cost</dt><dd>The money paid to the AI for the talking.</dd>
-      <dt>Whiteboard / Board</dt><dd>One page that all four people can see and write on.</dd>
+      <dt>Blackboard / Board</dt><dd>One page that all four people can see and write on.</dd>
       <dt>Band</dt><dd>HR&rsquo;s rule: the highest base salary allowed.</dd>
       <dt>Total cap</dt><dd>Finance&rsquo;s rule: salary + bonus together must stay under this.</dd>
       <dt>Deal</dt><dd>When the ask and the offer meet at one number. 🤝</dd>

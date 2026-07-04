@@ -43,9 +43,9 @@ next person.
 2. **The confirmation lap** — with no shared state, "are we done?" costs one full sweep
    of no-ops. Students can *see* both on the track: the faded chips.
 
-### 📋 The Whiteboard Way (Blackboard) — 14 turns, 0 wasted
+### 📋 The Blackboard Way (shared board) — 14 turns, 0 wasted
 
-**The metaphor**: everyone stands around one whiteboard. You write your number on the
+**The metaphor**: everyone stands around one blackboard. You write your number on the
 board; **the board wakes up exactly the people who care about what changed** — nobody
 else.
 
@@ -67,9 +67,9 @@ not to (people × rounds). Zero wasted turns.
 
 **The metaphor**: you already *know* who the real negotiation is between. So you put
 the live negotiation (Candidate, Manager, and HR — the referee whose band shapes the
-deal) around the whiteboard, and let Finance simply **sign once at the end**.
+deal) around the blackboard, and let Finance simply **sign once at the end**.
 
-**The journey**: turns 1–12 are the same reactive haggle as the whiteboard (minus
+**The journey**: turns 1–12 are the same reactive haggle as the blackboard (minus
 Finance's kickoff turn), then one supervisor call: "Finance — here's the deal, sign it"
 — Finance announces the cap *and* signs the bonus in a single turn.
 
@@ -82,7 +82,7 @@ the band.)
 
 ## 3. The differences in practice — same scenario, three protocols
 
-| | 👔 Boss Way | 📋 Whiteboard Way | 🤝 Mix Way |
+| | 👔 Boss Way | 📋 Blackboard Way | 🤝 Mix Way |
 |---|---|---|---|
 | Who decides who speaks | the boss, fixed order | **the data** — a write wakes its subscribers | the board inside the core; the boss for the tail |
 | Where the state lives | in the boss's head (agents see only what they're told) | on **one shared board** everyone reads | shared board for the core; handed to the tail |
@@ -93,7 +93,7 @@ the band.)
 | What it costs you as a designer | nothing — simplest to build and reason about | you must design the board schema + subscriptions | you must *know* the coupling structure in advance |
 | Failure mode | the hub is a bottleneck and single point of failure; cost scales with people × rounds | a badly wired board can loop or race (needs caps + a deterministic gate) | a wrong core/tail split gives wrong answers, not just slow ones |
 
-And the one-liner for the whiteboard's win: **the orchestrator pays per person per
+And the one-liner for the blackboard's win: **the orchestrator pays per person per
 round; the blackboard pays per change.** In a negotiation, changes are concentrated in
 two people — so the boss's bill is bigger for the identical deal.
 
@@ -109,7 +109,7 @@ one of these topologies is overhead. Multi-agent is an escalation, not a default
 - when audit/control is the priority: one visible decision point, easy human sign-off
 - *Objective it serves*: predictability, governance, simplicity.
 
-**Choose the Whiteboard Way (blackboard) when the work is a *graph*:**
+**Choose the Blackboard Way when the work is a *graph*:**
 - results depend on each other — one agent's finding must immediately re-open another's work
 - iterative refinement to a fixpoint — negotiation, reconciliation, constraint solving
 - cross-checking — a reviewer's discovery re-triggers the affected writers, not everyone
@@ -130,7 +130,7 @@ blackboard. If exactly one cluster has the up-arrows, mix.*
 ## 5. Classroom playbook
 
 1. **Scene 1–2 on the projector** (2 min): the story + the three ways. Then run the
-   **guess game** — hands up per way. (Most rooms pick the Whiteboard; the Mix winning
+   **guess game** — hands up per way. (Most rooms pick the Blackboard; the Mix winning
    by one turn sparks the best discussion: "why did knowing the structure beat pure
    reactivity?")
 2. **Run the Boss Way solo first** at Normal speed (1 min): let them *feel* the

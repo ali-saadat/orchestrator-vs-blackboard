@@ -232,3 +232,27 @@ table.score td.way{color:var(--e);font-weight:700}
 .cf{position:absolute;top:-12px;width:9px;height:14px;border-radius:2px;
   animation:fall linear forwards}
 @keyframes fall{to{transform:translateY(105vh) rotate(720deg);opacity:.9}}
+
+/* why-same-deal explainer (scene 4) */
+details.why{max-width:760px;margin:20px auto 4px;background:var(--card);
+  border:1px solid var(--line);border-radius:14px;overflow:hidden}
+details.why>summary{cursor:pointer;list-style:none;padding:13px 18px;font-weight:800;
+  font-size:15px;color:var(--fg)}
+details.why>summary::-webkit-details-marker{display:none}
+details.why>summary::after{content:"▸";float:right;color:var(--mut);transition:transform .2s}
+details.why[open]>summary::after{transform:rotate(90deg)}
+details.why[open]>summary{border-bottom:1px solid var(--line)}
+.why-body{padding:6px 18px 16px;font-size:14.5px;color:var(--mut)}
+.why-body p{margin:10px 0}
+.why-body b{color:var(--fg)}
+details.prompt{margin-top:14px;background:var(--feed);border:1px solid var(--line);
+  border-radius:10px;overflow:hidden}
+details.prompt>summary{cursor:pointer;list-style:none;padding:10px 14px;font-weight:700;
+  font-size:13.5px;color:var(--now)}
+details.prompt>summary::-webkit-details-marker{display:none}
+details.prompt .pnote{padding:0 14px;font-size:12.5px}
+details.prompt code{background:var(--card);border:1px solid var(--line);border-radius:5px;
+  padding:1px 5px;font-size:11.5px}
+details.prompt pre{margin:10px 14px 14px;padding:12px 14px;background:var(--card);
+  border:1px solid var(--line);border-radius:8px;overflow-x:auto;white-space:pre-wrap;
+  font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--fg)}

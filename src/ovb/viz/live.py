@@ -460,7 +460,7 @@ marker path{fill:var(--edge)}
   <div id="probE" class="prob-body">
     <p class="prob-head">Four people, one job offer — which way wastes the least?</p>
     <p>Four people must close one job offer. The <b>Candidate</b> asks $130k; the <b>Manager</b> offers $100k; they concede step by step. <b>HR</b>&rsquo;s hard band (announced mid-talk) clamps the base; <b>Finance</b> caps salary+bonus and signs the bonus once the base lands. A genuine multi-round negotiation — the deal emerges; you cannot eyeball it.</p>
-    <p class="prob-tip">In the panels below, the four people are the agents <b>Candidate · Manager · HR · Finance</b>, and the “whiteboard” is the shared <b>Board</b>.</p>
+    <p class="prob-tip">In the panels below, the four people are the agents <b>Candidate · Manager · HR · Finance</b>, and the “blackboard” is the shared <b>Board</b>.</p>
   </div>
   <div id="probX" class="prob-body" style="display:none">
     <p>Four agents negotiate a job offer: <b>ask</b> (opens 130) and <b>offer</b> (opens 100) concede 15% of the gap per turn toward <b>target = min(midpoint, band)</b>; HR announces <b>band_max</b>=110 mid-flight (re-anchoring both); the offer clamps at the target and the candidate accepts the final number; Finance&rsquo;s <b>total_cap</b>=124 sets <b>bonus</b>=min(8, cap−salary); HR grants <b>remote</b>=concession÷5 (1–5). Fixed point: <b>$110k + $8k bonus + 4 remote days</b> — unique regardless of scheduling (the concession protocol is clamped), so the 3-way comparison stays fair. A <b>deterministic gate</b> (never the model) declares done.</p>
@@ -475,8 +475,8 @@ marker path{fill:var(--edge)}
   <div class="ways-h">Three ways to run the meeting <span>— all reach the same plan</span></div>
   <div class="ways">
     <div class="way" style="--e:var(--orchestrator)"><div class="way-h">Orchestrator<span>· “the boss runs it”</span></div><div class="way-b">A boss asks each friend to speak, one at a time, in a fixed order — looping through all four again and again until nobody changes anything, plus one extra round just to double-check. The most back-and-forth.</div></div>
-    <div class="way" style="--e:var(--blackboard)"><div class="way-h">Blackboard<span>· “one shared whiteboard”</span></div><div class="way-b">Everyone writes on one shared whiteboard. When a number changes, only the friends who care about that number chime back in. Far less wasted talk.</div></div>
-    <div class="way" style="--e:var(--hybrid)"><div class="way-h">Hybrid<span>· “a bit of both”</span></div><div class="way-b">The live negotiation (Candidate, Manager &amp; HR) shares the whiteboard; Finance signs once at the end. A tidy middle ground.</div></div>
+    <div class="way" style="--e:var(--blackboard)"><div class="way-h">Blackboard<span>· “one shared board”</span></div><div class="way-b">Everyone writes on one shared blackboard. When a number changes, only the friends who care about that number chime back in. Far less wasted talk.</div></div>
+    <div class="way" style="--e:var(--hybrid)"><div class="way-h">Hybrid<span>· “a bit of both”</span></div><div class="way-b">The live negotiation (Candidate, Manager &amp; HR) shares the blackboard; Finance signs once at the end. A tidy middle ground.</div></div>
   </div>
   <p class="target">🎯 <b>Same deal, every time.</b> For your ask (<b id="hf">130</b>k vs band $<b id="hb">110</b>k) all three land on the identical deal: <b id="tgt">$110k + $8k bonus + 4 remote days</b>. The only difference is <b>how much talking and money</b> it took — that’s the comparison table below.</p>
 </section>
