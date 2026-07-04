@@ -999,3 +999,85 @@ Orchestrator and blackboard are not rivals so much as two answers to one questio
 Three 2026 realities should temper any strong claim. First, **reasoning models partially substitute for fan-out** — when token spend explains ~80% of multi-agent's edge, a well-budgeted single reasoning agent captures much of that gain at lower coordination cost, so multi-agent should be an escalation, not a default. Second, **the protocol substrate biases the topology**: MCP wires hubs, A2A wires peers, and a true blackboard needs a shared-state/broker layer bolted on. Third, the **bounded/controlled blackboard** — a reactive shared state under a deterministic control unit and gate — is a genuine, under-explored middle path: it grafts the orchestrator's reproducibility, cost bounds, and WORM auditability onto the blackboard's reactivity, at some cost to emergent flexibility. It is a design position to evaluate, not a proven winner.
 
 The durable guidance: default to a single reasoning agent for dependent work; use a context-owning orchestrator for decomposable/breadth-first work; reserve shared-state collaboration for genuinely interdependent, cross-checking tasks; and whatever you choose, impose hard iteration caps, keep an LLM out of the final gate, instrument tokens/latency/traces uniformly, and benchmark under compute normalization on public yardsticks rather than a single vendor eval.
+
+---
+
+## 14. Addendum (2026-07): coordination architecture vs *negotiation outcomes* — why free-talk deals close or don't
+
+Research pass triggered by the Free-talk mode (v0.4.1): the model decides every move; we
+observed early runs failing to close any deal. The literature explains each failure and
+predicted each fix. Three researched threads (classic blackboard control, LLM negotiation,
+modern topology-vs-outcome comparisons).
+
+### 14.1 Classic result: control discipline changes result QUALITY, not just cost
+
+- **HEARSAY-II controlled experiments** (Erman, Hayes-Roth, Lesser & Reddy, ACM Comp.
+  Surveys 1980): opportunistic scheduling cut word error from 48% → 29% AND halved compute
+  vs a fixed sweep regime; island-driving beat left-to-right 33% vs 53%. But the reversal
+  in BBN's HWIM shows the contingency: **opportunistic control is only as good as the
+  confidence signals that drive it** (single-word islands were inferior everywhere).
+- **HARPY beat HEARSAY-II** on both accuracy and speed by *compiling* the knowledge into
+  one network — planned control wins when the domain is compilable and premature pruning
+  is the risk. (Our hard-rules mode is exactly a "compiled" negotiation.)
+- **BB1** (Hayes-Roth 1985) put control itself on a blackboard — and its own cost/benefit
+  section admits the meta-control is expensive and should be **compiled away once the
+  policy is discovered** — the classic arc from blackboard prototype to hard-coded flow
+  (Corkill's "second conjecture", confirmed in fielded systems).
+- Agents "argue via the board" in HEARSAY-II through **competing hypotheses with explicit
+  credibility ratings** and deliberately deferred resolution — the board carries claims
+  and confidence, not just final values.
+
+### 14.2 LLM negotiation: deals close because of PROTOCOL, not sentiment
+
+- **Statelessness cannot converge.** Anchoring and concessions live in the transcript
+  (NegotiationArena: first offer ↔ final price ρ=0.716; split-the-difference dynamics).
+  Our first free-talk build passed only the state dict between turns — no words, no
+  memory — and closed ~0 deals. Adding a talk transcript to the prompts immediately
+  produced closed deals ($108k and $115k in back-to-back runs).
+- **Closure is an explicit speech act.** NegotiationArena requires a structured ACCEPT
+  action; Davidson et al. 2024 distinguish "soft" (positions align) from "hard" (both
+  utter the agreement phrase) agreement; Lewis et al. 2017 ended dialogues with a special
+  action. Our observed "ask == offer == 113 but salary never written" is textbook soft-
+  without-hard agreement; the decide-prompt now instructs agents to fill their null
+  fields to formally close.
+- **Turn budgets close deals.** With an explicit turn budget (5–9 utterances) agent pairs
+  closed 98–100% of negotiations; wall-clock deadlines failed (arXiv:2601.13206). Our
+  engines' caps (max_rounds / max_steps) end runs but are invisible to the agents —
+  telling them the remaining turns is the researched next step.
+- **The default failure is over-concession, not deadlock**: aligned LLMs converge fast,
+  split the difference, and agreeable personas concede 40%+ (Noh & Chang 2024) — once a
+  persuasion channel exists. Memory curation matters: Du et al. found *summarized* peer
+  messages beat raw transcripts; LLM-Deliberation used a sliding window (last 6) — ours
+  uses the same window size.
+
+### 14.3 Modern evidence: topology changes the OUTCOME, not just the bill
+
+- **LangChain τ-bench A/B**: swarm (shared history) beat supervisor — root cause "the
+  telephone game": the supervisor's paraphrasing loses information. Direct A/B evidence
+  that topology shifts results.
+- **Blackboard renaissance**: LbMAS (arXiv:2507.01701) — blackboard MAS tops static and
+  dynamic MAS baselines on 6 benchmarks; blackboard-vs-master-slave for data science
+  (arXiv:2510.01285) — 13–57% relative end-to-end gains, agents *volunteer* off the board;
+  Terrarium (arXiv:2510.14312) revives the blackboard precisely because shared state makes
+  agent-to-agent *influence* observable.
+- **Influence cuts both ways**: one persuasive adversarial agent swings debate outcomes
+  10–40% (Sci. Reports 2026); sycophancy drives wrong consensus; **hierarchical
+  (orchestrator) structures are the most resilient to a faulty/malicious agent**
+  (arXiv:2408.00989: ~24% degradation vs ~46–50% for flat/linear). The blackboard
+  maximizes persuasion bandwidth; the supervisor damps it — pick by whether influence is
+  the feature (creative consensus) or the threat (injection, manipulation).
+- **Anthropic's orchestrator** beat single-agent by 90.2% on research — with token spend
+  explaining ~80% of the variance — while being explicitly synchronous ("the lead agent
+  can't steer subagents, subagents can't coordinate").
+
+### 14.4 What this means for this repo
+
+1. Hard rules = the HARPY/compiled regime: destination fixed, only coordination cost
+   varies — the fair race. Free talk = the HEARSAY regime: outcomes now depend on the
+   topology's persuasion bandwidth, turn order, and closing protocol.
+2. Free-talk deals differ by topology ($108k blackboard vs $115k hybrid in validation
+   runs) — consistent with published anchoring/turn-order effects; n=1 per topology, so
+   we show it as "can differ", never "always differs".
+3. Researched roadmap for Free talk v2: visible turn budget in prompts, an explicit
+   ACCEPT action, per-agent private utility scoring (deal quality, not just deal rate),
+   and a "persuader persona" experiment to visualize influence per topology.
