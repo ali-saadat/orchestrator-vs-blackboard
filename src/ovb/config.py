@@ -25,6 +25,14 @@ class RunConfig(BaseModel):
     real: bool = False              # False = MockLLM (deterministic, offline)
     cassette: str | None = None     # path to a cassette for record/replay
 
+    # negotiation rules. hard rules (free=False, default): deterministic rules
+    # decide every number and the model only narrates — the destination is
+    # identical by construction, so the 3-way race is fair. free talk
+    # (free=True): the MODEL decides every move — real convincing, so runs are
+    # non-deterministic and the engines may land on different deals, or none
+    # (the caps end a run that never converges). Requires real=True.
+    free: bool = False
+
     # control-loop bounds (the control unit's safety caps)
     max_rounds: int = 12            # orchestrator: max full sweeps
     max_steps: int = 100            # blackboard: max event-loop steps

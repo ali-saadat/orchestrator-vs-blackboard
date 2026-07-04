@@ -70,7 +70,13 @@ class ClaudeLLM:
         try:
             import anthropic  # noqa: F401
         except ImportError as exc:  # pragma: no cover
-            raise SystemExit("Real mode needs the SDK:  pip install anthropic") from exc
+            # RuntimeError (never SystemExit): SystemExit bypasses `except
+            # Exception` in the live server's per-engine handler and killed the
+            # SSE stream silently — the browser saw an eternal hang.
+            raise RuntimeError(
+                "Real mode needs the Anthropic SDK. Install it with: "
+                "pip install 'anthropic>=0.42'  (or relaunch via ./run.sh, "
+                "which includes it)") from exc
         import anthropic
         self._client = anthropic.AsyncAnthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
         self.model = model

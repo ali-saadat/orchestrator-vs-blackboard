@@ -110,7 +110,12 @@
   <div class="partybox" id="partybox">
     <label>Ask $k <input type="number" id="inAsk" value="130" min="90" max="400"></label>
     <label>Band $k <input type="number" id="inBand" value="110" min="90" max="400"></label>
+    <span class="rulepick" id="rulepick">
+      <button class="on" data-r="hard" title="Fixed rules decide the numbers — fair race, same deal every time.">🧮 Hard rules</button>
+      <button data-r="free" title="No rules: the AI decides every move. Needs your own API key. Every run can end differently — or in no deal.">🗣️ Free talk</button>
+    </span>
     <button class="cta small" onclick="restartRace()">🔁 Race again</button>
+    <p class="rulehint" id="rulehint"></p>
   </div>
   <div class="lanes" id="lanes"></div>
 </section>
@@ -131,6 +136,7 @@
       <p>🧮 <b>A fixed rule</b> decides the numbers — come down a step, go up a step, stop at HR&rsquo;s band, sign the bonus. This is plain code. It gives the same answer every run, in any speaking order.</p>
       <p>🗣️ <b>The AI model</b> only says the <b>words</b> for each move. Real calls, real tokens, real money — but the words never change the numbers.</p>
       <p>A plain-code <b>gate</b> — never the model — checks &ldquo;is the deal done?&rdquo;. So the deal is fixed by design, and the three ways can differ in only one thing: <b>how much talk it took</b> — turns, tokens, money. That difference is the whole experiment. If the model also decided the numbers, you could not tell &ldquo;different way of talking&rdquo; from &ldquo;different luck&rdquo;.</p>
+      <p>🗣️ <b>Want to see it without the rules?</b> Open <b>🎛 Change the numbers</b> and switch to <b>Free talk</b> — the AI decides every move (needs your own API key, see the README). The ways may land on different deals, or no deal at all. Run it twice: it can change. That is non-determinism, live.</p>
       <details class="prompt">
         <summary>📜 For experts: the real prompts each agent gets</summary>
         <p class="pnote">Each turn = one streaming API call: the agent&rsquo;s persona is the <i>system prompt</i>, the live state is the <i>user prompt</i>, and the model narrates the move the rule already made. Replay mode (&ldquo;cassette&rdquo;) re-serves the recorded answers byte for byte, so the demo is reproducible offline. Source: <code>src/ovb/domain/agents.py</code> (roles + rules) and <code>src/ovb/core/registry.py</code> (prompt assembly).</p>

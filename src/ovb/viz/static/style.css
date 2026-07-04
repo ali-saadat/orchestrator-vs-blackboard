@@ -256,3 +256,11 @@ details.prompt code{background:var(--card);border:1px solid var(--line);border-r
 details.prompt pre{margin:10px 14px 14px;padding:12px 14px;background:var(--card);
   border:1px solid var(--line);border-radius:8px;overflow-x:auto;white-space:pre-wrap;
   font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--fg)}
+
+/* rules picker (hard rules vs free talk) */
+.rulepick{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.rulepick button{background:none;border:none;color:var(--mut);padding:7px 14px;font-size:12.5px;
+  font-weight:700;cursor:pointer}
+.rulepick button.on{background:var(--now);color:#fff}
+.rulehint{flex-basis:100%;margin:6px 0 0;font-size:12.5px;color:var(--gold);text-align:center}
+.partybox.open{display:flex;flex-wrap:wrap}

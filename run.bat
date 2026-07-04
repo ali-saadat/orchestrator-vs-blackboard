@@ -12,7 +12,8 @@ if "%ARGS%"=="" set ARGS=serve
 
 where uv >nul 2>nul
 if %errorlevel%==0 (
-  uv run ovb %ARGS%
+  rem --extra real: include the Anthropic SDK so live/Free-talk mode works
+  uv run --extra real ovb %ARGS%
   goto :eof
 )
 
@@ -20,6 +21,6 @@ if not exist .venv (
   echo First run: creating .venv and installing (needs internet)...
   py -3 -m venv .venv || python -m venv .venv
   .venv\Scripts\python -m pip install -q --upgrade pip
-  .venv\Scripts\python -m pip install -q -e .
+  .venv\Scripts\python -m pip install -q -e ".[real]"
 )
 .venv\Scripts\python -m ovb %ARGS%

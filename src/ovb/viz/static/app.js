@@ -32,6 +32,7 @@ const md = (s) => esc(s).replace(/^\s*#{1,6}\s*/gm, '').replace(/^\s*[-*]\s+/gm,
 /* ---------- global state ---------- */
 let INFO = { cassette: false, defaults: { ask: 130, band: 110 } };
 let MODE = 'mock';
+let RULES = 'hard';   // hard = rules decide the numbers (fair race) · free = the AI decides
 let GUESS = null;
 let raceEngines = [];
 let S = {};                 // per-engine live state
@@ -165,6 +166,9 @@ document.querySelectorAll('.guessbtns button').forEach((b) => {
 /* ---------- the race ---------- */
 function goalLine() {
   const ask = Math.max(90, Math.min(400, +$('inAsk').value || 130));
+  if (RULES === 'free') {
+    return `🎯 Free talk: NO hard rules — the AI decides every move. Ask $${ask}k vs offer $100k. Will they even agree? Every run can end differently…`;
+  }
   return `🎯 Goal: ONE deal all four say yes to. Ask $${ask}k vs offer $100k — where will they land? Watch…`;
 }
 
@@ -328,6 +332,9 @@ function startRace(engines) {
   $('lanes').innerHTML = engines.map(laneHTML).join('');
   engines.forEach(buildTopo);
   $('goal').textContent = goalLine();
+  // a new race must not show the previous race's verdict for even a moment
+  $('verdict').textContent = ''; $('guessresult').textContent = '';
+  $('podium').innerHTML = ''; $('score').innerHTML = '';
   go(2);
   if (es) { es.close(); es = null; }
   if (PRE) {
@@ -335,9 +342,10 @@ function startRace(engines) {
     allDoneSeen = true;           // the recording already contains the whole run
   } else {
     // the recording only covers the default party — other numbers replay as demo talk
-    const mode = (MODE === 'cassette' &&
+    let mode = (MODE === 'cassette' &&
       (ask0 !== INFO.defaults.ask || band !== INFO.defaults.band)) ? 'mock' : MODE;
-    const q = `ask=${ask0}&band=${band}&engines=${engines.join(',')}&delay=0&mode=${mode}`;
+    if (RULES === 'free') mode = 'real';   // free talk = live model decides
+    const q = `ask=${ask0}&band=${band}&engines=${engines.join(',')}&delay=0&mode=${mode}&rules=${RULES}`;
     es = new EventSource('/run?' + q);
     es.onmessage = (m) => {
       const ev = JSON.parse(m.data);
@@ -474,15 +482,18 @@ function handle(ev) {
       break;
     case 'run_finished': {
       s.done = true; s.finishedAt = s.turns;
+      s.nodeal = a.consistent === false;         // free talk can end without a deal
       if (a.state) for (const f in a.state) {
         const chip = $(`chip-${e}-${f}`);
         if (chip) chip.querySelector('b').textContent = f === 'cost' ? '$' + a.state[f] : a.state[f];
       }
       const flag = document.createElement('div');
-      flag.className = 'step flag'; flag.textContent = '🏁🎉';
+      flag.className = 'step flag'; flag.textContent = s.nodeal ? '🤷' : '🏁🎉';
       $('track-' + e).appendChild(flag);
       $('lane-' + e).classList.add('finished');
-      say(e, `🏁 <b>Done in ${s.turns} turns!</b> All four said yes.`);
+      say(e, s.nodeal
+        ? `🤷 <b>No valid deal</b> after ${s.turns} turns — the numbers never fully met, or someone broke their own limit. The gate does not sign that.`
+        : `🏁 <b>Done in ${s.turns} turns!</b> All four said yes.`);
       break;
     }
   }
@@ -493,19 +504,29 @@ function showWinner() {
   if ($('s2').classList.contains('active')) go(3);   // don't yank users who navigated away
   const ranked = raceEngines.slice().sort((x, y) => S[x].turns - S[y].turns);
   const b = S[ranked[0]].board;
-  if (b.salary == null || ranked.some((e) => S[e].err)) {   // never celebrate a broken run
+  const free = RULES === 'free';
+  // never celebrate a broken run (in free talk a clean "no deal" is NOT broken)
+  if (ranked.some((e) => S[e].err) || (!free && b.salary == null)) {
     $('verdict').innerHTML = '⚠ Something went wrong — the talk did not finish. Please press <b>🔁 Race again</b>.'
       + (lastErr ? `<br><small style="color:var(--mut)">detail: ${esc(lastErr).slice(0, 160)} — if this repeats, restart the server (Ctrl-C, then ./run.sh).</small>` : '');
     $('guessresult').textContent = '';
     $('podium').innerHTML = ''; $('score').innerHTML = '';
     return;
   }
-  const plan = `$${b.salary}k salary + $${b.bonus}k bonus + ${b.remote} remote days`;
+  const dealOf = (e) => {
+    const bd = S[e].board;
+    return (S[e].nodeal || bd.salary == null) ? null
+      : `$${bd.salary}k salary + $${bd.bonus != null ? bd.bonus : 0}k bonus + ${bd.remote != null ? bd.remote : 0} remote days`;
+  };
+  const plan = dealOf(ranked[0]) || 'no deal';
 
   if (raceEngines.length === 1) {
-    const e = raceEngines[0], n = NICE[e];
-    $('verdict').innerHTML = `${n.emoji} <b>${n.name}</b> closed the deal: <b>${plan}</b>.<br>
-      It used <b>${S[e].turns} turns</b> (${S[e].wasted} wasted) and paid <b>$${S[e].cost.toFixed(3)}</b> for the talk.`;
+    const e = raceEngines[0], n = NICE[e], d = dealOf(e);
+    $('verdict').innerHTML = d
+      ? `${n.emoji} <b>${n.name}</b> closed the deal: <b>${d}</b>.<br>
+      It used <b>${S[e].turns} turns</b> (${S[e].wasted} wasted) and paid <b>$${S[e].cost.toFixed(3)}</b> for the talk.`
+      : `${n.emoji} <b>${n.name}</b> ended with <b>no deal</b> after ${S[e].turns} turns —
+      free talk has no rules, so agreement is never promised. Try again!`;
     $('guessresult').textContent = '';
     $('podium').innerHTML = '';
     $('score').innerHTML = '';
@@ -515,10 +536,21 @@ function showWinner() {
   }
 
   const win = ranked[0], lose = ranked[ranked.length - 1];
-  $('verdict').innerHTML = `🎉 <b>Same deal from all three:</b> ${plan}.<br>
+  if (free) {
+    const deals = raceEngines.map((e) => ({ e, d: dealOf(e) }));
+    const allSame = deals.every(({ d }) => d && d === deals[0].d);
+    $('verdict').innerHTML = allSame
+      ? `🗣️ <b>Free talk — no rules, and they still landed together:</b> ${deals[0].d}.<br>
+        The AI chose every move this time. Run it again — it may end somewhere else.`
+      : `🗣️ <b>Free talk — each way wrote its own ending:</b><br>` +
+        deals.map(({ e, d }) => `${NICE[e].emoji} <b style="color:${NICE[e].cvar}">${NICE[e].name}</b>: ${d || '🤷 no deal'}`).join('<br>') +
+        `<br><b>No rules → no promise of the same deal.</b> That is exactly why the fair race uses hard rules.`;
+  } else {
+    $('verdict').innerHTML = `🎉 <b>Same deal from all three:</b> ${plan}.<br>
     ${NICE[win].emoji} <b style="color:${NICE[win].cvar}">${NICE[win].name}</b> needed only <b>${S[win].turns} turns</b>.
     ${NICE[lose].emoji} ${NICE[lose].name} needed <b>${S[lose].turns}</b>.<br>
     <b>Less talk. Same deal. That is the whole idea!</b>`;
+  }
 
   if (GUESS) {
     $('guessresult').innerHTML = GUESS === win
@@ -574,6 +606,23 @@ function openWords() { $('words').classList.add('open'); }
 function closeWords() { $('words').classList.remove('open'); }
 $('words').onclick = (ev) => { if (ev.target === $('words')) closeWords(); };
 ['inAsk', 'inBand'].forEach((id) => $(id).addEventListener('input', () => { $('goal').textContent = goalLine(); }));
+
+/* rules picker: hard rules (fair race) vs free talk (the AI decides — live key) */
+document.querySelectorAll('#rulepick button').forEach((b) => {
+  b.onclick = () => {
+    const r = b.dataset.r;
+    if (r === 'free' && INFO.real_key === false) {
+      $('rulehint').textContent = '🔑 Free talk needs your own AI key: put ANTHROPIC_API_KEY in .env (see the README), restart ./run.sh, and try again.';
+      return;
+    }
+    RULES = r;
+    document.querySelectorAll('#rulepick button').forEach((x) => x.classList.toggle('on', x === b));
+    $('rulehint').textContent = r === 'free'
+      ? '🗣️ No hard rules: the AI decides every move. Live API calls (a few cents per race). Every run can end differently — or in no deal. Press 🔁 Race again!'
+      : '';
+    $('goal').textContent = goalLine();
+  };
+});
 
 /* expose for inline onclick= */
 Object.assign(window, { go, startRace, restartRace, togglePlay, stepOne, toggleTalk, openParty, openWords, closeWords });

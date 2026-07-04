@@ -35,6 +35,8 @@ The demo **replays real recorded Claude calls** (real words, tokens, and cost �
 
 **🔑 Want live AI calls?** Copy `.env.example` → `.env`, add your `ANTHROPIC_API_KEY`, then `ovb bench --real` or pick **Real API** in the dashboard. Never commit `.env`.
 
+**🗣️ Free-talk mode (no hard rules).** By default, fixed rules decide every number and the model only narrates — so all three ways provably reach the *same* deal and only the talk volume differs (the fair race). Flip **🎛 Change the numbers → Free talk** in the story UI (or `ovb bench --real --free`) and the **model decides every move**: agents genuinely convince each other, runs become non-deterministic, the ways can land on *different* deals — or break their own limits and close no deal at all. The deterministic gate still referees. Needs your API key.
+
 ## 🎬 What you'll see
 
 A 4-scene, gamified story (simple English, built for non-technical viewers too):

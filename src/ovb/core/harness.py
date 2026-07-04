@@ -56,7 +56,8 @@ class Harness:
         if self.config.step_delay:      # pacing so a human can watch it think
             await asyncio.sleep(self.config.step_delay)
         t0 = time.perf_counter()
-        result = await source.act(view, self.llm, self.tools_exec)
+        result = await source.act(view, self.llm, self.tools_exec,
+                                  free=self.config.free)
         measured_ms = (time.perf_counter() - t0) * 1000.0
 
         new_state, changes = apply_patch(

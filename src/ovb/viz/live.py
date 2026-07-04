@@ -55,7 +55,7 @@ class _Disconnected(Exception):
 
 async def _pump(params: ScenarioParams, engine_names, delay: float, write_ev,
                 *, mode: str = "mock", model: str = _DEFAULT_MODEL,
-                cassette: str | None = None):
+                cassette: str | None = None, free: bool = False):
     """Run the selected engines concurrently, streaming their events interleaved."""
     q: asyncio.Queue = asyncio.Queue()
     real = mode == "real"
@@ -70,12 +70,15 @@ async def _pump(params: ScenarioParams, engine_names, delay: float, write_ev,
 
     write_ev({"engine": "_meta", "kind": "start",
               "attrs": {"engines": engine_names, "mode": mode, "model": model,
+                        "rules": "free" if free else "hard",
                         "params": {"ask": params.ask0,
                                    "band": params.band_max}}})
 
     async def run_one(name):
-        cfg = RunConfig(step_delay=eff_delay, real=real, model=model,
-                        cassette=(cassette if mode == "cassette" else None))
+        # free talk never touches the demo cassette: its requests are novel by
+        # nature and must not be recorded into (or replayed from) the fair-race set
+        cfg = RunConfig(step_delay=eff_delay, real=real, model=model, free=free,
+                        cassette=(cassette if mode == "cassette" and not free else None))
         try:
             await run_engine(name, cfg, params, event_sink=make_sink(name))
         except Exception as exc:  # surface per-engine failures to the UI
@@ -129,6 +132,7 @@ class _Handler(BaseHTTPRequestHandler):
             from .. import __version__
             info = {"cassette": os.path.exists(DEMO_CASSETTE),
                     "defaults": {"ask": 130, "band": 110},
+                    "real_key": bool(os.environ.get("ANTHROPIC_API_KEY")),
                     "scenario": SCENARIO_ID, "version": __version__}
             self._send(json.dumps(info).encode("utf-8"),
                        "application/json; charset=utf-8")
@@ -165,6 +169,9 @@ class _Handler(BaseHTTPRequestHandler):
         mode = mode if mode in ("mock", "real", "cassette") else "mock"
         model = one("model", _DEFAULT_MODEL)
         model = model if model in _MODELS else _DEFAULT_MODEL
+        free = one("rules", "hard") == "free"
+        if free:
+            mode = "real"        # free talk only makes sense with a live model
         params = ScenarioParams(ask0=ask, band_max=band)
 
         self.send_response(200)
@@ -196,9 +203,20 @@ class _Handler(BaseHTTPRequestHandler):
                 pass
             return
 
+        # free talk needs a live model: fail fast with one clear message
+        if free and not os.environ.get("ANTHROPIC_API_KEY"):
+            try:
+                write_ev({"engine": "_meta", "kind": "error", "attrs": {
+                    "msg": "Free talk needs a real AI key. Put ANTHROPIC_API_KEY "
+                           "in .env (see README), restart ./run.sh, and try again "
+                           "— or switch back to Hard rules."}})
+            except Exception:
+                pass
+            return
+
         try:
             asyncio.run(_pump(params, engines, delay, write_ev, mode=mode,
-                              model=model, cassette=DEMO_CASSETTE))
+                              model=model, cassette=DEMO_CASSETTE, free=free))
         except _Disconnected:
             pass
         except Exception as exc:

@@ -29,7 +29,14 @@ def _make_llm(config: RunConfig):
     return base
 
 
-def build_gate(params: ScenarioParams) -> PredicateGate:
+def build_gate(params: ScenarioParams, free: bool = False) -> PredicateGate:
+    if free:
+        # free talk: verify the deal is structurally closed, not that it matches
+        # the rule formulas (there are no rules — the model decided the moves)
+        return PredicateGate(
+            lambda s: task.is_agreed(s, params),
+            spec=f"joboffer-free/v1/band={params.band_max}/cap={params.total_cap}",
+        )
     return PredicateGate(
         lambda s: task.is_consistent(s, params),
         spec=f"joboffer/v1/band={params.band_max}/cap={params.total_cap}",
@@ -41,7 +48,7 @@ async def run_engine(name: str, config: RunConfig,
                      event_sink=None) -> EngineResult:
     p = params or ScenarioParams()
     engine = ENGINES[name](
-        registry=agents.build_registry(p), gate=build_gate(p),
+        registry=agents.build_registry(p), gate=build_gate(p, free=config.free),
         initial_state=task.initial_state(p), llm=_make_llm(config), config=config,
         run_id=name, sequencer=Sequencer(), scenario=task.scenario_text(p),
         event_sink=event_sink,

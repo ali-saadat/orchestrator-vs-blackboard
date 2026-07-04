@@ -63,17 +63,21 @@ def bench(
     model: str = typer.Option("claude-haiku-4-5-20251001"),
     cassette: str = typer.Option(None, help="record/replay path"),
     orch_early_exit: bool = typer.Option(False, help="give orchestrator the same gate early-exit"),
+    free: bool = typer.Option(False, help="free talk: the MODEL decides every move "
+                                          "(non-deterministic; needs --real)"),
     html: str = typer.Option("output/report.html", help="animated report path ('' to skip)"),
 ):
     """Run all three harnesses on the same task and compare."""
-    config = RunConfig(real=real, model=model, cassette=cassette,
-                       orch_early_exit=orch_early_exit)
+    if free and not real:
+        raise typer.BadParameter("--free needs --real (a live model must decide the moves)")
+    config = RunConfig(real=real, model=model, cassette=(None if free else cassette),
+                       orch_early_exit=orch_early_exit, free=free)
     params = _params(ask, band)
     results = asyncio.run(run_all(config, params))
 
     FairnessContract.assert_comparable(
-        results, registry=agents.build_registry(params), gate=build_gate(params),
-        config=config,
+        results, registry=agents.build_registry(params),
+        gate=build_gate(params, free=free), config=config,
     )
     typer.echo(task.scenario_text(params) + "\n")
     for r in results.values():
@@ -93,9 +97,14 @@ def bench(
 def run(engine: str = typer.Argument(..., help="orchestrator|blackboard|hybrid"),
         ask: int = typer.Option(130), band: int = typer.Option(110),
         real: bool = typer.Option(False), model: str = typer.Option("claude-haiku-4-5-20251001"),
-        cassette: str = typer.Option(None)):
+        cassette: str = typer.Option(None),
+        free: bool = typer.Option(False, help="free talk: the MODEL decides every move "
+                                              "(non-deterministic; needs --real)")):
     """Run a single harness and print its trace."""
-    config = RunConfig(real=real, model=model, cassette=cassette)
+    if free and not real:
+        raise typer.BadParameter("--free needs --real (a live model must decide the moves)")
+    config = RunConfig(real=real, model=model, cassette=(None if free else cassette),
+                       free=free)
     params = _params(ask, band)
     result = asyncio.run(run_engine(engine, config, params))
     typer.echo(task.scenario_text(params) + "\n")

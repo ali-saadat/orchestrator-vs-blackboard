@@ -19,7 +19,9 @@ elif [ "${1#-}" != "$1" ]; then
 fi
 
 if command -v uv >/dev/null 2>&1; then
-  exec uv run ovb "$@"
+  # --extra real: include the Anthropic SDK so "add your key and go live"
+  # (and the Free-talk mode) work out of the box
+  exec uv run --extra real ovb "$@"
 fi
 
 PY="${PYTHON:-python3}"
@@ -27,6 +29,6 @@ if [ ! -d .venv ]; then
   echo "▶ first run: creating .venv and installing (needs internet) …"
   "$PY" -m venv .venv
   ./.venv/bin/python -m pip install -q --upgrade pip
-  ./.venv/bin/python -m pip install -q -e .
+  ./.venv/bin/python -m pip install -q -e ".[real]"
 fi
 exec ./.venv/bin/ovb "$@"

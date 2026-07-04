@@ -72,6 +72,52 @@ def test_gate_predicate():
     assert not task.is_consistent(PlanState(**{**EXPECTED, "ask": 130}))
 
 
+def test_free_patch_parsing():
+    from ovb.core.registry import parse_free_patch
+    owns = ("ask",)
+    assert parse_free_patch('I will meet you halfway.\n{"ask": 120}', owns) == {"ask": 120}
+    assert parse_free_patch('{"ask": 125} no wait {"ask": 118.6}', owns) == {"ask": 119}
+    assert parse_free_patch('{"ask": 120, "offer": 105}', owns) == {"ask": 120}  # foreign field dropped
+    assert parse_free_patch("I hold my position. {}", owns) == {}
+    assert parse_free_patch("no json at all", owns) == {}
+    assert parse_free_patch('{"ask": "a lot"}', owns) == {}
+    assert parse_free_patch("", owns) == {}
+
+
+def test_free_mode_model_decides():
+    """In free mode the LLM's JSON tail IS the decision; ownership still holds."""
+    from ovb.contracts import Completion, Usage
+
+    class ScriptedLLM:
+        def __init__(self, text):
+            self.text = text
+
+        async def complete(self, *, system, prompt, expect="", tools=(),
+                           tools_exec=None):
+            assert "Decide your next move" in prompt      # decision prompt, not narration
+            return Completion(text=self.text, usage=Usage(input_tokens=10, output_tokens=5))
+
+    cand = agents.build_registry().get("Candidate")
+    state = PlanState(ask=130, offer=100)
+    res = asyncio.run(cand.act(state, ScriptedLLM('Meet me closer. {"ask": 121}'),
+                               None, free=True))
+    assert res.patch == {"ask": 121}
+    # a move on a field the agent does not own is dropped at parse time...
+    res2 = asyncio.run(cand.act(state, ScriptedLLM('{"salary": 999}'), None, free=True))
+    assert res2.patch == {}
+    # ...and the reducer would block it anyway (defense in depth)
+
+
+def test_free_gate_is_agreed():
+    ok = PlanState(ask=112, offer=112, band_max=115, total_cap=124,
+                   salary=112, bonus=5, remote=2)
+    assert task.is_agreed(ok)                         # any closed in-limits deal passes
+    assert not task.is_consistent(ok)                 # ...even if it's not the rule fixpoint
+    assert not task.is_agreed(PlanState(**{**ok.model_dump(), "salary": 120}))  # over band
+    assert not task.is_agreed(PlanState(**{**ok.model_dump(), "bonus": 20}))    # over cap
+    assert not task.is_agreed(PlanState(**{**ok.model_dump(), "remote": None})) # not signed
+
+
 def test_story_ui_prompt_explainer_in_sync():
     """The scene-4 'why the same deal' explainer quotes the real prompts.
     Guard against drift: every role string and the user-prompt template shown

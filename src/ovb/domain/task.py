@@ -122,3 +122,22 @@ def is_consistent(state: PlanState, params: "ScenarioParams | None" = None) -> b
             state.remote == remote_for(state.salary, p),
         ]
     )
+
+
+def is_agreed(state: PlanState, params: "ScenarioParams | None" = None) -> bool:
+    """The FREE-TALK gate: the deal is structurally closed and no announced
+    limit is broken. Unlike `is_consistent`, it does NOT check the rule-derived
+    exact values (bonus/remote formulas) — in free mode HOW they got there was
+    the model's choice; the gate only verifies that everyone actually agreed."""
+    return all(
+        [
+            state.salary is not None,
+            state.ask == state.offer == state.salary,
+            state.band_max is not None and state.salary is not None
+            and state.salary <= state.band_max,
+            state.total_cap is not None and state.bonus is not None
+            and state.salary is not None
+            and state.salary + state.bonus <= state.total_cap,
+            state.remote is not None and 1 <= state.remote <= 5,
+        ]
+    )
