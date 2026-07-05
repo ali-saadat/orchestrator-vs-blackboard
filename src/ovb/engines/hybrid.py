@@ -43,16 +43,45 @@ class HybridHarness(Harness):
                     queue.append((n, why))
                     queued.add(n)
 
-        enqueue([n for n in self.registry.names() if n in CORE], "seed: kickoff (core)")
-        while queue and steps < self.config.hybrid_cap:
-            steps += 1
-            name, why = queue.popleft()
-            queued.discard(name)
-            changes = await self.invoke(self.registry.get(name), trigger=why)
-            for field in changes:
-                for n in subs.get(field, []):
-                    self.rec.agent_retriggered(n, because=f"{field} changed (core)")
-                enqueue(subs.get(field, []), f"{field} changed (core)")
+        core_names = [n for n in self.registry.names() if n in CORE]
+        enqueue(core_names, "seed: kickoff (core)")
+        # bounded blackboard over the core, with the same quiescence re-scan the
+        # blackboard uses for liveness (a stranded core agent would otherwise
+        # never re-trigger — see blackboard.py)
+        # the core is settled once the salary is agreed (Candidate↔Manager, under
+        # HR's band); then the tail signs. Breaking on that avoids a wasteful
+        # detection re-scan when the core succeeds — the re-scan only runs to
+        # rescue a genuinely stranded core (salary still open at quiescence).
+        while steps < self.config.hybrid_cap:
+            while queue and steps < self.config.hybrid_cap:
+                steps += 1
+                name, why = queue.popleft()
+                queued.discard(name)
+                changes = await self.invoke(self.registry.get(name), trigger=why)
+                for field in changes:
+                    for n in subs.get(field, []):
+                        self.rec.agent_retriggered(n, because=f"{field} changed (core)")
+                    enqueue(subs.get(field, []), f"{field} changed (core)")
+            # drained naturally: if the salary is agreed the core has settled
+            # (HR reacted to it via the normal ripple), so skip the re-scan; only
+            # a still-open salary at quiescence means a stranded core to rescue
+            if self.state.salary is not None or steps >= self.config.hybrid_cap:
+                break
+            made_change = False
+            for name in core_names:
+                if steps >= self.config.hybrid_cap:
+                    break
+                steps += 1
+                changes = await self.invoke(self.registry.get(name),
+                                            trigger="quiescence re-scan (core)")
+                if changes:
+                    made_change = True
+                    for field in changes:
+                        for n in subs.get(field, []):
+                            self.rec.agent_retriggered(n, because=f"{field} changed (core)")
+                        enqueue(subs.get(field, []), f"{field} changed (core)")
+            if not made_change:
+                break
 
         # Phase B — linear supervisor tail over the independent agents
         for name in TAIL:
