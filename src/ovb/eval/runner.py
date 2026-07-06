@@ -17,6 +17,10 @@ from ..engines import ENGINES
 
 
 def _make_llm(config: RunConfig):
+    if getattr(config, "backend", "anthropic") == "bedrock":
+        from ..core.bedrock import BedrockLLM
+        return BedrockLLM(model=config.model, temperature=config.temperature,
+                          max_tokens=config.max_tokens)
     base = (ClaudeLLM if config.real else MockLLM)(
         model=config.model, temperature=config.temperature,
         max_tokens=config.max_tokens,

@@ -23,6 +23,7 @@ class RunConfig(BaseModel):
 
     # execution mode
     real: bool = False              # False = MockLLM (deterministic, offline)
+    backend: str = "anthropic"      # "anthropic" (direct API) | "bedrock" (multi-family)
     cassette: str | None = None     # path to a cassette for record/replay
 
     # negotiation rules. hard rules (free=False, default): deterministic rules

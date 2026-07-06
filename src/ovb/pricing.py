@@ -29,7 +29,15 @@ _DEFAULT = "claude-sonnet-5"
 
 
 def get_price(model: str) -> ModelPrice:
-    base_in, base_out = _BASE.get(model, _BASE[_DEFAULT])
+    if model in _BASE:
+        base_in, base_out = _BASE[model]
+    else:
+        try:                                   # Bedrock roster carries its own prices
+            from .core.bedrock import bedrock_price
+            bp = bedrock_price(model)
+        except Exception:                      # noqa: BLE001
+            bp = None
+        base_in, base_out = bp if bp else _BASE[_DEFAULT]
     return ModelPrice(
         model=model,
         input_per_mtok=base_in,
